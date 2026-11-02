@@ -4,6 +4,7 @@ import { interpret } from "./interpret";
 
 describe("Spark 해석 어댑터 — 패스트푸드", () => {
   it("메뉴 id를 enum으로 묶은 JSON 스키마로 Spark에 요청하고, 응답의 null 칸은 빼서 주문 의도로 돌려준다", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 요청 본문을 깊게 들여다보는 테스트
     let sent: { url: string; body: Record<string, any> } | undefined;
     const fakeFetch = async (url: string | URL | Request, init?: RequestInit) => {
       sent = { url: String(url), body: JSON.parse(String(init?.body)) };
