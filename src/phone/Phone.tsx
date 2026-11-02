@@ -84,6 +84,7 @@ export function Phone() {
       const chunks: Blob[] = [];
       rec.ondataavailable = (e) => chunks.push(e.data);
       rec.start();
+      linkRef.current?.send({ type: "listening" });
       recRef.current = { rec, stream, chunks };
       setPhase("recording");
       return;

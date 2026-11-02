@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { idlePhase, type IdlePhase } from "@/engine/idle";
+import { newRun, trackRun, type RunBy, type RunStats } from "@/engine/run";
 import { localLink, type Link } from "@/sync/link";
 import { initialState, step, type KioskEvent, type KioskState, type Target } from "../machine";
 import { FastfoodKiosk, type Highlight } from "./Kiosk";
@@ -49,7 +50,33 @@ const samples = [
   "치즈버거 세트 하나요",
 ];
 
-export function FastfoodStation() {
+// 나란히 비교 장면의 실측 표시. 진행 중에는 0.1초 단위로 흐른다
+function RunBar({ run }: { run: RunStats }) {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (run.startedAt === null || run.endedAt !== null) return;
+    const id = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, [run.startedAt, run.endedAt]);
+  const ms = run.startedAt === null ? 0 : (run.endedAt ?? Math.max(now, run.startedAt)) - run.startedAt;
+  return (
+    <div className={`flex w-full items-center gap-6 rounded-xl px-5 py-3 ${run.endedAt !== null ? "bg-teal-700 text-white" : "bg-white"}`}>
+      <div className="font-mono text-4xl font-bold whitespace-nowrap tabular-nums">{(ms / 1000).toFixed(1)} s</div>
+      <div className="text-sm leading-tight whitespace-nowrap">
+        <div>
+          Your taps: <b>{run.humanTaps}</b>
+        </div>
+        <div>
+          Screens: <b>{run.screens}</b>
+        </div>
+        {run.kiboTaps > 0 && <div>KIBO taps: {run.kiboTaps}</div>}
+      </div>
+      {run.endedAt !== null && <div className="ml-auto text-sm font-bold whitespace-nowrap">✓ Ready to pay</div>}
+    </div>
+  );
+}
+
+export function FastfoodStation({ variant = "dev", room, title }: { variant?: "dev" | "compare"; room?: string; title?: string } = {}) {
   const [state, setState] = useState<KioskState>(initialState);
   const stateRef = useRef(state);
   const busyRef = useRef(false);
@@ -59,7 +86,8 @@ export function FastfoodStation() {
   const [text, setText] = useState(samples[0]);
   const [last, setLast] = useState<InterpretResponse | null>(null);
   const [thinking, setThinking] = useState(false);
-  const scale = useFitScale(960);
+  const scale = useFitScale(variant === "compare" ? 1100 : 960);
+  const [run, setRun] = useState<RunStats>(() => newRun("review"));
   const linkRef = useRef<Link | null>(null);
   const [hello, setHello] = useState(0);
   const lastActRef = useRef(0);
@@ -71,10 +99,12 @@ export function FastfoodStation() {
   }, []);
 
   const apply = useCallback(
-    (s: KioskState) => {
+    (s: KioskState, by: RunBy = "touch") => {
       stateRef.current = s;
       setState(s);
       touchActivity();
+      const now = Date.now();
+      setRun((r) => trackRun(r, { type: "step", by, screen: s.screen }, now));
     },
     [touchActivity],
   );
@@ -100,9 +130,12 @@ export function FastfoodStation() {
   // 실제 키오스크처럼 "담기 완료" 화면은 잠시 뒤 메뉴로 돌아간다
   useEffect(() => {
     if (state.screen !== "added" || busy) return;
-    const id = setTimeout(() => press("added_ok"), 1500);
+    const id = setTimeout(() => {
+      const r = step(stateRef.current, { by: "touch", target: "added_ok" });
+      if (r.ok) apply(r.state, "auto");
+    }, 1500);
     return () => clearTimeout(id);
-  }, [state.screen, busy, press]);
+  }, [state.screen, busy, apply]);
 
   async function play(events: KioskEvent[]) {
     busyRef.current = true;
@@ -117,7 +150,7 @@ export function FastfoodStation() {
           console.error("KIBO step failed", e, r.error);
           break;
         }
-        apply(r.state);
+        apply(r.state, "kibo");
         setHl(null);
         await sleep(120);
       }
@@ -158,17 +191,22 @@ export function FastfoodStation() {
   });
 
   useEffect(() => {
-    const link = localLink(new URLSearchParams(location.search).get("room") ?? "demo");
+    const link = localLink(room ?? new URLSearchParams(location.search).get("room") ?? "demo");
     linkRef.current = link;
     const off = link.subscribe((m) => {
       if (m.type === "utterance") onPhoneUtterance(m.text);
       if (m.type === "hello") setHello((n) => n + 1);
+      // 글로 보낸 경우에도 해석 시간이 빠지지 않게 받은 순간부터 잰다(마이크로 이미 시작했으면 그대로)
+      if (m.type === "listening" || m.type === "utterance") {
+        const now = Date.now();
+        setRun((r) => trackRun(r, { type: "listening" }, now));
+      }
     });
     return () => {
       off();
       link.close();
     };
-  }, []);
+  }, [room]);
 
   // 휴대폰에 지금 화면과 진행을 알린다
   useEffect(() => {
@@ -200,23 +238,36 @@ export function FastfoodStation() {
       </div>
     ) : null;
 
+  const kiosk = (
+    <div style={{ width: 540 * scale, height: 960 * scale }}>
+      <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
+        <FastfoodKiosk
+          state={state}
+          press={press}
+          highlight={hl}
+          banner={
+            <>
+              {banner}
+              {timeoutPopup}
+            </>
+          }
+        />
+      </div>
+    </div>
+  );
+
+  if (variant === "compare")
+    return (
+      <div className="flex flex-col items-center gap-3" style={{ width: 540 * scale }}>
+        <div className="text-2xl font-bold">{title}</div>
+        {kiosk}
+        <RunBar run={run} />
+      </div>
+    );
+
   return (
     <div className="flex min-h-screen items-start justify-center gap-8 bg-neutral-200 p-3">
-      <div style={{ width: 540 * scale, height: 960 * scale }}>
-        <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-          <FastfoodKiosk
-            state={state}
-            press={press}
-            highlight={hl}
-            banner={
-              <>
-                {banner}
-                {timeoutPopup}
-              </>
-            }
-          />
-        </div>
-      </div>
+      {kiosk}
 
       <div className="w-96 rounded-xl bg-white p-4 text-sm shadow">
         <div className="mb-2 font-bold">KIBO dev console</div>

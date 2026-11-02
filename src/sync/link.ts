@@ -5,6 +5,8 @@ export type LinkMsg =
   | { type: "utterance"; text: string; lang: string }
   // 휴대폰 → 키오스크: 막 연결했으니 지금 상태를 알려 달라
   | { type: "hello" }
+  // 휴대폰 → 키오스크: 마이크를 눌렀다(나란히 비교의 시작 시각)
+  | { type: "listening" }
   // 키오스크 → 휴대폰: KIBO의 대답과 결과
   | { type: "reply"; say: string; replyLanguage: string; result: "plan" | "clarify" | "reject" | "error"; taps?: number; paymentHandoff?: boolean }
   // 키오스크 → 휴대폰: 지금 화면과 조작 진행
