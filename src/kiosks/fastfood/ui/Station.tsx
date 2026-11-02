@@ -3,6 +3,7 @@
 // 키오스크 한 대와 KIBO 개발용 콘솔. 사람 터치와 KIBO 재생이 같은 step()을 거친다.
 
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { idlePhase, type IdlePhase } from "@/engine/idle";
 import { localLink, type Link } from "@/sync/link";
 import { initialState, step, type KioskEvent, type KioskState, type Target } from "../machine";
 import { FastfoodKiosk, type Highlight } from "./Kiosk";
@@ -61,17 +62,40 @@ export function FastfoodStation() {
   const scale = useFitScale(960);
   const linkRef = useRef<Link | null>(null);
   const [hello, setHello] = useState(0);
+  const lastActRef = useRef(0);
+  const [idle, setIdle] = useState<IdlePhase>({ kind: "active" });
 
-  const apply = (s: KioskState) => {
-    stateRef.current = s;
-    setState(s);
-  };
+  const touchActivity = useCallback(() => {
+    lastActRef.current = Date.now();
+    setIdle({ kind: "active" });
+  }, []);
+
+  const apply = useCallback(
+    (s: KioskState) => {
+      stateRef.current = s;
+      setState(s);
+      touchActivity();
+    },
+    [touchActivity],
+  );
+
+  // 실제 키오스크처럼 오래 조작이 없으면 경고하고, 그래도 없으면 처음 화면으로 돌아간다
+  useEffect(() => {
+    lastActRef.current = Date.now();
+    const id = setInterval(() => {
+      if (busyRef.current) return;
+      const ph = idlePhase(Date.now() - lastActRef.current, stateRef.current.screen);
+      if (ph.kind === "reset") apply(initialState());
+      else setIdle(ph);
+    }, 500);
+    return () => clearInterval(id);
+  }, [apply]);
 
   const press = useCallback((target: Target, value?: string) => {
     if (busyRef.current) return;
     const r = step(stateRef.current, value === undefined ? { by: "touch", target } : { by: "touch", target, value });
     if (r.ok) apply(r.state);
-  }, []);
+  }, [apply]);
 
   // 실제 키오스크처럼 "담기 완료" 화면은 잠시 뒤 메뉴로 돌아간다
   useEffect(() => {
@@ -107,6 +131,7 @@ export function FastfoodStation() {
 
   async function ask(utterance: string, fromPhone = false) {
     if (busyRef.current) return;
+    touchActivity();
     setThinking(true);
     const res = await fetch("/api/fastfood/interpret", {
       method: "POST",
@@ -161,11 +186,35 @@ export function FastfoodStation() {
     </div>
   ) : null;
 
+  const timeoutPopup =
+    idle.kind === "warning" ? (
+      <div className="absolute inset-0 z-40 flex items-center justify-center bg-neutral-900/60 p-8" role="alertdialog" aria-label={t.needMoreTime[state.lang]}>
+        <div className="w-full rounded-xl bg-white p-8 text-center">
+          <div className="text-6xl">⏱️</div>
+          <div className="mt-4 text-2xl font-bold">{t.needMoreTime[state.lang]}</div>
+          <div className="mt-2 text-neutral-600">{state.lang === "ko" ? `${idle.secondsLeft}초 후 처음 화면으로 돌아갑니다` : `Returning to the start screen in ${idle.secondsLeft}s`}</div>
+          <button type="button" onClick={touchActivity} className="mt-6 w-full rounded bg-orange-500 py-4 text-xl font-bold text-white">
+            {t.continue[state.lang]}
+          </button>
+        </div>
+      </div>
+    ) : null;
+
   return (
     <div className="flex min-h-screen items-start justify-center gap-8 bg-neutral-200 p-3">
       <div style={{ width: 540 * scale, height: 960 * scale }}>
         <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-          <FastfoodKiosk state={state} press={press} highlight={hl} banner={banner} />
+          <FastfoodKiosk
+            state={state}
+            press={press}
+            highlight={hl}
+            banner={
+              <>
+                {banner}
+                {timeoutPopup}
+              </>
+            }
+          />
         </div>
       </div>
 

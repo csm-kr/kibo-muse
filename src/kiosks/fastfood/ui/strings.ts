@@ -48,6 +48,8 @@ export const t = {
   step: { en: "Step", ko: "단계" },
   set: { en: "Meal", ko: "세트" },
   single: { en: "Single", ko: "단품" },
+  needMoreTime: { en: "Do you need more time?", ko: "시간이 더 필요하신가요?" },
+  continue: { en: "Continue", ko: "계속하기" },
 } satisfies Record<string, Record<Lang, string>>;
 
 export const won = (n: number) => `₩${n.toLocaleString("en-US")}`;
