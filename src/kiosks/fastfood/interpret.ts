@@ -92,7 +92,7 @@ RULES
 - Required: orderType unless already chosen; set or single per burger; size and drink per set.
 - checkout = customer is done. requestPayment = asks you to pay (you can't; they tap Pay).
 - items = only new items. replyLanguage = BCP-47 code of the customer's language.
-- say = short, in replyLanguage. Missing required info → one question for all of it. Otherwise confirm (mention fries if unsaid, items not on menu, and that they tap Pay if asked).`;
+- say = short, in replyLanguage. Missing required info → one question for all of it. Otherwise state what you added, as a statement, not a question (mention fries if unsaid, items not on menu, and that they tap Pay if asked).`;
 
 function summarize(state: KioskState): string {
   const cart = state.cart.map((l) => `${l.qty}x ${findItem(l.menuId)?.name.en} (${l.mode}${l.size ? " " + l.size : ""})`).join(", ");

@@ -2,7 +2,8 @@
 
 // 키오스크 한 대와 KIBO 개발용 콘솔. 사람 터치와 KIBO 재생이 같은 step()을 거친다.
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { localLink, type Link } from "@/sync/link";
 import { initialState, step, type KioskEvent, type KioskState, type Target } from "../machine";
 import { FastfoodKiosk, type Highlight } from "./Kiosk";
 import { t } from "./strings";
@@ -58,6 +59,8 @@ export function FastfoodStation() {
   const [last, setLast] = useState<InterpretResponse | null>(null);
   const [thinking, setThinking] = useState(false);
   const scale = useFitScale(960);
+  const linkRef = useRef<Link | null>(null);
+  const [hello, setHello] = useState(0);
 
   const apply = (s: KioskState) => {
     stateRef.current = s;
@@ -102,7 +105,8 @@ export function FastfoodStation() {
     }
   }
 
-  async function ask(utterance: string) {
+  async function ask(utterance: string, fromPhone = false) {
+    if (busyRef.current) return;
     setThinking(true);
     const res = await fetch("/api/fastfood/interpret", {
       method: "POST",
@@ -112,10 +116,41 @@ export function FastfoodStation() {
     const body = (await res.json()) as InterpretResponse;
     setThinking(false);
     setLast(body);
+    const p = body.plan;
+    linkRef.current?.send(
+      body.error
+        ? { type: "reply", say: body.error, replyLanguage: "en", result: "error" }
+        : { type: "reply", say: body.say, replyLanguage: body.replyLanguage, result: p.kind, ...(p.kind === "plan" && { taps: p.events.length, paymentHandoff: p.paymentHandoff }) },
+    );
     if (body.error) return;
-    speak(body.say, body.replyLanguage);
-    if (body.plan.kind === "plan") await play(body.plan.events);
+    // 휴대폰에서 온 말이면 휴대폰이 대답을 읽는다
+    if (!fromPhone) speak(body.say, body.replyLanguage);
+    if (p.kind === "plan") await play(p.events);
   }
+  const onPhoneUtterance = useEffectEvent((u: string) => {
+    setText(u);
+    void ask(u, true);
+  });
+
+  useEffect(() => {
+    const link = localLink(new URLSearchParams(location.search).get("room") ?? "demo");
+    linkRef.current = link;
+    const off = link.subscribe((m) => {
+      if (m.type === "utterance") onPhoneUtterance(m.text);
+      if (m.type === "hello") setHello((n) => n + 1);
+    });
+    return () => {
+      off();
+      link.close();
+    };
+  }, []);
+
+  // 휴대폰에 지금 화면과 진행을 알린다
+  useEffect(() => {
+    const total = state.cart.reduce((n, l) => n + l.qty * l.unitPrice, 0);
+    const items = state.cart.reduce((n, l) => n + l.qty, 0);
+    linkRef.current?.send({ type: "status", screen: state.screen, busy, items, total, ...(progress && { step: progress.i, steps: progress.n }) });
+  }, [state, busy, progress, hello]);
 
   const banner = progress ? (
     <div className="absolute inset-x-0 top-0 z-30 flex items-center gap-2 bg-orange-500 px-4 py-2 text-sm font-bold text-white">

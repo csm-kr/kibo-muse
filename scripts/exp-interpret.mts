@@ -15,7 +15,7 @@ const utterances: [string, string][] = [
   ["pay", "더블 치즈버거 하나 단품으로, 포장. 그거면 됐어요, 결제도 해 주세요"],
 ];
 
-for (const effort of ["minimal", "minimal"] as const) {
+for (const effort of ["minimal"] as const) {
   console.log(`\n=== effort=${effort} ===`);
   const times: number[] = [];
   for (const [tag, u] of utterances) {
