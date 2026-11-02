@@ -1,0 +1,944 @@
+{
+ "summary": {
+  "n": 22,
+  "kinds": {
+   "hit": 15,
+   "unsure_save": 5,
+   "unsure_ok": 1,
+   "wrong": 1
+  },
+  "wrong_of_drawn": "1/16",
+  "hit_rate": 0.682,
+  "unsure_rate": 0.273,
+  "pending_wrong": 6,
+  "wall_p50": 8283,
+  "wall_p95": 13300,
+  "voice_p50": 8283,
+  "voice_p95": 13300,
+  "pending_p50": 5405,
+  "calls": {
+   "spark": 44,
+   "sam": 22
+  },
+  "r429": [],
+  "flaky": []
+ },
+ "rows": [
+  {
+   "id": "ap01",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 8432,
+   "voiceMs": 8432,
+   "pendingMs": 5405,
+   "timing": {
+    "sparkMs": 5360,
+    "samMs": 1239,
+    "checkMs": 1784,
+    "totalMs": 8398
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "도움말",
+   "want": "도움말",
+   "read": "도움",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "画面左下の[도움말]ボタンを押してください。",
+   "unsure": null,
+   "sparkBox": [
+    336,
+    418,
+    416,
+    445
+   ],
+   "drawn": [
+    342,
+    416,
+    406,
+    449
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.943,
+   "error": null
+  },
+  {
+   "id": "ap02",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 10735,
+   "voiceMs": 10735,
+   "pendingMs": 6019,
+   "timing": {
+    "sparkMs": 6015,
+    "samMs": 3289,
+    "checkMs": 1426,
+    "totalMs": 10733
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "동행을 추가하시려면 여기를 눌러주시기 바랍니다",
+   "want": "일행을 추가하시려면 여기를 눌러주시기 바랍니다 +",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "화면 중앙 오른쪽 주황색 [동행을 추가하시려면 여기를 눌러주시기 바랍니다] 버튼을 누르세요.",
+   "unsure": "정확한 위치는 확실하지 않아요. 화면에서 [동행을 추가하시려면 여기를 눌러주시기 바랍니다]를 찾아 누르세요.",
+   "sparkBox": [
+    569,
+    251,
+    875,
+    274
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "ap03",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 8954,
+   "voiceMs": 8954,
+   "pendingMs": 5899,
+   "timing": {
+    "sparkMs": 5896,
+    "samMs": 1915,
+    "checkMs": 1137,
+    "totalMs": 8952
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "좌석 배치도",
+   "want": "좌석 배치도",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "画面右側中央の [좌석 배치도] ボタンを押してください。",
+   "unsure": "正確な位置はわかりません。画面で［좌석 배치도］を探して押してください。",
+   "sparkBox": [
+    724,
+    293,
+    827,
+    319
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "ap04",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 8221,
+   "voiceMs": 8221,
+   "pendingMs": 6023,
+   "timing": {
+    "sparkMs": 6019,
+    "samMs": 1218,
+    "checkMs": 978,
+    "totalMs": 8219
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "확정합니다.",
+   "want": "체크인을 확정합니다",
+   "read": "확정합니다.",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Nhấn nút [확정합니다.] ở góc dưới bên phải màn hình để xác nhận check-in.",
+   "unsure": null,
+   "sparkBox": [
+    676,
+    423,
+    779,
+    448
+   ],
+   "drawn": [
+    657,
+    423,
+    755,
+    448
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.717,
+   "error": null
+  },
+  {
+   "id": "ap05",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 7986,
+   "voiceMs": 7986,
+   "pendingMs": 5123,
+   "timing": {
+    "sparkMs": 5120,
+    "samMs": 1416,
+    "checkMs": 1445,
+    "totalMs": 7984
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "전자항공권 여정안내서 출력",
+   "want": "전자항공권 여정안내서 출력",
+   "read": "전자항공권 여정안내서 출력",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "화면 하단 가운데 [전자항공권 여정안내서 출력] 버튼을 누르세요.",
+   "unsure": null,
+   "sparkBox": [
+    562,
+    561,
+    856,
+    595
+   ],
+   "drawn": [
+    659,
+    558,
+    889,
+    593
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.915,
+   "error": null
+  },
+  {
+   "id": "ap06",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 5917,
+   "voiceMs": 5917,
+   "pendingMs": 3850,
+   "timing": {
+    "sparkMs": 3847,
+    "samMs": 932,
+    "checkMs": 1132,
+    "totalMs": 5915
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "2",
+   "want": "2",
+   "read": "2",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Tap the [2] in the baggage count row in the middle of the screen.",
+   "unsure": null,
+   "sparkBox": [
+    521,
+    214,
+    572,
+    242
+   ],
+   "drawn": [
+    523,
+    207,
+    570,
+    238
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.552,
+   "error": null
+  },
+  {
+   "id": "ap07",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 9435,
+   "voiceMs": 9435,
+   "pendingMs": 4436,
+   "timing": {
+    "sparkMs": 4432,
+    "samMs": 2567,
+    "checkMs": 2430,
+    "totalMs": 9433
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "START",
+   "want": "START",
+   "read": "START\n화면을 터치해주세요.",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "画面下中央の[START]ボタンを押してください。",
+   "unsure": null,
+   "sparkBox": [
+    456,
+    392,
+    677,
+    459
+   ],
+   "drawn": [
+    430,
+    387,
+    698,
+    464
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.627,
+   "error": null
+  },
+  {
+   "id": "ap08",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 7944,
+   "voiceMs": 7944,
+   "pendingMs": 3926,
+   "timing": {
+    "sparkMs": 3923,
+    "samMs": 1497,
+    "checkMs": 2520,
+    "totalMs": 7943
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "수하물태그 재발행 (분실 및 훼손시)",
+   "want": "수하물태그 재발행 (분실 및 훼손시)",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Nhấn nút [수하물태그 재발행 (분실 및 훼손시)] ở phía dưới bên phải màn hình.",
+   "unsure": "Tôi không chắc vị trí chính xác. Hãy tìm [수하물태그 재발행 (분실 및 훼손시)] trên màn hình và bấm vào.",
+   "sparkBox": [
+    564,
+    303,
+    773,
+    329
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "ap09",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 6224,
+   "voiceMs": 6224,
+   "pendingMs": 3458,
+   "timing": {
+    "sparkMs": 3455,
+    "samMs": 1691,
+    "checkMs": 1073,
+    "totalMs": 6222
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "AIRFRANCE",
+   "want": "AIR FRANCE",
+   "read": "AIRFRANCE",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Tap the [AIRFRANCE] button on the middle right side of the screen.",
+   "unsure": null,
+   "sparkBox": [
+    437,
+    327,
+    641,
+    396
+   ],
+   "drawn": [
+    438,
+    356,
+    611,
+    401
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.603,
+   "error": null
+  },
+  {
+   "id": "ap10",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_ok",
+   "wallMs": 10235,
+   "voiceMs": 10235,
+   "pendingMs": 6389,
+   "timing": {
+    "sparkMs": 6386,
+    "samMs": 1178,
+    "checkMs": 2665,
+    "totalMs": 10233
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "제주항공",
+   "want": "JEJU air (육각형)",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "화면 위쪽 오른쪽 [제주항공] 버튼을 누르세요.",
+   "unsure": "정확한 위치는 확실하지 않아요. 화면에서 [제주항공]를 찾아 누르세요.",
+   "sparkBox": [
+    286,
+    92,
+    376,
+    189
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": false,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "tr01",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 7674,
+   "voiceMs": 7674,
+   "pendingMs": 4195,
+   "timing": {
+    "sparkMs": 4192,
+    "samMs": 1909,
+    "checkMs": 1568,
+    "totalMs": 7673
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "きっぷ・Suica定期券を払いもどす",
+   "want": "きっぷ／Suica定期券を払いもどす",
+   "read": "きっぷ／Suica定期券を\n払いもどす",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Press the [きっぷ・Suica定期券を払いもどす] button in the middle left of the right machine screen.",
+   "unsure": null,
+   "sparkBox": [
+    989,
+    412,
+    1128,
+    466
+   ],
+   "drawn": [
+    994,
+    402,
+    1115,
+    454
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.836,
+   "error": null
+  },
+  {
+   "id": "tr02",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 11425,
+   "voiceMs": 11425,
+   "pendingMs": 5947,
+   "timing": {
+    "sparkMs": 5943,
+    "samMs": 3008,
+    "checkMs": 2467,
+    "totalMs": 11423
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "きっぷを受け取る",
+   "want": "きっぷを受け取る",
+   "read": "きっぷを受け取る\nえきねっと",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Nhấn nút [きっぷを受け取る] ở giữa bên phải màn hình.",
+   "unsure": null,
+   "sparkBox": [
+    578,
+    339,
+    913,
+    435
+   ],
+   "drawn": [
+    592,
+    345,
+    913,
+    443
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.653,
+   "error": null
+  },
+  {
+   "id": "tr03",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 8283,
+   "voiceMs": 8283,
+   "pendingMs": 5408,
+   "timing": {
+    "sparkMs": 5405,
+    "samMs": 1441,
+    "checkMs": 1432,
+    "totalMs": 8281
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "한국어",
+   "want": "한국어",
+   "read": "한국어",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "화면 오른쪽 위 [한국어] 버튼을 누르세요.",
+   "unsure": null,
+   "sparkBox": [
+    682,
+    22,
+    781,
+    64
+   ],
+   "drawn": [
+    706,
+    23,
+    782,
+    66
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.802,
+   "error": null
+  },
+  {
+   "id": "tr04",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 7470,
+   "voiceMs": 7470,
+   "pendingMs": 3752,
+   "timing": {
+    "sparkMs": 3747,
+    "samMs": 2176,
+    "checkMs": 1539,
+    "totalMs": 7467
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "仙台",
+   "want": "仙台",
+   "read": "仙台",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Press the [仙台] button in the upper middle section, in the second row.",
+   "unsure": null,
+   "sparkBox": [
+    626,
+    336,
+    778,
+    407
+   ],
+   "drawn": [
+    620,
+    332,
+    782,
+    408
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.799,
+   "error": null
+  },
+  {
+   "id": "tr05",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 7390,
+   "voiceMs": 7390,
+   "pendingMs": 3510,
+   "timing": {
+    "sparkMs": 3506,
+    "samMs": 2510,
+    "checkMs": 1359,
+    "totalMs": 7388
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "大人 2人",
+   "want": "大人 2人",
+   "read": "大人 2人",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Hãy nhấn nút [大人 2人] ở hàng trên cùng, ô giữa màn hình.",
+   "unsure": null,
+   "sparkBox": [
+    489,
+    250,
+    790,
+    420
+   ],
+   "drawn": [
+    488,
+    250,
+    792,
+    419
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.974,
+   "error": null
+  },
+  {
+   "id": "ff01",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 10835,
+   "voiceMs": 10835,
+   "pendingMs": 5499,
+   "timing": {
+    "sparkMs": 5495,
+    "samMs": 1657,
+    "checkMs": 3676,
+    "totalMs": 10833
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "주문하기",
+   "want": "주문하기",
+   "read": "주문하기",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "화면 오른쪽 키오스크 화면 하단 오른쪽에 있는 [주문하기] 버튼을 누르세요.",
+   "unsure": null,
+   "sparkBox": [
+    514,
+    272,
+    572,
+    313
+   ],
+   "drawn": [
+    518,
+    269,
+    573,
+    316
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.444,
+   "error": null
+  },
+  {
+   "id": "ff02",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 18901,
+   "voiceMs": 18900,
+   "pendingMs": 7668,
+   "timing": {
+    "sparkMs": 7665,
+    "samMs": 1028,
+    "checkMs": 10202,
+    "totalMs": 18899
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "주문하기",
+   "want": "주문하기 (Start Order)",
+   "read": "주문하기\n(Start Order)",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "画面の下側右にある [주문하기] ボタンを押してください。",
+   "unsure": null,
+   "sparkBox": [
+    268,
+    377,
+    363,
+    422
+   ],
+   "drawn": [
+    267,
+    386,
+    365,
+    429
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.703,
+   "error": null
+  },
+  {
+   "id": "ff03",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 6426,
+   "voiceMs": 6426,
+   "pendingMs": 3301,
+   "timing": {
+    "sparkMs": 3299,
+    "samMs": 1535,
+    "checkMs": 1586,
+    "totalMs": 6425
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "쿠폰",
+   "want": "쿠폰",
+   "read": "쿠폰",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "画面下部の[쿠폰]ボタンを押してください。",
+   "unsure": null,
+   "sparkBox": [
+    311,
+    892,
+    430,
+    971
+   ],
+   "drawn": [
+    312,
+    890,
+    429,
+    971
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.975,
+   "error": null
+  },
+  {
+   "id": "ff04",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 10365,
+   "voiceMs": 10364,
+   "pendingMs": 5438,
+   "timing": {
+    "sparkMs": 5435,
+    "samMs": 1359,
+    "checkMs": 3565,
+    "totalMs": 10363
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "스프라이트 - 라지",
+   "want": "스프라이트 - 라지",
+   "read": "스프라이트 · 라지\n205 Kcal",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Hãy nhấn nút [스프라이트 - 라지] ở hàng trên cùng, ô giữa màn hình.",
+   "unsure": null,
+   "sparkBox": [
+    199,
+    160,
+    276,
+    264
+   ],
+   "drawn": [
+    197,
+    160,
+    276,
+    265
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.947,
+   "error": null
+  },
+  {
+   "id": "ff05",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 7367,
+   "voiceMs": 7367,
+   "pendingMs": 3560,
+   "timing": {
+    "sparkMs": 3557,
+    "samMs": 1323,
+    "checkMs": 2480,
+    "totalMs": 7365
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "+",
+   "want": "+",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Press the [+] button on the middle right, to the right of the quantity number, to change 1 to 2.",
+   "unsure": "I'm not sure of the exact spot. Find [+] on the screen and tap it.",
+   "sparkBox": [
+    324,
+    517,
+    350,
+    550
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "S2",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 7632,
+   "voiceMs": 7632,
+   "pendingMs": 4278,
+   "timing": {
+    "sparkMs": 4275,
+    "samMs": 1824,
+    "checkMs": 1527,
+    "totalMs": 7631
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "2",
+   "want": "2",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "Press the [2] button in the middle row for the baggage count.",
+   "unsure": "I'm not sure of the exact spot. Find [2] on the screen and tap it.",
+   "sparkBox": [
+    517,
+    174,
+    569,
+    201
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "A4",
+   "rep": 0,
+   "http": 200,
+   "kind": "wrong",
+   "wallMs": 13300,
+   "voiceMs": 13300,
+   "pendingMs": 8942,
+   "timing": {
+    "sparkMs": 8939,
+    "samMs": 1563,
+    "checkMs": 2789,
+    "totalMs": 13298
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "주문하기",
+   "want": "주문하기",
+   "read": "주문하기",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "da432a2dc5",
+   "instruction": "화면 오른쪽 키오스크 화면 하단 오른쪽에 있는 [주문하기] 버튼을 누르세요.",
+   "unsure": null,
+   "sparkBox": [
+    518,
+    276,
+    584,
+    345
+   ],
+   "drawn": [
+    517,
+    269,
+    591,
+    337
+   ],
+   "mask": true,
+   "pending_wrong": true,
+   "iou": 0.381,
+   "error": null
+  }
+ ]
+}

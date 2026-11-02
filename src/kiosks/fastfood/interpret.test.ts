@@ -20,7 +20,7 @@ describe("Spark 해석 어댑터 — 패스트푸드", () => {
       return new Response(JSON.stringify({ choices: [{ message: { content } }], usage: { prompt_tokens: 900, completion_tokens: 80 } }), { status: 200 });
     };
 
-    const r = await interpret("더블 치즈버거 라지 세트, 음료는 제로 콜라로, 피클 빼고, 먹고 갈게요", initialState(), { apiKey: "test", fetch: fakeFetch });
+    const r = await interpret("더블 치즈버거 라지 세트, 음료는 제로 콜라로, 피클 빼고, 먹고 갈게요", initialState(), undefined, { apiKey: "test", fetch: fakeFetch });
 
     expect(sent!.url).toBe("https://api.meta.ai/v1/chat/completions");
     expect(sent!.body.model).toBe("muse-spark-1.3");
@@ -37,5 +37,29 @@ describe("Spark 해석 어댑터 — 패스트푸드", () => {
     expect(r.unknownItems).toEqual([]);
     expect(r.replyLanguage).toBe("ko");
     expect(r.say).toContain("제로 콜라");
+  });
+
+  it("진행 중 상품과 앞 턴에 되물은 의도를 요약에 넣고, 진행 중 상품에 대한 말(current)은 none을 빼서 돌려준다", async () => {
+    let user = "";
+    const fakeFetch = async (_url: string | URL | Request, init?: RequestInit) => {
+      user = JSON.parse(String(init?.body)).messages[1].content;
+      const content = JSON.stringify({
+        orderType: "none",
+        items: [],
+        current: { mode: "none", size: "L", side: "none", drink: "cola", remove: [], addOns: [], qty: 0 },
+        dropCurrent: false,
+        unknownItems: [],
+        checkout: false,
+        requestPayment: false,
+        replyLanguage: "ko",
+        say: "라지, 콜라로 할게요.",
+      });
+      return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+    };
+    const stuck = { ...initialState(), screen: "set_size" as const, orderType: "eat_in" as const, draft: { menuId: "double_cheese", mode: "set" as const, size: null, side: null, drink: null, remove: [], add: [], qty: 1 } };
+    const r = await interpret("라지, 콜라요", stuck, { items: [{ menuId: "apple_pie" }], checkout: true }, { apiKey: "test", fetch: fakeFetch });
+    expect(user).toContain("In progress on screen (not in cart yet): Double Cheeseburger, set, size ?, side ?, drink ?");
+    expect(user).toContain('Asked a question last turn about: {"items":[{"menuId":"apple_pie"}],"checkout":true}');
+    expect(r.intent).toEqual({ items: [], current: { size: "L", drink: "cola" }, checkout: false, requestPayment: false });
   });
 });

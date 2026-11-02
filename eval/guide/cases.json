@@ -1,0 +1,386 @@
+[
+ {
+  "id": "ap01",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=40s",
+  "file": "ap01.png",
+  "lang": "ja",
+  "task": "使い方がよくわかりません。ヘルプはどこを押せばいいですか？",
+  "gtBox": [
+   342,
+   415,
+   406,
+   450
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "도움말"
+ },
+ {
+  "id": "ap02",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=69s",
+  "file": "ap02.png",
+  "lang": "ko",
+  "task": "같이 온 친구도 같이 체크인하려면 어디 눌러요?",
+  "gtBox": [
+   515,
+   224,
+   792,
+   245
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "일행을 추가하시려면 여기를 눌러주시기 바랍니다 +"
+ },
+ {
+  "id": "ap03",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=95s",
+  "file": "ap03.png",
+  "lang": "ja",
+  "task": "座席を変えたいです。どのボタンですか？",
+  "gtBox": [
+   722,
+   268,
+   799,
+   291
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "좌석 배치도"
+ },
+ {
+  "id": "ap04",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=121s",
+  "file": "ap04.png",
+  "lang": "vi",
+  "task": "Tôi kiểm tra xong rồi. Bấm nút nào để xác nhận check-in?",
+  "gtBox": [
+   642,
+   420,
+   747,
+   448
+  ],
+  "alt": [
+   [
+    595,
+    417,
+    747,
+    448
+   ]
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "체크인을 확정합니다"
+ },
+ {
+  "id": "ap05",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=176s",
+  "file": "ap05.png",
+  "lang": "ko",
+  "task": "여정 안내서를 종이로 뽑고 싶어요. 뭐 눌러요?",
+  "gtBox": [
+   665,
+   558,
+   890,
+   591
+  ],
+  "size": [
+   1280,
+   624
+  ],
+  "label": "전자항공권 여정안내서 출력"
+ },
+ {
+  "id": "ap06",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=140s",
+  "file": "ap06.png",
+  "lang": "en",
+  "task": "I have two bags to check. What do I tap?",
+  "gtBox": [
+   526,
+   201,
+   569,
+   229
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "2"
+ },
+ {
+  "id": "ap07",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=207s",
+  "file": "ap07.png",
+  "lang": "ja",
+  "task": "荷物を預けたいです。まず何を押しますか？",
+  "gtBox": [
+   429,
+   392,
+   621,
+   460
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "START"
+ },
+ {
+  "id": "ap08",
+  "source": "https://www.youtube.com/watch?v=RmuB88x1Kgo&t=337s",
+  "file": "ap08.png",
+  "lang": "vi",
+  "task": "Thẻ hành lý của tôi bị rách. In lại ở đâu?",
+  "gtBox": [
+   511,
+   329,
+   745,
+   357
+  ],
+  "size": [
+   960,
+   464
+  ],
+  "label": "수하물태그 재발행 (분실 및 훼손시)"
+ },
+ {
+  "id": "ap09",
+  "source": "https://kr.img.news.koreanair.com/wp-content/uploads/2023/07/%EC%82%AC%EC%A7%841%EC%85%80%ED%94%84%EB%B0%B1%EB%93%9C%EB%A1%AD_1-1024x734.jpg",
+  "file": "ap09.png",
+  "lang": "en",
+  "task": "I'm flying Air France. Which one do I tap?",
+  "gtBox": [
+   438,
+   360,
+   611,
+   424
+  ],
+  "size": [
+   780,
+   600
+  ],
+  "label": "AIR FRANCE"
+ },
+ {
+  "id": "ap10",
+  "source": "https://www.airport.kr/sites/ap_ko/images/sub/self-img1.jpg",
+  "file": "ap10.png",
+  "lang": "ko",
+  "task": "제주항공 타요. 어떤 거 눌러요?",
+  "gtBox": [
+   273,
+   99,
+   347,
+   174
+  ],
+  "size": [
+   540,
+   680
+  ],
+  "label": "JEJU air (육각형)"
+ },
+ {
+  "id": "tr01",
+  "source": "https://www.jreast.co.jp/press/2025/20250703_ho04.pdf",
+  "file": "tr01.png",
+  "lang": "en",
+  "task": "I need a refund for my train ticket. Which button?",
+  "gtBox": [
+   1000,
+   401,
+   1114,
+   449
+  ],
+  "alt": [
+   [
+    355,
+    349,
+    421,
+    385
+   ]
+  ],
+  "size": [
+   1600,
+   1400
+  ],
+  "label": "きっぷ／Suica定期券を払いもどす"
+ },
+ {
+  "id": "tr02",
+  "source": "https://www.jreast.co.jp/press/2025/20250703_ho04.pdf",
+  "file": "tr02.jpg",
+  "lang": "vi",
+  "task": "Tôi đã đặt vé trên mạng. Lấy vé ở nút nào?",
+  "gtBox": [
+   608,
+   373,
+   910,
+   441
+  ],
+  "size": [
+   1100,
+   820
+  ],
+  "label": "きっぷを受け取る"
+ },
+ {
+  "id": "tr03",
+  "source": "https://www.jreast.co.jp/press/2025/20250703_ho04.pdf",
+  "file": "tr03.png",
+  "lang": "ko",
+  "task": "화면을 한국어로 바꾸고 싶어요.",
+  "gtBox": [
+   710,
+   25,
+   779,
+   63
+  ],
+  "size": [
+   794,
+   635
+  ],
+  "label": "한국어"
+ },
+ {
+  "id": "tr04",
+  "source": "https://www.jreast.co.jp/mv-guide/demo/img/shinkansen/shinkansen_slide05.png",
+  "file": "tr04.png",
+  "lang": "en",
+  "task": "I'm getting off at Sendai. Where do I tap?",
+  "gtBox": [
+   629,
+   337,
+   778,
+   403
+  ],
+  "size": [
+   1280,
+   1024
+  ],
+  "label": "仙台"
+ },
+ {
+  "id": "tr05",
+  "source": "https://www.jreast.co.jp/mv-guide/demo/img/shinkansen/shinkansen_slide09.png",
+  "file": "tr05.png",
+  "lang": "vi",
+  "task": "Chúng tôi có hai người lớn. Bấm nút nào?",
+  "gtBox": [
+   491,
+   251,
+   789,
+   419
+  ],
+  "size": [
+   1280,
+   1024
+  ],
+  "label": "大人 2人"
+ },
+ {
+  "id": "ff01",
+  "source": "https://mediahub.seoul.go.kr/uploads/mediahub/2022/12/iXGtABDcRSJejgWxaFfgarWgWbKIgKmT.jpg",
+  "file": "ff01.jpg",
+  "lang": "ko",
+  "task": "주문하려면 어디부터 눌러요?",
+  "gtBox": [
+   521,
+   269,
+   601,
+   298
+  ],
+  "alt": [
+   [
+    152,
+    281,
+    218,
+    305
+   ]
+  ],
+  "size": [
+   760,
+   570
+  ],
+  "label": "주문하기"
+ },
+ {
+  "id": "ff02",
+  "source": "https://img.etoday.co.kr/pto_db/2024/07/20240702095945_2045445_489_759.jpg",
+  "file": "ff02.jpg",
+  "lang": "ja",
+  "task": "注文を始めたいです。どこを押せばいいですか？",
+  "gtBox": [
+   267,
+   391,
+   345,
+   429
+  ],
+  "size": [
+   489,
+   759
+  ],
+  "label": "주문하기 (Start Order)"
+ },
+ {
+  "id": "ff03",
+  "source": "https://img1.kakaocdn.net/thumb/R1280x0.fjpg/?fname=http://t1.daumcdn.net/brunch/service/user/4zJ/image/eMB8uYdL85n5mqOzx_k3CTS4KY8.jpg",
+  "file": "ff03.png",
+  "lang": "ja",
+  "task": "クーポンを使いたいです。どこですか？",
+  "gtBox": [
+   312,
+   891,
+   429,
+   970
+  ],
+  "size": [
+   566,
+   988
+  ],
+  "label": "쿠폰"
+ },
+ {
+  "id": "ff04",
+  "source": "https://img1.kakaocdn.net/thumb/R1280x0.fjpg/?fname=http://t1.daumcdn.net/brunch/service/user/4zJ/image/DZD9E5KUNNtSPRzskLU_a4w0_jU.jpg",
+  "file": "ff04.png",
+  "lang": "vi",
+  "task": "Tôi muốn đổi nước sang Sprite. Bấm vào đâu?",
+  "gtBox": [
+   198,
+   160,
+   275,
+   262
+  ],
+  "size": [
+   397,
+   696
+  ],
+  "label": "스프라이트 - 라지"
+ },
+ {
+  "id": "ff05",
+  "source": "https://img1.kakaocdn.net/thumb/R1280x0.fjpg/?fname=http://t1.daumcdn.net/brunch/service/user/4zJ/image/DZD9E5KUNNtSPRzskLU_a4w0_jU.jpg",
+  "file": "ff05.png",
+  "lang": "en",
+  "task": "Can I get two of this set? What do I press?",
+  "gtBox": [
+   325,
+   548,
+   350,
+   577
+  ],
+  "size": [
+   395,
+   696
+  ],
+  "label": "+"
+ }
+]

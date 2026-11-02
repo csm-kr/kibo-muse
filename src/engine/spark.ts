@@ -18,7 +18,8 @@ export interface SparkJsonResult<T> {
 
 export const META_API_BASE = "https://api.meta.ai/v1";
 
-export async function sparkJson<T>(system: string, user: string, schemaName: string, schema: object, opts: SparkOptions = {}): Promise<SparkJsonResult<T>> {
+// user는 글 또는 내용 조각 배열(이미지 입력: [{type:"text"}, {type:"image_url"}])
+export async function sparkJson<T>(system: string, user: string | object[], schemaName: string, schema: object, opts: SparkOptions = {}): Promise<SparkJsonResult<T>> {
   const apiKey = opts.apiKey ?? process.env.MODEL_API_KEY;
   if (!apiKey) throw new Error("MODEL_API_KEY is not set");
   const doFetch = opts.fetch ?? fetch;

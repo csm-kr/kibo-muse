@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 평가 채점기는 평가자(critic-tech) 원본을 그대로 복사한 것이라 앱 규칙으로 검사하지 않는다
+    "eval/**",
   ]),
 ]);
 

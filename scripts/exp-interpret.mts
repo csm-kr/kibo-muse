@@ -20,7 +20,7 @@ for (const effort of ["minimal"] as const) {
   const times: number[] = [];
   for (const [tag, u] of utterances) {
     try {
-      const r = await interpret(u, initialState(), { effort });
+      const r = await interpret(u, initialState(), undefined, { effort });
       times.push(r.ms);
       const p = plan(initialState(), r.intent);
       const summary = p.kind === "plan" ? `plan ${p.events.length} taps → ${p.final.cart.map((l) => `${l.qty}x${l.menuId}/${l.mode}/${l.size ?? "-"}/${l.side ?? "-"}/${l.drink ?? "-"}/rm:${l.remove.join("+")}`).join(", ")} handoff=${p.paymentHandoff}` : JSON.stringify(p);

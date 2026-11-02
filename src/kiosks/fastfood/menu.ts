@@ -79,6 +79,8 @@ export const addOns: { id: string; name: L10n; price: number }[] = [
 
 // 세트의 기본 사이드. 사이드를 말하지 않으면 이것으로 채우고 확인 문장에서 밝힌다
 export const DEFAULT_SET_SIDE = "fries";
+// 빼면 그 버거가 아니게 되는 주재료. 사람도 KIBO도 뺄 수 없다
+export const REQUIRED_INGREDIENTS = ["bun", "patty", "chicken", "shrimp_patty", "veggie_patty"];
 
 // 추천 카테고리에 보이는 상품 (실제 키오스크의 "추천 메뉴" 화면)
 export const recommendedIds = ["double_cheese", "spicy_chicken", "bulgogi", "iced_latte", "sundae"];

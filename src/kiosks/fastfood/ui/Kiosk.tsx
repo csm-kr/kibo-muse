@@ -14,7 +14,6 @@ export type Highlight = { target: Target; value?: string } | null;
 interface KioskCtx {
   s: KioskState;
   press: (target: Target, value?: string) => void;
-  hl: Highlight;
 }
 
 const Ctx = createContext<KioskCtx | null>(null);
@@ -22,18 +21,16 @@ const useK = () => useContext(Ctx)!;
 const tr = (key: keyof typeof t, lang: Lang) => t[key][lang];
 
 function Btn({ target, value, className = "", children }: { target: Target; value?: string; className?: string; children: ReactNode }) {
-  const { press, hl } = useK();
-  const on = !!hl && hl.target === target && (hl.value ?? "") === (value ?? "");
+  const { press } = useK();
   return (
     <button
       type="button"
       data-target={target}
       data-value={value}
       onClick={() => press(target, value)}
-      className={`relative transition-transform ${className} ${on ? "z-20 scale-[0.97] ring-4 ring-orange-500 ring-offset-2" : ""}`}
+      className={`relative ${className}`}
     >
       {children}
-      {on && <span className="pointer-events-none absolute -right-1 -bottom-4 text-4xl drop-shadow">👆</span>}
     </button>
   );
 }
@@ -72,16 +69,16 @@ function BottomBar({ withCart = false }: { withCart?: boolean }) {
               <span className="absolute -top-1 -right-2 rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">{count}</span>
             </div>
             <div className="text-lg font-bold">{won(total)}</div>
-            <Btn target="order_details" className="ml-auto rounded-md bg-teal-700 px-3 py-1.5 text-sm font-bold text-white">
+            <Btn target="order_details" className="ml-auto min-h-11 rounded-md bg-teal-700 px-3 py-1.5 text-sm font-bold text-white">
               {tr("orderDetails", s.lang)}
             </Btn>
           </div>
         )}
         <div className="flex gap-2">
-          <Btn target="start_over" className="flex-1 rounded border border-neutral-400 py-1 text-xs">
+          <Btn target="start_over" className="min-h-11 flex-1 rounded border border-neutral-400 py-1 text-xs">
             {tr("startOver", s.lang)}
           </Btn>
-          <button type="button" className="flex-1 rounded border border-neutral-400 py-1 text-xs">
+          <button type="button" className="min-h-11 flex-1 rounded border border-neutral-400 py-1 text-xs">
             ♿ {tr("accessibility", s.lang)}
           </button>
         </div>
@@ -108,10 +105,10 @@ function Idle() {
             {tr("orderHere", s.lang)}
           </Btn>
           <div className="flex gap-3">
-            <Btn target="language" value={s.lang === "en" ? "ko" : "en"} className="flex-1 rounded border border-neutral-400 py-2 text-sm">
+            <Btn target="language" value={s.lang === "en" ? "ko" : "en"} className="min-h-11 flex-1 rounded border border-neutral-400 py-2 text-sm">
               🌐 {s.lang === "en" ? "한국어" : "English"}
             </Btn>
-            <button type="button" className="flex-1 rounded border border-neutral-400 py-2 text-sm">
+            <button type="button" className="min-h-11 flex-1 rounded border border-neutral-400 py-2 text-sm">
               ♿ {tr("accessibility", s.lang)}
             </button>
           </div>
@@ -141,10 +138,10 @@ function OrderType() {
         <div className="mt-auto mb-6 flex flex-col items-center gap-2">
           <div className="text-xs">🌐 {tr("language", s.lang)}</div>
           <div className="flex gap-3">
-            <Btn target="language" value="en" className={`w-36 rounded border py-2 text-sm ${s.lang === "en" ? "border-2 border-teal-700" : "border-neutral-400"}`}>
+            <Btn target="language" value="en" className={`min-h-11 w-36 rounded border py-2 text-sm ${s.lang === "en" ? "border-2 border-teal-700" : "border-neutral-400"}`}>
               English
             </Btn>
-            <Btn target="language" value="ko" className={`w-36 rounded border py-2 text-sm ${s.lang === "ko" ? "border-2 border-teal-700" : "border-neutral-400"}`}>
+            <Btn target="language" value="ko" className={`min-h-11 w-36 rounded border py-2 text-sm ${s.lang === "ko" ? "border-2 border-teal-700" : "border-neutral-400"}`}>
               한국어
             </Btn>
           </div>
@@ -287,7 +284,7 @@ function SetSize() {
           <div className="grid grid-cols-2 gap-3">
             {(["M", "L"] as const).map((z) => (
               <Btn key={z} target="size" value={z} className="flex h-40 flex-col items-center rounded border border-neutral-300 p-2">
-                <span className={z === "L" ? "text-6xl" : "text-5xl"}>🍟🥤</span>
+                <span className={`leading-none whitespace-nowrap ${z === "L" ? "text-6xl" : "text-5xl"}`}>🍟🥤</span>
                 <span className="mt-auto font-bold">{z === "M" ? tr("medium", s.lang) : tr("large", s.lang)}</span>
                 <span className="text-sm">{won(item.setPrice[z])}</span>
               </Btn>
@@ -356,12 +353,12 @@ function Confirm() {
               {i === 0 && d.add.length > 0 && <div className="text-teal-700">+ {d.add.map((a) => addOns.find((x) => x.id === a)!.name[s.lang]).join(", ")}</div>}
             </div>
             {i === 0 && isBurger(item) && (
-              <Btn target="customize" className="rounded border border-neutral-400 py-1 text-[10px]">
+              <Btn target="customize" className="min-h-11 rounded border border-neutral-400 py-1 text-[10px]">
                 {tr("customize", s.lang)}
               </Btn>
             )}
             {i > 0 && (
-              <button type="button" className="rounded border border-neutral-400 py-1 text-[10px]">
+              <button type="button" className="min-h-11 rounded border border-neutral-400 py-1 text-[10px]">
                 {tr("change", s.lang)}
               </button>
             )}
@@ -461,7 +458,7 @@ function Upsell() {
               <span className="text-6xl">{icon[o.id]}</span>
               <span className="mt-2 text-sm">{o.name[s.lang]}</span>
               <span className="text-sm font-bold">{won(o.price)}</span>
-              <Btn target="upsell_add" value={o.id} className="mt-2 w-full rounded bg-orange-500 py-1.5 text-sm font-bold text-white">
+              <Btn target="upsell_add" value={o.id} className="mt-2 min-h-11 w-full rounded bg-orange-500 py-1.5 text-sm font-bold text-white">
                 {tr("add", s.lang)}
               </Btn>
             </div>
@@ -504,7 +501,7 @@ function Review() {
                 {l.add.length > 0 && <div className="text-xs text-teal-700">+ {l.add.map((a) => addOns.find((x) => x.id === a)!.name[s.lang]).join(", ")}</div>}
               </div>
               <div className="text-sm font-bold">{won(l.unitPrice * l.qty)}</div>
-              <Btn target="remove_line" value={String(i)} className="text-neutral-400">
+              <Btn target="remove_line" value={String(i)} className="min-h-11 min-w-11 text-neutral-400">
                 ✕
               </Btn>
             </div>
@@ -535,7 +532,7 @@ function Payment() {
       <div className="text-8xl">💳</div>
       <div className="text-2xl font-bold">{tr("paymentTitle", s.lang)}</div>
       <div className="text-sm text-neutral-500">{tr("paymentSub", s.lang)}</div>
-      <Btn target="start_over" className="rounded border border-neutral-400 px-6 py-2 text-sm">
+      <Btn target="start_over" className="min-h-11 rounded border border-neutral-400 px-6 py-2 text-sm">
         {tr("startOver", s.lang)}
       </Btn>
     </div>
@@ -558,10 +555,11 @@ const screens: Record<KioskState["screen"], () => ReactNode> = {
   payment: Payment,
 };
 
-export function FastfoodKiosk({ state, press, highlight, banner }: { state: KioskState; press: KioskCtx["press"]; highlight: Highlight; banner?: ReactNode }) {
+// KIBO가 누르는 자리는 banner 층의 KiboPointer가 보인다
+export function FastfoodKiosk({ state, press, banner }: { state: KioskState; press: KioskCtx["press"]; banner?: ReactNode }) {
   const Screen = screens[state.screen];
   return (
-    <Ctx.Provider value={{ s: state, press, hl: highlight }}>
+    <Ctx.Provider value={{ s: state, press }}>
       <div className="relative h-[960px] w-[540px] overflow-hidden rounded-[28px] border-[10px] border-neutral-800 bg-white text-neutral-900 shadow-2xl" data-screen={state.screen}>
         <Screen />
         {banner}

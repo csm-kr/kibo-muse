@@ -24,3 +24,204 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* KIBO 띠: 의도 칩이 70ms 간격으로 나타나고, 해석 중 점 세 개가 깜빡인다 */
+@keyframes kibo-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.kibo-chip {
+  animation: kibo-chip-in 180ms ease-out both;
+}
+@keyframes kibo-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.kibo-dots i {
+  font-style: normal;
+  animation: kibo-dot 1.2s infinite both;
+}
+.kibo-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.kibo-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kibo-chip,
+  .kibo-dots i {
+    animation: none;
+  }
+}
+
+/* 나란히 비교: 휴대폰↔키오스크 연결선. 바쁠 때 점선이 흐르고, 말을 보내면 점이 휴대폰에서 키오스크로 간다 */
+@keyframes kibo-link-flow {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+.kibo-link-busy {
+  animation: kibo-link-flow 600ms linear infinite;
+}
+@keyframes kibo-link-dot {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-72px);
+    opacity: 0;
+  }
+}
+.kibo-link-dot {
+  animation: kibo-link-dot 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kibo-link-busy,
+  .kibo-link-dot {
+    animation: none;
+  }
+}
+
+/* 실측 막대의 완료 체크: 1 → 1.06 → 1 */
+@keyframes kibo-check-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.kibo-check {
+  animation: kibo-check-pop 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kibo-check {
+    animation: none;
+  }
+}
+
+/* 띠의 단계 진행 막대: 한 단계 640ms 동안 0 → 100% */
+@keyframes kibo-step-bar {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.kibo-step-bar {
+  animation: kibo-step-bar 640ms linear both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kibo-step-bar {
+    animation: none;
+    width: 100%;
+  }
+}
+
+/* 휴대폰 체크리스트: 줄이 아래 8px에서 올라오고 체크 선이 그려진다 */
+@keyframes kibo-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.kibo-line {
+  animation: kibo-line-in 200ms ease-out both;
+}
+@keyframes kibo-tick {
+  from {
+    stroke-dashoffset: 16;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.kibo-tick {
+  stroke-dasharray: 16;
+  animation: kibo-tick 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kibo-line,
+  .kibo-tick {
+    animation: none;
+  }
+}
+
+/* 영상 카드(/film/*): 숫자 투명도+위로 24px 500ms, 설명 +150ms, 출처 +300ms(투명도만). 카운트업 없음 */
+@keyframes film-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes film-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.film-in {
+  animation: film-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.film-fade {
+  animation: film-fade 500ms ease-out both;
+}
+/* 파이프라인: 노드가 켜지고(300ms) 선이 왼쪽부터 그려진다(400ms) */
+@keyframes film-node {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.film-node {
+  animation: film-node 300ms ease-out both;
+}
+@keyframes film-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.film-line {
+  transform-origin: left center;
+  animation: film-line 400ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-in,
+  .film-fade,
+  .film-node,
+  .film-line {
+    animation: none;
+  }
+}

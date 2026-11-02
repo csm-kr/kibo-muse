@@ -2,7 +2,7 @@
 // 사람이 누르는 터치와 KIBO가 대신 누르는 동작이 모두 이 함수 하나를 거친다.
 // 화면마다 누를 수 있는 버튼이 정해져 있고, 결제는 사람만 누를 수 있다.
 
-import { addOns, findItem, isBurger, itemsIn, type CategoryId, type Lang, type Size } from "./menu";
+import { REQUIRED_INGREDIENTS, addOns, findItem, isBurger, itemsIn, type CategoryId, type Lang, type Size } from "./menu";
 
 export type Screen =
   | "idle"
@@ -197,7 +197,7 @@ export function step(s: KioskState, e: KioskEvent): StepResult {
     case "toggle_ingredient": {
       const item = d && findItem(d.menuId);
       if (!d || !item || !isBurger(item) || !e.value || !item.ingredients.includes(e.value)) return fail("bad_ingredient");
-      if (e.value === "bun" || e.value === "patty") return fail("ingredient_required");
+      if (REQUIRED_INGREDIENTS.includes(e.value)) return fail("ingredient_required");
       const remove = d.remove.includes(e.value) ? d.remove.filter((x) => x !== e.value) : [...d.remove, e.value];
       return ok({ ...s, draft: { ...d, remove } });
     }
