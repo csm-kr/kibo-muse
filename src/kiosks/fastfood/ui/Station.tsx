@@ -15,19 +15,22 @@ import { FASTFOOD_TASK } from "@/engine/trialLog";
 import { TrialPanel, useLogFlag, useTrialLog } from "@/ui/TrialRecorder";
 import { KiboBand, type BandChip } from "@/ui/KiboBand";
 import { KiboPointer } from "@/ui/KiboPointer";
+import { beat, GAP } from "@/ui/pointer";
 import { useView } from "@/ui/useView";
+import { useSamples } from "../../samples";
 import { initialState, step, type CartLine, type KioskEvent, type KioskState, type Screen, type Target } from "../machine";
 import type { FastfoodIntent } from "../planner";
 import { FastfoodKiosk, type Highlight } from "./Kiosk";
 import { intentChips, lineName, orderLines, screenLabel, statusSummary } from "./labels";
 import { t } from "./strings";
 
-const STEP_MS = 520;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface InterpretResponse {
   say: string;
   replyLanguage: string;
+  // 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다(휴대폰이 그 언어로 바꾼다)
+  followSpoken?: boolean;
   unknownItems: string[];
   intent: FastfoodIntent;
   plan: { kind: "plan"; events: KioskEvent[]; paymentHandoff: boolean; assumed: unknown[]; dropped: unknown[]; endScreen: string } | { kind: "clarify"; missing: unknown[] } | { kind: "reject"; reason: string };
@@ -161,7 +164,10 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
   }, [paidNo]);
   const [hl, setHl] = useState<Highlight>(null);
   const [progress, setProgress] = useState<{ i: number; n: number } | null>(null);
-  const [text, setText] = useState(samples[0]);
+  // 입력란 기본값은 브라우저 언어에 맞춘 첫 예시. 고치거나 예시를 누르면 그 글
+  const examples = useSamples(samples);
+  const [typed, setText] = useState<string | null>(null);
+  const text = typed ?? examples[0];
   const [last, setLast] = useState<InterpretResponse | null>(null);
   // 나란히 비교에서는 띠 칸(150)·실측 막대(104)·간격까지 한 화면(1080)에 들어가게 줄인다
   const { scale, hide } = useFitScale(variant === "compare" ? 150 + 104 + 24 + 8 : variant === "kiosk" ? 150 + 8 : 0);
@@ -213,7 +219,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
         const e: KioskEvent = { ...raw, by: "kibo" };
         setProgress({ i: i + 1, n: events.length });
         setHl({ target: e.target, value: e.value });
-        await sleep(STEP_MS);
+        await sleep(beat(i === 0).tap);
         const r = step(stateRef.current, e);
         if (!r.ok) {
           console.error("KIBO step failed", e, r.error);
@@ -222,7 +228,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
         apply(r.state, "kibo");
         log({ kind: "tap", by: "kibo", screen: r.state.screen, target: e.target, value: e.value });
         setHl(null);
-        await sleep(120);
+        await sleep(GAP);
       }
       return true;
     } finally {
@@ -254,13 +260,13 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     // 되물었으면 다음 턴에 합칠 수 있게 의도를 남긴다
     pendingRef.current = p.kind === "clarify" ? body.intent : null;
     setReplyLang(lang);
-    setChips(p.kind === "reject" ? [] : intentChips(body.intent, p.kind === "plan" ? (p.endScreen as Screen) : null));
-    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang };
-    if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang };
+    setChips(p.kind === "reject" ? [] : intentChips(body.intent, p.kind === "plan" ? (p.endScreen as Screen) : null, stateRef.current.lang));
+    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang, followSpoken: body.followSpoken };
+    if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang, say: body.say, followSpoken: body.followSpoken };
     const l = langOf(lang);
     const payButton = t.pay[stateRef.current.lang];
     const say = [p.dropped.length ? doneSay.dropped[l] : "", p.endScreen === "review" ? doneSay.pay[l](payButton) : doneSay.more[l]].filter(Boolean).join(" ");
-    return { kind: "plan", events: p.events, lang, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton } };
+    return { kind: "plan", events: p.events, lang, followSpoken: body.followSpoken, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton } };
   }
 
   function send(m: LinkMsg) {
@@ -365,7 +371,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
   useEffect(() => {
     const total = state.cart.reduce((n, l) => n + l.qty * l.unitPrice, 0);
     const items = state.cart.reduce((n, l) => n + l.qty, 0);
-    const label = screenLabel[state.screen][langOf(replyLang)];
+    const label = screenLabel[state.screen][langOf(replyLang)].replace("{b}", t.pay[state.lang]);
     // 품목 수·합계도 단계 이름과 같은 언어로 보낸다(없으면 휴대폰이 영어로 채운다)
     // 담는 중이거나 마지막에 담은 품목 이름을 앞에 붙인다(Spark가 다른 버거로 바꿔 넣어도 사람이 휴대폰에서 알아채게)
     const current = state.draft ?? state.cart.at(-1);
@@ -442,11 +448,12 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
           <TrialPanel
             events={trial.events}
             kiosk="fastfood"
-            room={roomId}
             task={FASTFOOD_TASK}
             onSaved={trial.saved}
+            onClear={trial.clear}
             onStart={(participant, condition) => {
-              if (trial.start(stateRef.current.screen, participant, condition)) cartLoggedRef.current = false;
+              trial.start(stateRef.current.screen, participant, condition);
+              cartLoggedRef.current = false;
             }}
           />
         )}
@@ -485,7 +492,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
         <div className="mb-2 font-bold">KIBO dev console</div>
         <textarea aria-label="KIBO에게 할 말 (Say to KIBO)" className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt-2 flex flex-wrap gap-1">
-          {samples.map((s) => (
+          {examples.map((s) => (
             <button key={s} type="button" className="rounded bg-neutral-100 px-2 py-1 text-xs" onClick={() => setText(s)}>
               {s.slice(0, 18)}…
             </button>

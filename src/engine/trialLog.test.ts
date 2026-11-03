@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FASTFOOD_TASK, judgeTrial, summarize, type TrialCartLine, type TrialEvent } from "./trialLog";
+import { askTwice, FASTFOOD_TASK, judgeTrial, startSession, summarize, trialExport, type TrialCartLine, type TrialEvent } from "./trialLog";
 
 const ev = (t: number, kind: TrialEvent["kind"], by: TrialEvent["by"], screen: string, extra: Partial<TrialEvent> = {}): TrialEvent => ({ t, kind, by, screen, ...extra });
 
@@ -51,5 +51,38 @@ describe("사용자 시험 기록 요약", () => {
     // 줄 수가 다르면 줄 단위로 센다
     expect(judgeTrial(run("eat_in", [line, { ...line, menuId: "fries", mode: "single", size: null, side: null, drink: null, remove: [] }]), FASTFOOD_TASK).mismatches).toEqual(["extra: fries single ×1"]);
     expect(judgeTrial([ev(0, "start", "facilitator", "idle")], FASTFOOD_TASK)).toEqual({ reached: false, correct: false, mismatches: [] });
+  });
+});
+
+describe("시험 기록 쌓기·내보내기·지우기", () => {
+  it("[다시 시작]은 앞 기록을 지우지 않고, 시도 번호(session)와 시작 시각(t)을 단 구분 이벤트를 붙인다", () => {
+    const one = startSession([], 1_000, "idle", "P1", "touch");
+    const two = startSession([...one, ev(2_000, "tap", "human", "order_type", { target: "start" })], 5_000, "idle", "P1", "kibo");
+    expect(two).toHaveLength(3);
+    expect(two[0]).toEqual({ t: 1_000, kind: "start", by: "facilitator", screen: "idle", participant: "P1", condition: "touch", session: 1 });
+    expect(two[2]).toEqual({ t: 5_000, kind: "start", by: "facilitator", screen: "idle", participant: "P1", condition: "kibo", session: 2 });
+  });
+
+  it("[기록 저장]은 쌓인 시도 전부를 시도별 요약·판정과 함께 내보내고, room(그 키오스크에 말을 걸 수 있는 값)은 넣지 않는다", () => {
+    const log = [
+      ...startSession([], 1_000, "idle", "P1", "touch"),
+      ev(4_000, "tap", "human", "review", { target: "order_details" }),
+    ];
+    const all = [...startSession(log, 10_000, "idle", "P2", "kibo"), ev(12_000, "tap", "kibo", "review", { target: "order_details" })];
+    const out = trialExport("fastfood", all, FASTFOOD_TASK, 20_000);
+    expect(out.events).toEqual(all);
+    expect(out.sessions.map((x) => [x.session, x.participant, x.condition, x.startedAt, x.summary.msToReview, x.summary.humanTaps, x.summary.kiboTaps])).toEqual([
+      [1, "P1", "touch", new Date(1_000).toISOString(), 3_000, 1, 0],
+      [2, "P2", "kibo", new Date(10_000).toISOString(), 2_000, 0, 1],
+    ]);
+    expect(JSON.stringify(out)).not.toMatch(/room/);
+  });
+
+  it("기록 지우기는 두 번 모두 '예'여야 한다. 처음에 '아니요'면 두 번째는 묻지 않는다", () => {
+    const asked: string[] = [];
+    expect(askTwice((m) => (asked.push(m), false), "a", "b")).toBe(false);
+    expect(asked).toEqual(["a"]);
+    expect(askTwice((m) => (asked.push(m), m === "a"), "a", "b")).toBe(false);
+    expect(askTwice(() => true, "a", "b")).toBe(true);
   });
 });

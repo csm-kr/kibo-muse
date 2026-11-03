@@ -50,7 +50,9 @@ export const t = {
   orderNo: { en: "Order No.", ko: "주문번호" },
   demoNote: { en: "Demo only. No real payment was made.", ko: "시연용이에요. 실제로 결제되지 않았어요." },
   // 실물 수준 화면(critic-demo kiosk-spec.md)에 더한 문구
+  // ko의 영어 부제는 명세(kiosk-spec) 그대로다. 화면에서 lang="en"으로 표시한다
   touchToOrder: { en: "Touch to start", ko: "Touch to order" },
+  ok: { en: "OK", ko: "확인" },
   menuHint: { en: "Choose what you'd like", ko: "원하는 메뉴를 선택하세요" },
   // 화면에 보이지 않는 페이지 제목(h1, 화면 낭독기·axe page-has-heading-one)
   kioskTitle: { en: "Bridge Burger order kiosk", ko: "브리지 버거 주문 키오스크" },

@@ -129,7 +129,7 @@ function Idle() {
       <div className="mt-auto flex gap-3">
         {(["ko", "en"] as const).map((l) => (
           <Btn key={l} target="language" value={l} className={`flex-1 rounded-lg border ${s.lang === l ? "border-white bg-white font-bold text-(--br-ink)" : "border-white/40"}`}>
-            {l === "ko" ? "한국어" : "English"}
+            <span lang={l}>{l === "ko" ? "한국어" : "English"}</span>
           </Btn>
         ))}
       </div>

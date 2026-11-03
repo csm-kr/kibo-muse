@@ -5,8 +5,9 @@ import { clarifySay } from "@/kiosks/fastfood/clarify";
 import { interpret } from "@/kiosks/fastfood/interpret";
 import type { KioskState } from "@/kiosks/fastfood/machine";
 import { mergeIntent, plan, type FastfoodIntent } from "@/kiosks/fastfood/planner";
-import { keywordsFor } from "@/kiosks/keywords";
-import { mixedScript } from "@/kiosks/langmix";
+import { buttonsFor, keywordsFor } from "@/kiosks/keywords";
+import { mixedScript, replyLang } from "@/kiosks/langmix";
+import { t } from "@/kiosks/fastfood/ui/strings";
 
 export async function POST(req: Request) {
   // 공개 배포에서 IP별 분당 한도. 넘으면 429와 고정 문구
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
   // 본문이 JSON이 아니거나 칸이 빠졌으면 400과 고정 값
   const { utterance, state, pending } = ((await req.json().catch(() => null)) ?? {}) as { utterance?: string; state?: KioskState; pending?: FastfoodIntent };
   if (typeof utterance !== "string" || !utterance.trim() || !state) return Response.json({ error: "bad_request" }, { status: 400 });
-  if (overSize("utteranceChars", utterance.length)) return tooLarge(req);
+  if (overSize("utteranceChars", utterance.length)) return tooLarge(req, "speech");
   // 대답 언어: 휴대폰이 주소에 붙인 언어(?lang=). 없으면(평가 하네스·옛 클라이언트·키오스크에서 친 말) Spark가 고른 언어
   const phone = new URL(req.url).searchParams.get("lang") || null;
 
@@ -28,15 +29,18 @@ export async function POST(req: Request) {
     // 계획은 KIBO의 조작만 담아야 한다. 사람 터치나 기기 사건이 섞이면 보내지 않는다
     if (p.kind === "plan" && p.events.some((e) => e.by !== "kibo")) return Response.json({ error: "plan_not_kibo" }, { status: 500 });
     const planOut = p.kind === "plan" ? { kind: p.kind, events: p.events, paymentHandoff: p.paymentHandoff, assumed: p.assumed, dropped: p.dropped, endScreen: p.final.screen } : p;
-    const lang = phone ? langOf(phone) : r.replyLanguage;
+    // 휴대폰 언어로 답한다. 다만 말한 언어가 분명히 다르면(순수 영어 등) 말한 언어로 답하고 휴대폰이 따라오게 한다(followSpoken)
+    const proper = [...keywordsFor("fastfood"), ...buttonsFor("fastfood")];
+    const { lang, followSpoken } = replyLang(phone, r.replyLanguage, utterance, proper);
     // 되묻기 Spark 문장이 휴대폰 언어가 아니거나(장면 8: 영어 섞인 한국어 말에 영어로 되물음) 다른 언어 문자를 섞었으면(실측 「…1개ですね」)
     // 담을 품목 이름과 빠진 칸으로 만든 고정 문구로 바꾼다
     const foreign = phone !== null && langOf(r.replyLanguage) !== lang;
-    const clarify = p.kind === "clarify" && (foreign || mixedScript(r.say, r.replyLanguage, utterance, keywordsFor("fastfood"))) ? clarifySay(p.missing, intent, state, lang) : r.say;
+    const clarify = p.kind === "clarify" && (foreign || mixedScript(r.say, r.replyLanguage, utterance, proper)) ? clarifySay(p.missing, intent, state, lang) : r.say;
     return Response.json({
       // 되묻기만 Spark 문장. 계획·거절은 휴대폰과 같은 고정 문구(Spark 문장은 하지 않은 일을 말할 수 있다. 예: 결제 전 "注文を確定しました")
-      say: p.kind === "clarify" ? clarify : p.kind === "reject" ? rejectSay(p.reason, lang) : planSay(p.events.length, lang),
+      say: p.kind === "clarify" ? clarify : p.kind === "reject" ? rejectSay(p.reason, lang, { b: t.startOver[state.lang] ?? t.startOver.en }) : planSay(p.events.length, lang),
       replyLanguage: lang,
+      ...(followSpoken && { followSpoken }),
       unknownItems: r.unknownItems,
       intent,
       plan: planOut,

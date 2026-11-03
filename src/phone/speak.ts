@@ -45,13 +45,26 @@ export function subscribeSound(f: () => void) {
   return () => listeners.delete(f);
 }
 
-// 휴대폰 브라우저(특히 iOS)는 사람이 누른 순간에 한 번 읽어야 그 뒤의 읽기를 허락한다. 마이크·언어 칩을 누를 때 소리 없이 한 번 읽는다
+// 휴대폰 브라우저(특히 iOS)는 사람이 누른 순간에 한 번 읽어야 그 뒤의 읽기를 허락한다. 마이크·언어 칩을 누를 때 소리 없이 한 번 읽는다.
+// iOS는 터치의 누름(pointerdown)을 사용자 동작으로 치지 않아 그때 읽기를 조용히 버린다(11/3 iPhone: 글만 나오고 소리 없음).
+// 그래서 읽기가 실제로 시작될 때까지 풀린 것으로 치지 않고, 그때까지 사람 동작(손 뗌 포함)마다 다시 읽는다
+const GESTURES = ["pointerup", "touchend", "click", "keydown"];
 let unlocked = false;
+let armed = false;
+function markUnlocked() {
+  if (unlocked) return;
+  unlocked = true;
+  for (const g of GESTURES) window.removeEventListener(g, unlockSpeech, true);
+}
 export function unlockSpeech() {
   if (unlocked || !window.speechSynthesis) return;
-  unlocked = true;
+  if (!armed) {
+    armed = true;
+    for (const g of GESTURES) window.addEventListener(g, unlockSpeech, true);
+  }
   const u = new SpeechSynthesisUtterance(" ");
   u.volume = 0;
+  u.onstart = u.onend = markUnlocked;
   window.speechSynthesis.speak(u);
 }
 

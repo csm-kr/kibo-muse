@@ -24,23 +24,36 @@ export async function sparkJson<T>(system: string, user: string | object[], sche
   if (!apiKey) throw new Error("MODEL_API_KEY is not set");
   const doFetch = opts.fetch ?? fetch;
   const t0 = performance.now();
-  const res = await doFetch(`${META_API_BASE}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: opts.model ?? "muse-spark-1.3",
-      reasoning_effort: opts.effort ?? "minimal",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_schema", json_schema: { name: schemaName, schema } },
-    }),
+  const request = JSON.stringify({
+    model: opts.model ?? "muse-spark-1.3",
+    reasoning_effort: opts.effort ?? "minimal",
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    response_format: { type: "json_schema", json_schema: { name: schemaName, schema } },
   });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`Spark HTTP ${res.status}: ${text.slice(0, 500)}`);
-  const body = JSON.parse(text);
-  const content = body.choices?.[0]?.message?.content;
-  if (typeof content !== "string") throw new Error("Spark response has no content");
-  return { json: JSON.parse(content) as T, ms: Math.round(performance.now() - t0), usage: body.usage };
+  const one = async (ctrl: AbortController) => {
+    const res = await doFetch(`${META_API_BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: request,
+      signal: ctrl.signal,
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Spark HTTP ${res.status}: ${text.slice(0, 500)}`);
+    const body = JSON.parse(text);
+    const content = body.choices?.[0]?.message?.content;
+    if (typeof content !== "string") throw new Error("Spark response has no content");
+    return { ctrl, json: JSON.parse(content) as T, usage: body.usage };
+  };
+  // 글 요청(해석)은 같은 요청 2개를 동시에 보내 먼저 끝난 답을 쓴다. Spark는 같은 입력도 3초·23초로 갈린다(2026-11-03 측정, 평가 통과).
+  // 진 쪽은 끊어 함수 시간을 쓰지 않는다. 한쪽이 실패하면 다른 쪽을 기다린다. 사진 요청(안내)은 하나만 보낸다
+  const ctrls = typeof user === "string" ? [new AbortController(), new AbortController()] : [new AbortController()];
+  const won = await Promise.any(ctrls.map(one)).catch((e: AggregateError) => {
+    throw e.errors[0];
+  });
+  for (const c of ctrls) if (c !== won.ctrl) c.abort();
+  if (ctrls.length > 1) console.info(`spark hedge won ${ctrls.indexOf(won.ctrl)}`);
+  return { json: won.json, ms: Math.round(performance.now() - t0), usage: won.usage };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { statusSummary } from "@/kiosks/fastfood/ui/labels";
-import { bandHidden, orderLinesIn, statusLine } from "./status";
+import { bandHidden, linkChip, orderLinesIn, statusLine } from "./status";
 
 const ff = { type: "status" as const, busy: false, kioskId: "fastfood" };
 
@@ -11,6 +11,11 @@ describe("휴대폰 상태 줄", () => {
     const review = { ...ff, screen: "review", items: 1, total: 6000, label: "Order review · you tap Pay", summary: statusSummary(1, 6000, "en", "불고기버거 M 세트"), lines: [{ name: "불고기버거 M 세트", detail: "", qty: 1 }] };
     expect(statusLine(review, "ko")).toEqual({ label: "주문 확인 · 결제는 직접", summary: "불고기버거 M 세트 · 1개 · ₩6,000" });
     expect(statusLine({ ...review, screen: "payment", paid: 664 }, "ko").label).toBe("결제 완료");
+    // 띠가 버튼을 부르면 그 이름은 키오스크 화면 글자 그대로(번역하지 않는다. 키오스크에 'Thanh toán'·'支付' 버튼은 없다)
+    expect(statusLine({ ...review, kioskLang: "en" }, "vi").label).toBe("Xem lại đơn · bạn tự bấm [Pay]");
+    expect(statusLine({ ...review, kioskLang: "en" }, "es").label).toBe("Revisar pedido · tú pulsas [Pay]");
+    expect(statusLine({ ...review, kioskLang: "ko" }, "zh").label).toBe("确认订单 · 请您自己点［결제하기］");
+    expect(statusLine({ ...review, kioskLang: "ko" }, "en").label).toBe("Order review · you tap [결제하기]");
     expect(statusLine({ ...review, screen: "idle", items: 0, total: 0, summary: statusSummary(0, 0, "en"), lines: undefined }, "ko").summary).toBe("");
   });
 
@@ -45,6 +50,16 @@ describe("휴대폰 상태 줄", () => {
     expect(statusLine(rail({ from: "central", to: null, people: 1, seats: [] }), "ko").summary).toBe("");
   });
 
+  it("공항 부치는 짐 개수, 기차 타는 날·출발 시각·좌석 등급도 휴대폰 언어로 쓴다. 짐은 0개여도 정했으면 보인다(결제·확정 전에 사람이 휴대폰으로 맞는지 본다)", () => {
+    const air = { type: "status" as const, busy: false, kioskId: "airport", screen: "bag_count", items: 2, total: 0, summary: "", air: { airline: "bridge_air", passports: 2, seats: ["3A", "3B"], bags: 1 } };
+    expect(statusLine(air, "vi").summary).toBe("Bridge Air · 2 hộ chiếu · ghế 3A·3B · 1 kiện hành lý ký gửi");
+    expect(statusLine({ ...air, air: { ...air.air, bags: 0 } }, "ko").summary).toBe("브리지항공 · 여권 2개 · 좌석 3A·3B · 부치는 짐 0개");
+    // 2026-11-04는 수요일
+    const rail = { type: "status" as const, busy: false, kioskId: "train", screen: "reservation", items: 0, total: 0, summary: "", rail: { from: "central", to: "maple", people: 1, seats: ["7-1A"], date: "2026-11-04", dep: "10:30", cls: "general" as const } };
+    expect(statusLine(rail, "vi").summary).toBe("Bridge Central → Maple Hill · T4, 4/11 · khởi hành 10:30 · ghế thường · 1 hành khách · Toa 7 1A");
+    expect(statusLine({ ...rail, rail: { ...rail.rail, cls: "first" as const } }, "ko").summary).toBe("브리지중앙 → 단풍언덕 · 11/4(수) · 10:30 출발 · 특실 · 1명 · 7호차 1A");
+  });
+
   it("키오스크가 첫 화면이고 비어 있으면(장바구니·여권 0) 위 띠를 숨긴다. 조작 중이거나 담긴 것이 있으면 보인다", () => {
     const idle = { type: "status" as const, busy: false, kioskId: "fastfood", screen: "idle", items: 0, total: 0 };
     expect([bandHidden(idle), bandHidden({ ...idle, kioskId: "airport" }), bandHidden({ ...idle, items: 1 }), bandHidden({ ...idle, busy: true, steps: 3 }), bandHidden({ ...idle, screen: "menu" })]).toEqual([true, true, false, false, false]);
@@ -62,5 +77,9 @@ describe("휴대폰 상태 줄", () => {
     expect([statusLine(choosing, "ko").summary, orderLinesIn(choosing, "ko")]).toEqual(["더블 치즈버거 세트", undefined]);
     // 원자료가 없으면(옛 키오스크) 키오스크가 보낸 글
     expect([orderLinesIn({ lines }, "ko"), statusLine({ ...review, cart: undefined, draft: undefined }, "ko").summary]).toEqual([lines, "Double Cheeseburger M Meal · 1개 · ₩8,500"]);
+  });
+
+  it("머리줄 연결 칩: 한 번 연결된 뒤 끊기면 '다시 연결 중'(키오스크 이름 대신), 처음 연결 전에는 '연결 전'", () => {
+    expect([linkChip(true, true, true), linkChip(true, false, true), linkChip(false, false, false), linkChip(false, true, true), linkChip(true, null, false)]).toEqual(["kiosk", "reconnecting", "none", "none", "kiosk"]);
   });
 });

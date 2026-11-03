@@ -15,7 +15,7 @@ export type LinkMsg =
   // 휴대폰 → 키오스크: 사람만 할 수 있는 확인(위험물 동의, 체크인 확정)을 휴대폰 버튼으로 했다. gateId = 그 카드의 id
   | { type: "ack"; what: string; gateId?: string }
   // 키오스크 → 휴대폰: 말 한 번에 정확히 한 번 오는 대답. re = 그 말의 id. plan이면 고정 문구, clarify면 Spark의 질문
-  | { type: "reply"; re: string; say: string; replyLanguage: string; result: "plan" | "clarify" | "reject" | "error" | "busy"; taps?: number; }
+  | { type: "reply"; re: string; say: string; replyLanguage: string; result: "plan" | "clarify" | "reject" | "error" | "busy"; taps?: number; followSpoken?: boolean; }
   // 키오스크 → 휴대폰: 해석이 오래 걸린다(고정 문구 '아직 생각 중'). 대답(reply)은 그 뒤에 따로 온다
   | { type: "slow"; re: string; say: string; replyLanguage: string }
   // 키오스크 → 휴대폰: 재생이 끝난 뒤의 결과. gate는 사람이 해야 할 다음 일(고정 안내문). 재생이 성공해야 보낸다
@@ -30,6 +30,8 @@ export interface TripAir {
   airline: string | null;
   passports: number;
   seats: string[];
+  // 부치는 짐 합계. 짐 개수를 정하기 전(또는 옛 키오스크)에는 없다
+  bags?: number;
 }
 export interface TripRail {
   from: string;
@@ -37,6 +39,10 @@ export interface TripRail {
   people: number;
   // "7-1A" 꼴(호차-좌석)
   seats: string[];
+  // 타는 날("2026-11-04", 키오스크 기준), 고른 열차의 출발역 출발 시각("10:30"), 좌석 등급. 열차를 고르기 전에는 dep·cls가 없다
+  date?: string;
+  dep?: string;
+  cls?: "general" | "first";
 }
 
 export interface LinkGate {
@@ -53,6 +59,8 @@ export interface Link {
   subscribe(fn: (msg: LinkMsg) => void): () => void;
   // 통로가 열릴 때마다(다시 연결 포함) 부른다. 휴대폰은 여기서 hello를 보내 키오스크 상태를 다시 받는다
   onJoin(fn: () => void): () => void;
+  // 연결됨(true)·끊김(false). 부르면 지금 값을 한 번 알리고, 바뀔 때마다 다시 알린다. 휴대폰 머리줄의 '다시 연결 중…'
+  onLive(fn: (live: boolean) => void): () => void;
   close(): void;
 }
 
@@ -74,6 +82,13 @@ export function localLink(room: string): Link {
         live = false;
       };
     },
+    onLive: (f) => {
+      let on = true;
+      queueMicrotask(() => on && f(true));
+      return () => {
+        on = false;
+      };
+    },
     close: () => ch.close(),
   };
 }
@@ -88,7 +103,18 @@ export interface RealtimeLike {
   channel(name: string, opts: { config: { broadcast: { self: boolean } } }): RealtimeChannelLike;
   removeChannel(ch: RealtimeChannelLike): unknown;
   disconnect?(): unknown;
+  // 다시 붙기를 기다리는 중이면 백오프를 건너뛰고 지금 다시 붙는다
+  reconnectNow?(): void;
 }
+
+// 브라우저의 online·offline 이벤트(인터넷이 돌아옴·끊김). 브라우저 밖(시험·서버)에서는 아무것도 하지 않는다
+const browserEvent = (name: "online" | "offline") => (f: () => void) => {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(name, f);
+  return () => window.removeEventListener(name, f);
+};
+const browserOnline = browserEvent("online");
+const browserOffline = browserEvent("offline");
 
 // 접속 전·끊긴 동안 보낸 것은 모았다가 (다시) 접속하면 보낸다. 오래 끊기면 오래된 것부터 버린다
 const MAX_QUEUED = 50;
@@ -98,25 +124,49 @@ const expires = (m: LinkMsg) => m.type === "utterance" || m.type === "ack";
 
 // 한 클라이언트 안에서 같은 이름의 채널은 하나로 합쳐진다(Supabase가 같은 채널을 돌려주고, self:false라 서로 못 받는다).
 // 그래서 같은 화면 안 연결은 localLink를 쓰고, openLink는 연결마다 클라이언트를 따로 만든다(닫는 중인 채널을 다시 받지 않게)
-export function supabaseLink(room: string, client: RealtimeLike): Link {
+export function supabaseLink(room: string, client: RealtimeLike, onOnline: (f: () => void) => () => void = browserOnline, onOffline: (f: () => void) => () => void = browserOffline): Link {
   const fns = new Set<(m: LinkMsg) => void>();
   const joins = new Set<() => void>();
+  const lives = new Set<(live: boolean) => void>();
   let queue: { m: LinkMsg; at: number }[] = [];
   let joined = false;
   let closed = false;
+  // 기기가 인터넷이 끊겼다고 알린 동안(offline). 채널은 heartbeat(약 30초)가 실패해야 끊김을 알아서, 짧은 끊김은 이것으로만 보인다
+  let offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  const live = () => joined && !offline;
+  const tell = (was: boolean) => {
+    if (live() !== was && !closed) lives.forEach((f) => f(live()));
+  };
   const push = (m: LinkMsg) => void ch.send({ type: "broadcast", event: "msg", payload: m });
   const ch = client.channel(`kibo:${room}`, { config: { broadcast: { self: false } } }).on("broadcast", { event: "msg" }, ({ payload }) => {
     if (!closed) fns.forEach((f) => f(payload as LinkMsg));
   });
   // 이미 접속된 채널이면 subscribe가 콜백을 바로 부른다. ch를 먼저 만든 뒤 구독한다
   ch.subscribe((status) => {
+    const was = live();
     joined = status === "SUBSCRIBED";
+    tell(was);
     if (!joined || closed) return;
     const pending = queue;
     queue = [];
     const now = Date.now();
     pending.forEach(({ m, at }) => (!expires(m) || now - at <= STALE_MS) && push(m));
     joins.forEach((f) => f());
+  });
+  // 인터넷이 돌아왔는데 아직 끊겨 있으면 Supabase의 백오프(최대 10초)를 기다리지 않는다. 채널이 붙어 있으면 바로 연결됨으로 알리고
+  // 다시 접속한 것처럼 onJoin을 부른다(휴대폰은 hello를 보내 상태를 새로 받는다). 끊긴 사이 사라진 결제 완료·영수증을 놓치지 않게
+  const offOnline = onOnline(() => {
+    const was = live();
+    offline = false;
+    tell(was);
+    if (closed) return;
+    if (joined) joins.forEach((f) => f());
+    else client.reconnectNow?.();
+  });
+  const offOffline = onOffline(() => {
+    const was = live();
+    offline = true;
+    tell(was);
   });
   return {
     send: (m) => {
@@ -133,10 +183,18 @@ export function supabaseLink(room: string, client: RealtimeLike): Link {
       if (joined) queueMicrotask(() => joins.has(f) && f());
       return () => joins.delete(f);
     },
+    onLive: (f) => {
+      lives.add(f);
+      queueMicrotask(() => lives.has(f) && f(live()));
+      return () => lives.delete(f);
+    },
     close: () => {
       closed = true;
+      offOnline();
+      offOffline();
       fns.clear();
       joins.clear();
+      lives.clear();
       void Promise.resolve(client.removeChannel(ch)).then(() => client.disconnect?.());
     },
   };
@@ -177,6 +235,20 @@ export function bothLink(paths: Link[], from: string = crypto.randomUUID()): Lin
       const offJoins = paths.map((p) => p.onJoin(f));
       return () => offJoins.forEach((o) => o());
     },
+    // 모든 길이 연결돼야 연결됨. 같은 페이지 길은 늘 연결돼 있으므로 원격 길이 있으면 그것을 따른다
+    onLive: (f) => {
+      const vals: (boolean | undefined)[] = paths.map(() => undefined);
+      let last: boolean | undefined;
+      const offLives = paths.map((p, i) =>
+        p.onLive((v) => {
+          vals[i] = v;
+          if (vals.includes(undefined)) return;
+          const all = vals.every(Boolean);
+          if (all !== last) f((last = all));
+        }),
+      );
+      return () => offLives.forEach((o) => o());
+    },
     close: () => {
       offs.forEach((o) => o());
       fns.clear();
@@ -195,6 +267,16 @@ export function openLink(room: string): Link {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const paths = [localLink(room)];
   // 연결마다 클라이언트를 따로 만든다(같은 페이지의 키오스크·내장 휴대폰이 한 채널로 합쳐져 서로 못 받는 일이 없게)
-  if (url && key) paths.push(supabaseLink(room, new RealtimeClient(`${url}/realtime/v1`, { params: { apikey: key } }) as unknown as RealtimeLike));
+  if (url && key) {
+    const rc = new RealtimeClient(`${url}/realtime/v1`, { params: { apikey: key } });
+    // 예정된 재접속(phoenix 타이머)을 지금 실행한다. 타이머의 콜백은 낡은 연결을 정리하고 다시 붙는다
+    const reconnectNow = () => {
+      const t = rc.reconnectTimer as unknown as { reset(): void; callback(): void } | undefined;
+      if (rc.isConnected() || !t) return;
+      t.reset();
+      t.callback();
+    };
+    paths.push(supabaseLink(room, Object.assign(rc, { reconnectNow }) as unknown as RealtimeLike));
+  }
   return bothLink(paths);
 }

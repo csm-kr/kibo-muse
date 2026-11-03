@@ -3,7 +3,8 @@
 import { langOf, type Lang } from "@/engine/turn";
 import type { Screen } from "../machine";
 import type { Stop, TrainIntent } from "../planner";
-import { findStation } from "../rail";
+import { findStation, type Lang as KioskLang } from "../rail";
+import { t } from "./strings";
 
 export interface Chip {
   text: string;
@@ -14,9 +15,11 @@ const seatText = { together: "Seats together", window: "Window seats", aisle: "A
 const typeText = { express: "Express", local: "Local", any: "Any train" };
 const dayText = (d: number) => (d === 0 ? "Today" : d === 1 ? "Tomorrow" : `In ${d} days`);
 const pl = (n: number, one: string) => `${n} ${one}${n > 1 ? "s" : ""}`;
-const stopText = (s: Stop) => (s.kind === "ack" ? `Later train ${s.dep} → you confirm` : s.kind === "device" ? "Card → you insert" : "Pay → you tap");
+// pay: 키오스크 결제 버튼의 화면 글자(키오스크 언어 그대로)
+const stopText = (s: Stop, pay: string) => (s.kind === "ack" ? `Later train ${s.dep} → you confirm` : s.kind === "device" ? "Card → you insert" : `${pay} → you tap`);
 
-export function intentChips(intent: TrainIntent, stop: Stop | null): Chip[] {
+// lang: 키오스크 화면 언어. 칩은 영어지만 버튼 이름만 키오스크 화면 글자 그대로 쓴다
+export function intentChips(intent: TrainIntent, stop: Stop | null, lang: KioskLang): Chip[] {
   const people = [intent.adults ? pl(intent.adults, "adult") : "", intent.children ? pl(intent.children, "child").replace("childs", "children") : "", intent.seniors ? pl(intent.seniors, "senior") : ""].filter(Boolean).join(" · ");
   const texts = [
     ...(intent.from ? [`${findStation(intent.from)?.name.en} →`] : []),
@@ -28,7 +31,7 @@ export function intentChips(intent: TrainIntent, stop: Stop | null): Chip[] {
     ...(intent.seats ? [seatText[intent.seats]] : []),
   ];
   const chips: Chip[] = texts.map((text) => ({ text, tone: "normal" }));
-  if (stop) chips.push({ text: stopText(stop), tone: "blocked" });
+  if (stop) chips.push({ text: stopText(stop, t.pay[lang]), tone: "blocked" });
   return chips;
 }
 

@@ -80,6 +80,9 @@ export function AsrTest() {
     onTake,
     onTooShort: () => setNotice("누른 채로 읽어 주세요"),
     onBlocked: () => setNotice("마이크를 쓸 수 없어요. 브라우저 설정에서 마이크를 허용해 주세요."),
+    onFailed: () => setNotice("다시 눌러 읽어 주세요"),
+    onAllowRetry: () => setNotice("마이크를 허용했으면 다시 눌러 읽어 주세요"),
+    onTooLong: () => setNotice("55초가 넘어서 여기까지 보냈어요"),
   });
 
   const summary = done.length ? summarize(done) : null;
@@ -122,7 +125,7 @@ export function AsrTest() {
               type="button"
               {...bind}
               aria-label="누른 채로 읽기"
-              className={`flex h-28 w-28 items-center justify-center rounded-full text-5xl text-white shadow-lg ${HOLD_CLASS} ${phase === "recording" ? "scale-110 bg-red-600 ring-8 ring-red-200" : "bg-teal-700"} disabled:opacity-50`}
+              className={`flex h-28 w-28 items-center justify-center rounded-full text-5xl text-white shadow-lg ${HOLD_CLASS} ${phase === "recording" ? "scale-110 bg-red-600 ring-8 ring-red-200" : "bg-teal-700"} aria-disabled:opacity-50`}
             >
               {phase === "sending" ? "…" : "🎤"}
             </button>

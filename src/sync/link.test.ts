@@ -121,6 +121,62 @@ describe("Supabase Realtime 연결", () => {
     expect(got).toEqual([{ type: "hello" }, hi, { type: "hello" }]);
   });
 
+  it("연결됨·끊김을 알린다: 원격 길이 끊기면 false, 다시 붙으면 true. 같은 페이지 길은 늘 연결돼 있어 함께 쓸 때는 원격 길을 따른다", async () => {
+    const server = fakeServer();
+    const pd = server.device();
+    const remote = supabaseLink("482913", pd);
+    const both = bothLink([openLink("482913-live"), remote]);
+    const seen: boolean[] = [];
+    both.onLive((v) => seen.push(v));
+    await Promise.resolve();
+    pd.join();
+    pd.drop();
+    pd.join();
+    expect(seen).toEqual([false, true, false, true]);
+    const local: boolean[] = [];
+    openLink("482913-local").onLive((v) => local.push(v));
+    await Promise.resolve();
+    expect(local).toEqual([true]);
+  });
+
+  it("인터넷이 돌아오면(online) 끊긴 원격 길을 백오프(최대 10초) 없이 바로 다시 붙인다. 붙어 있으면 건드리지 않고, 닫은 뒤에는 듣지 않는다", () => {
+    const server = fakeServer();
+    const pd = Object.assign(server.device(), { kicks: 0, reconnectNow() { this.kicks++; } });
+    let fire = () => {};
+    let off = 0;
+    const link = supabaseLink("482913", pd, (f) => {
+      fire = f;
+      return () => void off++;
+    });
+    pd.join();
+    fire();
+    expect(pd.kicks).toBe(0);
+    pd.drop();
+    fire();
+    expect(pd.kicks).toBe(1);
+    link.close();
+    expect(off).toBe(1);
+  });
+
+  it("인터넷이 끊기면(offline) 채널 heartbeat(약 30초)를 기다리지 않고 바로 끊김으로 알린다. 돌아오면(online) 채널이 아직 붙어 있으면 바로 연결됨으로 알리고 onJoin을 다시 불러(휴대폰은 hello) 끊긴 사이 놓친 상태를 새로 받는다", async () => {
+    const server = fakeServer();
+    const pd = server.device();
+    let online = () => {};
+    let offline = () => {};
+    const link = supabaseLink("482913", pd, (f) => ((online = f), () => {}), (f) => ((offline = f), () => {}));
+    const seen: boolean[] = [];
+    link.onLive((v) => seen.push(v));
+    let joins = 0;
+    link.onJoin(() => joins++);
+    await Promise.resolve();
+    pd.join();
+    expect(joins).toBe(1);
+    offline();
+    online();
+    expect(seen).toEqual([false, true, false, true]);
+    expect(joins).toBe(2);
+  });
+
   afterEach(() => vi.useRealTimers());
 
   it("끊긴 동안 15초 넘게 대기열에 있던 말(utterance)과 확인(ack)은 다시 접속해도 보내지 않는다. 15초 안의 것과 그 밖의 메시지는 보낸다", () => {
@@ -154,6 +210,7 @@ function fakeBus(echo = false) {
       send: (m) => members.forEach((f) => (echo || f !== me) && f(structuredClone(m))),
       subscribe: (f) => (fns.add(f), () => fns.delete(f)),
       onJoin: () => () => {},
+      onLive: () => () => {},
       close: () => members.delete(me),
     };
   };

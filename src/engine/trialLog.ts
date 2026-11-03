@@ -29,9 +29,10 @@ export interface TrialEvent {
   value?: string;
   orderType?: string | null;
   cart?: TrialCartLine[];
-  // start면 참가자 번호(P1–P3)와 조건(touch/kibo)
+  // start면 참가자 번호(P1–P3)와 조건(touch/kibo), 시도 번호(1부터, 기록을 지우기 전까지 이어진다)
   participant?: string;
   condition?: string;
+  session?: number;
   // result면 plan | clarify | reject | error | busy
   result?: string;
 }
@@ -115,3 +116,23 @@ export function judgeTrial(events: TrialEvent[], task: TrialTask): { reached: bo
   }
   return { reached: true, correct: mismatches.length === 0, mismatches };
 }
+
+// [시작]·[다시 시작]: 앞 기록은 그대로 두고, 참가자·시도 사이를 가르는 start(시도 번호와 시작 시각 t)를 붙인다
+export function startSession(events: TrialEvent[], t: number, screen: string, participant: string, condition: string): TrialEvent[] {
+  const session = events.filter((e) => e.kind === "start").length + 1;
+  return [...events, { t, kind: "start", by: "facilitator", screen, participant, condition, session }];
+}
+
+// [기록 저장]: 쌓인 시도 전부와 시도별 요약·판정. room은 넣지 않는다(파일을 받은 사람이 그 키오스크에 말을 걸 수 있다)
+export function trialExport(kiosk: string, events: TrialEvent[], task: TrialTask | undefined, now: number) {
+  const starts = events.flatMap((e, i) => (e.kind === "start" ? [i] : []));
+  const sessions = starts.map((i, n) => {
+    const slice = events.slice(i, starts[n + 1] ?? events.length);
+    const st = events[i];
+    return { session: st.session ?? n + 1, participant: st.participant ?? null, condition: st.condition ?? null, startedAt: new Date(st.t).toISOString(), summary: summarize(slice), judge: task ? judgeTrial(slice, task) : null };
+  });
+  return { kiosk, exportedAt: new Date(now).toISOString(), sessions, events };
+}
+
+// 되돌릴 수 없는 일(기록 지우기)은 두 번 묻는다. 처음에 아니요면 두 번째는 묻지 않는다
+export const askTwice = (ask: (message: string) => boolean, first: string, second: string) => ask(first) && ask(second);

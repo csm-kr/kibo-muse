@@ -16,7 +16,7 @@ const failed: Record<Lang, string> = {
 
 export async function POST(req: Request) {
   // 약 60초(2MB)를 넘는 소리는 읽기 전에 거절한다(헤더가 없거나 거짓이면 읽은 뒤 다시 잰다)
-  if (overSize("wavBytes", Number(req.headers.get("content-length") ?? 0))) return tooLarge(req);
+  if (overSize("wavBytes", Number(req.headers.get("content-length") ?? 0))) return tooLarge(req, "speech");
   const limited = rateLimited("transcribe", req);
   if (limited) return limited;
   const params = new URL(req.url).searchParams;
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const keywords = keywordsFor(params.get("kiosk"));
   const wav = new Uint8Array(await req.arrayBuffer());
   if (wav.length < 44) return Response.json({ error: "bad_request" }, { status: 400 });
-  if (overSize("wavBytes", wav.length)) return tooLarge(req);
+  if (overSize("wavBytes", wav.length)) return tooLarge(req, "speech");
   try {
     const r = await transcribe(wav, { languageBias: [...new Set([lang, "English", "Korean"])], keywords });
     return Response.json(r);

@@ -32,10 +32,12 @@ export interface Done {
   payButton?: string;
 }
 
-export type Understood<E> =
+// followSpoken: 서버가 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다. 대답에 실어 휴대폰이 그 언어로 바꾸게 한다
+export type Understood<E> = (
   | { kind: "plan"; events: E[]; lang: string; done: Done }
   | { kind: "clarify"; say: string; lang: string }
-  | { kind: "reject"; reason: string; lang: string; say?: string };
+  | { kind: "reject"; reason: string; lang: string; say?: string }
+) & { followSpoken?: boolean };
 
 export interface Resumed<E> {
   events: E[];
@@ -166,6 +168,15 @@ const phrases: Record<"ok" | "none" | "taps" | "same" | "full" | "slow" | "error
 
 // 이유가 정해진 거절의 고정 문구. 없는 이유는 phrases.reject
 const rejectPhrases: Record<string, Record<Lang, string>> = {
+  // 결제 화면(결제 완료·주문번호 포함)에서 새 주문. {b} = 키오스크의 [처음으로]
+  payment_in_progress: {
+    en: "The kiosk is at payment, so I can't take a new order yet. To order again, tap [{b}] on the kiosk, then tell me.",
+    ko: "키오스크가 결제 단계라 아직 새 주문을 받을 수 없어요. 새로 주문하시려면 키오스크의 [{b}] 버튼을 누른 뒤 다시 말씀해 주세요.",
+    ja: "キオスクは支払いの段階なので、まだ新しい注文はできません。注文し直す場合はキオスクの［{b}］を押してから、もう一度おっしゃってください。",
+    vi: "Máy đang ở bước thanh toán nên chưa nhận món mới được. Muốn gọi lại, hãy bấm [{b}] trên máy rồi nói lại với tôi.",
+    zh: "自助机正在付款，暂时不能下新订单。要重新点餐，请先点击机器上的［{b}］，再告诉我。",
+    es: "El quiosco está en el pago, así que aún no puedo tomar un pedido nuevo. Para pedir otra vez, pulse [{b}] en el quiosco y dígamelo.",
+  },
   bad_qty: {
     en: "You can order up to 10 at a time.",
     ko: "한 번에 10개까지 주문할 수 있어요.",
@@ -183,14 +194,15 @@ const rejectPhrases: Record<string, Record<Lang, string>> = {
     zh: "要更改或删除已加入的商品，请在订单确认页面自己点按。",
     es: "Para cambiar o quitar productos ya añadidos, tóquelos usted en la pantalla de revisión del pedido.",
   },
-  // 주문 전체 취소는 KIBO가 하지 않는다. 사람이 화면의 [취소]를 누른다
+  // 주문 전체 취소는 KIBO가 하지 않는다. 사람이 화면의 처음으로(start_over) 버튼을 누른다([취소]는 고르던 메뉴만 버린다)
+  // {b} = 키오스크 화면의 그 버튼 글자(키오스크 언어). 휴대폰 언어로 옮기면 화면에서 찾을 수 없다
   cancel_order: {
-    en: "To cancel the whole order, please tap [Cancel] on the screen yourself.",
-    ko: "주문 전체 취소는 화면의 [취소]를 직접 눌러 주세요.",
-    ja: "注文をすべて取り消すには、画面の［キャンセル］をご自身で押してください。",
-    vi: "Để hủy toàn bộ đơn, xin hãy tự bấm [Hủy] trên màn hình.",
-    zh: "要取消整个订单，请自己点屏幕上的［取消］。",
-    es: "Para cancelar todo el pedido, pulse usted [Cancelar] en la pantalla.",
+    en: "To cancel the whole order, please tap [{b}] on the screen yourself.",
+    ko: "주문 전체 취소는 화면의 [{b}]를 직접 눌러 주세요.",
+    ja: "注文をすべて取り消すには、画面の［{b}］をご自身で押してください。",
+    vi: "Để hủy toàn bộ đơn, xin hãy tự bấm [{b}] trên màn hình.",
+    zh: "要取消整个订单，请自己点屏幕上的［{b}］。",
+    es: "Para cancelar todo el pedido, pulse usted [{b}] en la pantalla.",
   },
   // 기차: 편도 예매만 한다. 왕복·환불·변경은 사람이 화면에서 한다
   train_unsupported: {
@@ -246,14 +258,14 @@ const rejectPhrases: Record<string, Record<Lang, string>> = {
     zh: "那个时间以后没有符合条件且有空座的列车。请换个时间、日期或座位等级。",
     es: "No hay ningún tren con plazas libres que encaje después de esa hora. Pruebe otra hora, otro día u otra clase.",
   },
-  // 기차 나가기. 결제는 사람만 하므로 결제된 것이 없다는 사실만 알린다
+  // 기차 나가기. 결제는 사람만 하므로 결제된 것이 없다는 사실만 알린다. {b} = 화면 위 처음으로(home) 버튼 글자(키오스크 언어)
   train_exit: {
-    en: "To go back to the start, tap [Home] at the top of the screen. Nothing has been paid.",
-    ko: "처음으로 가려면 화면 위 [처음으로]를 눌러 주세요. 결제된 것은 없어요.",
-    ja: "最初に戻るには、画面上の［最初へ］を押してください。お支払いはまだされていません。",
-    vi: "Để quay lại từ đầu, hãy bấm [Về đầu] ở phía trên màn hình. Chưa có khoản nào được thanh toán.",
-    zh: "要回到开头，请点屏幕上方的［返回首页］。还没有付任何钱。",
-    es: "Para volver al inicio, pulse [Inicio] arriba en la pantalla. No se ha pagado nada.",
+    en: "To go back to the start, tap [{b}] at the top of the screen. Nothing has been paid.",
+    ko: "처음으로 가려면 화면 위 [{b}]를 눌러 주세요. 결제된 것은 없어요.",
+    ja: "最初に戻るには、画面上の［{b}］を押してください。お支払いはまだされていません。",
+    vi: "Để quay lại từ đầu, hãy bấm [{b}] ở phía trên màn hình. Chưa có khoản nào được thanh toán.",
+    zh: "要回到开头，请点屏幕上方的［{b}］。还没有付任何钱。",
+    es: "Para volver al inicio, pulse [{b}] arriba en la pantalla. No se ha pagado nada.",
   },
   // 기차 노선에 없는 역
   unknown_station: {
@@ -282,19 +294,19 @@ const rejectPhrases: Record<string, Record<Lang, string>> = {
     zh: "一次最多可以订9人。",
     es: "Puede reservar para un máximo de 9 personas a la vez.",
   },
-  // 공항 나가기. 확정 카드를 다시 띄우지 않고, 확정되지 않았다는 사실만 알린다
+  // 공항 나가기. 확정 카드를 다시 띄우지 않고, 확정되지 않았다는 사실만 알린다. {b} = 화면 아래 나가기(exit) 버튼 글자(키오스크 언어)
   exit: {
-    en: "To go back to the start, tap [Home] at the top of the screen. Your check-in has not been confirmed.",
-    ko: "처음으로 가려면 화면 위 [처음으로]를 눌러 주세요. 체크인은 확정되지 않았어요.",
-    ja: "最初に戻るには、画面上の［最初へ］を押してください。チェックインは確定していません。",
-    vi: "Để quay lại từ đầu, hãy bấm [Về đầu] ở phía trên màn hình. Thủ tục chưa được xác nhận.",
-    zh: "要回到开头，请点屏幕上方的［返回首页］。值机尚未确认。",
-    es: "Para volver al inicio, pulse [Inicio] arriba en la pantalla. Su facturación no se ha confirmado.",
+    en: "To go back to the start, tap [{b}] at the bottom of the screen. Your check-in has not been confirmed.",
+    ko: "처음으로 가려면 화면 아래 [{b}]를 눌러 주세요. 체크인은 확정되지 않았어요.",
+    ja: "最初に戻るには、画面下の［{b}］を押してください。チェックインは確定していません。",
+    vi: "Để quay lại từ đầu, hãy bấm [{b}] ở phía dưới màn hình. Thủ tục chưa được xác nhận.",
+    zh: "要回到开头，请点屏幕下方的［{b}］。值机尚未确认。",
+    es: "Para volver al inicio, pulse [{b}] abajo en la pantalla. Su facturación no se ha confirmado.",
   },
 };
 
 // 거절 이유의 고정 문구. 서버 route도 이것으로 Spark 문장을 덮는다(하지 않은 일을 말하지 않게)
-// vars: 문구 안 {이름} 자리에 넣을 값(예: past_time의 {now})
+// vars: 문구 안 {이름} 자리에 넣을 값(예: past_time의 {now}, 버튼 이름 {b}는 키오스크 화면 글자)
 export const rejectSay = (reason: string, lang: string, vars: Record<string, string> = {}) =>
   Object.entries(vars).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, v), (rejectPhrases[reason] ?? phrases.reject)[langOf(lang)]);
 
@@ -339,9 +351,9 @@ export function createTurn<E>(initial: TurnDeps<E>) {
     deps.onPhase(p);
   };
   const busy = () => phase === "thinking" || phase === "replaying";
-  const reply = (re: string, lang: Lang, result: "plan" | "clarify" | "reject" | "error" | "busy", say: string, taps?: number) => {
+  const reply = (re: string, lang: Lang, result: "plan" | "clarify" | "reject" | "error" | "busy", say: string, taps?: number, followSpoken?: boolean) => {
     lastLang = lang;
-    deps.send({ type: "reply", re, say, replyLanguage: lang, result, ...(taps !== undefined && { taps }) });
+    deps.send({ type: "reply", re, say, replyLanguage: lang, result, ...(taps !== undefined && { taps }), ...(followSpoken && { followSpoken }) });
   };
   const clearGate = () => {
     waitingFor = null;
@@ -412,12 +424,12 @@ export function createTurn<E>(initial: TurnDeps<E>) {
     if (!u) reply(h.id, lang, "error", phrases.error[lang]);
     else {
       lang = langOf(u.lang);
-      if (u.kind === "clarify") reply(h.id, lang, "clarify", u.say);
+      if (u.kind === "clarify") reply(h.id, lang, "clarify", u.say, undefined, u.followSpoken);
       // 서버가 이유에 값(예: 발매기 시각)을 넣은 고정 문구를 보냈으면 그것을 쓴다
-      else if (u.kind === "reject") reply(h.id, lang, "reject", u.say ?? rejectSay(u.reason, lang));
+      else if (u.kind === "reject") reply(h.id, lang, "reject", u.say ?? rejectSay(u.reason, lang), undefined, u.followSpoken);
       else {
         const n = u.events.length;
-        reply(h.id, lang, "plan", planSay(n, lang, atGate), n);
+        reply(h.id, lang, "plan", planSay(n, lang, atGate), n, u.followSpoken);
         await replay(h.id, lang, u.events, u.done);
       }
     }

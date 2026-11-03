@@ -47,7 +47,7 @@ describe("/api/fastfood/interpret", () => {
     fakeSpark({ ...base, unsupported: "cancel_order", say: "주문을 취소했어요." });
     const cancelled = await call("전부 취소해 주세요");
     expect(cancelled.plan).toEqual({ kind: "reject", reason: "cancel_order" });
-    expect(cancelled.say).toBe("주문 전체 취소는 화면의 [취소]를 직접 눌러 주세요.");
+    expect(cancelled.say).toBe("주문 전체 취소는 화면의 [Start over]를 직접 눌러 주세요.");
   });
 
   it("되묻기 Spark 문장이 다른 언어 문자를 섞으면(실측 「…1개ですね」) 담을 품목 이름과 빠진 칸으로 만든 고정 문구로 바꾸고, 섞이지 않았으면 그대로 쓴다", async () => {
@@ -71,9 +71,19 @@ describe("/api/fastfood/interpret", () => {
     expect(ko.plan.kind).toBe("clarify");
     expect(ko.say).toBe("더블 치즈버거 세트 ×1 담을게요. 사이즈는 M, L 중 무엇으로 할까요?");
     expect(ko.replyLanguage).toBe("ko");
+    // 장면 8: 한글이 섞인 말이라 Spark가 영어로 봐도 휴대폰 언어를 바꾸라고 하지 않는다
+    expect(ko.followSpoken).toBeUndefined();
     // 같은 언어 판정은 정규화한다(Korean = ko-KR)
     fakeSpark({ ...sizeAsk, replyLanguage: "ko-KR", say: "더블 치즈버거 세트 1개, 사이즈는 M, L 중 어느 걸로 할까요?" });
     expect((await call(mixedKo, "?lang=Korean")).say).toBe("더블 치즈버거 세트 1개, 사이즈는 M, L 중 어느 걸로 할까요?");
+  });
+
+  it("말한 언어가 휴대폰 언어와 분명히 다르면(한국어 휴대폰 + 순수 영어 문장) 영어로 답하고 followSpoken을 붙인다", async () => {
+    fakeSpark(sizeAsk);
+    const en = await call("Can I get a Double Cheeseburger meal with a Zero Cola, for here please", "?lang=ko");
+    expect(en.replyLanguage).toBe("en");
+    expect(en.followSpoken).toBe(true);
+    expect(en.say).toBe(sizeAsk.say);
   });
 
   it("휴대폰 언어(?lang)가 있으면 계획·거절 문구도 그 언어다", async () => {
@@ -83,7 +93,7 @@ describe("/api/fastfood/interpret", () => {
     expect(planned.say).toBe(planSay(planned.plan.events.length, "ko"));
     expect(planned.replyLanguage).toBe("ko");
     fakeSpark({ ...sizeAsk, unsupported: "cancel_order" });
-    expect((await call("cancel everything", "?lang=ko")).say).toBe("주문 전체 취소는 화면의 [취소]를 직접 눌러 주세요.");
+    expect((await call("cancel everything", "?lang=ko")).say).toBe("주문 전체 취소는 화면의 [Start over]를 직접 눌러 주세요.");
   });
 
   it("?lang이 없으면(평가 하네스·옛 클라이언트) 지금처럼 Spark가 고른 언어로 답한다", async () => {
@@ -91,5 +101,14 @@ describe("/api/fastfood/interpret", () => {
     const body = await call(mixedKo);
     expect(body.say).toBe(sizeAsk.say);
     expect(body.replyLanguage).toBe("en");
+  });
+
+  it("거절 문구 속 버튼 이름은 키오스크 화면 글자다(주문 전체 취소 = 화면의 [처음으로]·[Start over]). 휴대폰 언어로 옮기지 않는다", async () => {
+    const post = async (lang: "ko" | "en", q: string) => (await POST(new Request(`http://x/api/fastfood/interpret${q}`, { method: "POST", body: JSON.stringify({ utterance: "cancel", state: initialState(lang) }) }))).json();
+    fakeSpark({ ...base, unsupported: "cancel_order" });
+    const vi = await post("ko", "?lang=vi");
+    expect(vi.say).toContain("[처음으로]");
+    expect(vi.say).not.toContain("[Hủy]");
+    expect((await post("en", "?lang=ko")).say).toContain("[Start over]");
   });
 });

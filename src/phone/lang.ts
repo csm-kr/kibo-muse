@@ -11,6 +11,14 @@ export function pickLang(candidates: readonly (string | null | undefined)[]): Ph
   return "en";
 }
 
+// 대답이 말한 언어를 따라오라고 하면(followSpoken: 휴대폰 언어와 분명히 다른 언어로 말함) 바꿀 언어. 바꾸지 않으면 null.
+// 이번 화면에서 사람이 언어 칩으로 직접 골랐으면(userPicked) 그 선택을 지킨다
+export function followLang(m: { followSpoken?: boolean; replyLanguage: string }, current: PhoneLangCode, userPicked: boolean): PhoneLangCode | null {
+  if (!m.followSpoken || userPicked) return null;
+  const next = CODES.find((c) => c === m.replyLanguage.toLowerCase().slice(0, 2));
+  return next && next !== current ? next : null;
+}
+
 const KEY = "kibo.phone.lang";
 export function savedLang(): string | null {
   try {

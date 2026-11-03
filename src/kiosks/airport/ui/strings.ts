@@ -96,7 +96,7 @@ export const t = {
   noBags: { en: "No checked bags", ko: "수하물 없음" },
   or: { en: "or", ko: "또는" },
   haveBags: { en: "I have bags to check", ko: "위탁 수하물 있음" },
-  bagCountTitle: { en: "Baggage", ko: "Baggage" },
+  bagCountTitle: { en: "Baggage", ko: "수하물" },
   chooseBags: { en: "Select the number of bags to check.", ko: "부치실 짐의 개수를 선택해 주세요." },
   bagsToCheck: { en: "Bags to check", ko: "부칠 짐 개수" },
   excess: { en: "Excess", ko: "초과" },
@@ -135,3 +135,6 @@ export const t = {
 
 export const won = (n: number) => `₩${n.toLocaleString("en-US")}`;
 export const circled = (i: number) => "①②③④⑤⑥"[i] ?? String(i + 1);
+
+// 짐 개수는 수에 맞춘다(실제 기기처럼 "1 bag" / "2 bags", 한국어는 "1개")
+export const bagsN = (n: number, lang: Lang) => (lang === "ko" ? `${n}개` : n === 1 ? "1 bag" : `${n} bags`);

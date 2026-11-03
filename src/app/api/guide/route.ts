@@ -15,11 +15,11 @@ const line = (o: object) => new TextEncoder().encode(`${JSON.stringify(o)}\n`);
 
 export async function POST(req: Request) {
   // 사진(약 1.5MB) + 질문을 넘는 본문은 읽기 전에 거절한다. 휴대폰은 긴 변 1280 JPEG로 줄여 보낸다
-  if (Number(req.headers.get("content-length") ?? 0) > MAX.imageChars + 10_000) return tooLarge(req);
+  if (Number(req.headers.get("content-length") ?? 0) > MAX.imageChars + 10_000) return tooLarge(req, "photo");
   const limited = rateLimited("guide", req);
   if (limited) return limited;
   const { image, width, height, question, language } = (await req.json()) as { image?: string; width?: number; height?: number; question?: string; language?: string };
-  if (typeof image === "string" && overSize("imageChars", image.length)) return tooLarge(req);
+  if (typeof image === "string" && overSize("imageChars", image.length)) return tooLarge(req, "photo");
   if (typeof image !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(image) || !okSize(width) || !okSize(height))
     return Response.json({ error: "image must be a resized data:image URL with its width and height" }, { status: 400 });
   if (typeof question !== "string" || !question.trim()) return Response.json({ error: "question is required" }, { status: 400 });

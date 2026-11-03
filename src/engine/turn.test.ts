@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LinkGate, LinkMsg } from "@/sync/link";
-import { createTurn, planSay, type TurnDeps, type TurnPhase, type Understood } from "./turn";
+import { createTurn, planSay, rejectSay, type TurnDeps, type TurnPhase, type Understood } from "./turn";
 
 type E = string;
 const gate = { kind: "ack" as const, what: "dangerous_goods", text: "확인해 주세요", button: "확인했어요" };
@@ -48,6 +48,20 @@ describe("KIBO 한 턴", () => {
       { type: "done", re: "u1", ok: true, say: "다 됐어요", replyLanguage: "ko", gate: { ...gate, id: expect.any(String) } },
     ]);
     expect(h.phases).toEqual(["thinking", "replaying", "waiting_gate"]);
+  });
+
+  it("서버가 말한 언어를 따라오라고 하면(followSpoken) 대답에 그 신호를 실어 휴대폰에 보낸다. 없으면 싣지 않는다", async () => {
+    const h = harness();
+    h.turn.hear({ id: "u1", text: "Can I get a cheeseburger meal", lang: "Korean" });
+    h.asks[0].resolve({ kind: "clarify", say: "Which size?", lang: "en", followSpoken: true });
+    await flush();
+    h.turn.hear({ id: "u2", text: "치즈버거", lang: "Korean" });
+    h.asks[1].resolve({ kind: "clarify", say: "사이즈는요?", lang: "ko" });
+    await flush();
+    expect(h.replies()).toEqual([
+      { type: "reply", re: "u1", say: "Which size?", replyLanguage: "en", result: "clarify", followSpoken: true },
+      { type: "reply", re: "u2", say: "사이즈는요?", replyLanguage: "ko", result: "clarify" },
+    ]);
   });
 
   it("바쁠 때: 같은 메시지 id는 버리고, 같은 말은 '하던 대로' 답, 다른 말은 하나만 기다렸다 처리, 그 이상은 '다시 말해 달라' 답. 말마다 대답은 정확히 하나", async () => {
@@ -182,6 +196,8 @@ describe("KIBO 한 턴", () => {
     expect(await say("u", { kind: "reject", reason: "unsupported", lang: "en" })).toMatchObject({ say: "To change or remove items already in your order, please tap them yourself on the order review screen." });
     expect(await say("x", { kind: "reject", reason: "other", lang: "ko" })).toMatchObject({ say: "죄송해요, 그건 이 키오스크에서 해 드릴 수 없어요. 다르게 말씀해 주시거나 직원을 불러 주세요." });
     expect(await say("n", planned([]))).toMatchObject({ result: "plan", taps: 0, say: "지금은 제가 누를 버튼이 없어요." });
+    // 결제 화면(결제 완료·주문번호 포함)에서 새로 주문하면 "할 수 없어요"가 아니라 이유와 누를 버튼을 말한다(11/3 실기기)
+    expect(rejectSay("payment_in_progress", "en", { b: "Start over" })).toBe("The kiosk is at payment, so I can't take a new order yet. To order again, tap [Start over] on the kiosk, then tell me.");
   });
 
   it("확정 관문에서 '그만할래요'(나가기)는 거절하고, 확정 카드를 다시 띄우지 않는다. 그다음 '네'는 동의가 아니라 해석으로 간다", async () => {
@@ -193,9 +209,11 @@ describe("KIBO 한 턴", () => {
     const cards = () => h.sent.filter((m) => m.type === "done" && m.gate).length;
     expect(cards()).toBe(1);
     h.turn.hear({ id: "u2", text: "체크인 그만할래요", lang: "Korean" });
-    h.asks[1].resolve({ kind: "reject", reason: "exit", lang: "ko" });
+    // 거절 문구는 서버가 키오스크 버튼 이름을 넣어 만든 것을 Station이 그대로 넘긴다
+    const exitSay = "처음으로 가려면 화면 아래 [나가기]를 눌러 주세요. 체크인은 확정되지 않았어요.";
+    h.asks[1].resolve({ kind: "reject", reason: "exit", lang: "ko", say: exitSay });
     await flush();
-    expect(h.replies().at(-1)).toMatchObject({ re: "u2", result: "reject", say: "처음으로 가려면 화면 위 [처음으로]를 눌러 주세요. 체크인은 확정되지 않았어요." });
+    expect(h.replies().at(-1)).toMatchObject({ re: "u2", result: "reject", say: exitSay });
     expect(cards()).toBe(1);
     expect(h.turn.phase()).toBe("idle");
     h.turn.hear({ id: "u3", text: "네", lang: "Korean" });

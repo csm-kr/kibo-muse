@@ -4,32 +4,11 @@
 // 휴대폰 화면과 받아쓰기 측정 화면(/asr-test)이 같은 길을 쓴다(같은 길을 재야 측정이 의미 있다)
 
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { releaseAction, TAIL_MS } from "./ptt";
+import { assistClick, createMic, type MicEvents, type MicPhase, type RecorderLike } from "./mic";
 
-// 녹음 한 번. startDelayMs = 누른 순간부터 녹음이 실제로 시작될 때까지, durationMs = 녹음 길이(뗀 뒤 꼬리 포함)
-export interface Take {
-  blob: Blob;
-  startDelayMs: number;
-  durationMs: number;
-}
+export type { Take } from "./mic";
 
-interface Press {
-  at: number;
-  rec?: MediaRecorder;
-  startedAt?: number;
-  chunks: Blob[];
-}
-
-export interface HoldToTalk {
-  // 누른 순간(녹음 전). 소리 잠금 풀기, 안내 지우기 같은 일
-  onPress?(): void;
-  // 녹음이 실제로 시작됨
-  onRecording?(): void;
-  // 뗀 뒤 녹음본. 이것이 끝날 때까지 'sending'
-  onTake(take: Take): Promise<void> | void;
-  onTooShort?(): void;
-  onBlocked?(): void;
-}
+export type HoldToTalk = Omit<MicEvents, "onPhase">;
 
 // 길게 누를 때 메뉴·글자 선택·스크롤이 끼어들지 않게
 export const HOLD_CLASS = "touch-none select-none [-webkit-touch-callout:none]";
@@ -37,62 +16,52 @@ export const HOLD_CLASS = "touch-none select-none [-webkit-touch-callout:none]";
 const holdKey = (e: KeyboardEvent) => e.key === " " || e.key === "Enter";
 
 export function useHoldToTalk(o: HoldToTalk) {
-  const [phase, setPhase] = useState<"idle" | "recording" | "sending">("idle");
-  // 마이크 스트림은 권한을 받은 뒤 열어 두고 다시 쓴다(누를 때마다 권한을 다시 묻지 않게)
-  const streamRef = useRef<MediaStream | null>(null);
-  const pressRef = useRef<Press | null>(null);
-  useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), []);
-
-  async function down() {
-    if (phase !== "idle" || pressRef.current) return;
-    const press: Press = { at: performance.now(), chunks: [] };
-    pressRef.current = press;
-    setPhase("recording");
-    o.onPress?.();
-    try {
-      // 모노 한 채널. 반향 제거·잡음 억제·자동 음량은 브라우저 기본값(켬)을 그대로 쓴다
-      streamRef.current ??= await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
-    } catch {
-      pressRef.current = null;
-      setPhase("idle");
-      o.onBlocked?.();
-      return;
-    }
-    // 권한 창을 보는 사이에 손을 뗐으면 녹음하지 않는다
-    if (pressRef.current !== press) return;
-    const rec = new MediaRecorder(streamRef.current);
-    rec.ondataavailable = (e) => press.chunks.push(e.data);
-    rec.onstart = () => (press.startedAt = performance.now());
-    rec.start();
-    press.rec = rec;
-    o.onRecording?.();
-  }
-
-  async function up() {
-    const press = pressRef.current;
-    if (!press) return;
-    pressRef.current = null;
-    const rec = press.rec;
-    if (!rec || releaseAction(performance.now() - press.at) === "too_short") {
-      rec?.stop();
-      setPhase("idle");
-      o.onTooShort?.();
-      return;
-    }
-    setPhase("sending");
-    await new Promise((r) => setTimeout(r, TAIL_MS));
-    await new Promise((r) => {
-      rec.onstop = r;
-      rec.stop();
-    });
-    const end = performance.now();
-    const startedAt = press.startedAt ?? end;
-    try {
-      await o.onTake({ blob: new Blob(press.chunks, { type: rec.mimeType }), startDelayMs: Math.round(startedAt - press.at), durationMs: Math.round(end - startedAt) });
-    } finally {
-      setPhase("idle");
-    }
-  }
+  const [phase, setPhase] = useState<MicPhase>("idle");
+  // 콜백은 매 렌더 최신 것을 부른다
+  const evRef = useRef(o);
+  useEffect(() => {
+    evRef.current = o;
+  });
+  const micRef = useRef<ReturnType<typeof createMic> | null>(null);
+  // 녹음기는 화면에 붙을 때 만든다. 녹음 중 화면이 숨겨지면(잠금·앱 전환) 뗀 것으로 보고, 화면을 떠나면 마이크를 끈다
+  useEffect(() => {
+    const mic = createMic(
+      {
+        // 모노 한 채널. 반향 제거·잡음 억제·자동 음량은 브라우저 기본값(켬)을 그대로 쓴다
+        open: () => navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } }),
+        record: (s) => new MediaRecorder(s as MediaStream) as unknown as RecorderLike,
+        now: () => performance.now(),
+        wait: (ms) => new Promise((r) => setTimeout(r, ms)),
+        later: (fn, ms) => {
+          const id = setTimeout(fn, ms);
+          return () => clearTimeout(id);
+        },
+      },
+      {
+        onPhase: setPhase,
+        onPress: () => evRef.current.onPress?.(),
+        onRecording: () => evRef.current.onRecording?.(),
+        onTake: (t) => evRef.current.onTake(t),
+        onTooShort: () => evRef.current.onTooShort?.(),
+        onBlocked: () => evRef.current.onBlocked?.(),
+        onFailed: () => evRef.current.onFailed?.(),
+        onAllowRetry: () => evRef.current.onAllowRetry?.(),
+        onTooLong: () => evRef.current.onTooLong?.(),
+        onToggleOn: () => evRef.current.onToggleOn?.(),
+      },
+    );
+    micRef.current = mic;
+    const onVis = () => document.visibilityState === "hidden" && mic.hidden();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      mic.dispose();
+      micRef.current = null;
+    };
+  }, []);
+  const down = () => void micRef.current?.down();
+  const up = () => micRef.current?.up();
+  const toggle = () => micRef.current?.toggle();
 
   const bind = {
     onPointerDown: (e: PointerEvent) => {
@@ -108,9 +77,16 @@ export function useHoldToTalk(o: HoldToTalk) {
       e.preventDefault();
       if (!e.repeat) down();
     },
-    onKeyUp: (e: KeyboardEvent) => holdKey(e) && void up(),
+    onKeyUp: (e: KeyboardEvent) => {
+      if (!holdKey(e)) return;
+      e.preventDefault();
+      void up();
+    },
+    // 화면 읽기의 두 번 탭(합성 click, detail 0): 탭으로 시작, 다시 탭하면 보내기. 키보드 Space·Enter는 위에서 누르는 동안 녹음한다(기본 동작을 막아 click이 생기지 않는다)
+    onClick: (e: { detail: number }) => assistClick(toggle)(e),
     onContextMenu: (e: { preventDefault(): void }) => e.preventDefault(),
-    disabled: phase === "sending",
+    // 보내는 동안: disabled는 초점을 버튼 밖(body)으로 빼서 다음 턴에 마이크를 다시 찾아가야 한다. 알리기만 하고 눌러도 무시한다(mic가 phase로 막는다)
+    "aria-disabled": phase === "sending",
   };
   return { phase, bind };
 }

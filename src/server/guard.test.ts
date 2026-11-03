@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { logError, overSize, tokenBucket } from "./guard";
+import { logError, overSize, tokenBucket, tooLarge } from "./guard";
 
 describe("API 비용 방어", () => {
   it("토큰 버킷: IP마다 분당 n회. 다 쓰면 거절하고, 시간이 지난 만큼(분당 n개 비율) 다시 찬다", () => {
@@ -17,6 +17,14 @@ describe("API 비용 방어", () => {
     expect([overSize("wavBytes", 2_000_000), overSize("wavBytes", 2_000_001)]).toEqual([false, true]);
     expect([overSize("imageChars", 2_000_000), overSize("imageChars", 2_000_001)]).toEqual([false, true]);
     expect([overSize("utteranceChars", 500), overSize("utteranceChars", 501)]).toEqual([false, true]);
+  });
+
+  it("너무 큰 요청의 문구: 말(음성·글)에는 사진 이야기를 하지 않고, 사진에만 사진 크기를 말한다. 휴대폰 언어(?lang)로", async () => {
+    const say = async (r: Response) => ((await r.json()) as { say: string }).say;
+    const ko = new Request("http://x/api/transcribe?lang=ko");
+    expect(await say(tooLarge(ko, "speech"))).not.toMatch(/사진/);
+    expect(await say(tooLarge(ko, "photo"))).toMatch(/사진/);
+    expect(await say(tooLarge(new Request("http://x/api/transcribe?lang=vi"), "speech"))).not.toMatch(/ảnh/i);
   });
 
   it("서버 로그에서 키 꼴 토큰(sk-, sb_secret_, LLM_)은 <key>로 가린다", () => {

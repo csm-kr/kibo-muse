@@ -6,6 +6,7 @@ describe("해석 결과 칩", () => {
     const chips = intentChips(
       { orderType: "eat_in", items: [{ menuId: "double_cheese", mode: "set", size: "L", drink: "zero_cola", remove: ["pickle"], addOns: [], qty: 1 }], checkout: true },
       "review",
+      "en",
     );
     expect(chips).toEqual([
       { text: "Eat in", tone: "normal" },
@@ -14,7 +15,9 @@ describe("해석 결과 칩", () => {
       { text: "No Pickles", tone: "normal" },
       { text: "Pay → blocked. You tap Pay", tone: "blocked" },
     ]);
-    expect(intentChips({ current: { size: "L", drink: "cola" } }, "menu")).toEqual([
+    // 버튼 이름만 키오스크 화면 글자로(한국어 키오스크의 결제 버튼은 '결제하기'). 칩의 나머지는 영어 그대로
+    expect(intentChips({ checkout: true }, "review", "ko").at(-1)).toEqual({ text: "결제하기 → blocked. You tap 결제하기", tone: "blocked" });
+    expect(intentChips({ current: { size: "L", drink: "cola" } }, "menu", "en")).toEqual([
       { text: "L", tone: "normal" },
       { text: "Cola", tone: "normal" },
     ]);

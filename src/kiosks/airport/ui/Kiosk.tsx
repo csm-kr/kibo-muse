@@ -8,7 +8,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { BAG_ALLOWANCE, BLOCKS, EXCESS_FEE, FIRST_ROW, MAX_BAGS, MAX_OFFSET, ROWS, VISIBLE_ROWS, airlines, booking, findPassenger, isExit, isPaid, isTakenByOthers, type Lang } from "../booking";
 import { seatHolder, type KioskState, type Target } from "../machine";
 import { krFont } from "../../fastfood/ui/tokens";
-import { circled, t, won } from "./strings";
+import { bagsN, circled, t, won } from "./strings";
 import { airVars } from "./tokens";
 
 export type Highlight = { target: Target; value?: string } | null;
@@ -62,7 +62,7 @@ function LangTabs() {
       {(["ko", "en"] as const).map((l) => (
         <Btn key={l} target="language" value={l} className={`min-h-11 rounded-t-lg px-5 text-base ${s.lang === l ? "bg-white font-bold text-(--ba-plum)" : "bg-white/15 text-white"}`}>
           {s.lang === l && "✔ "}
-          {l === "ko" ? "한국어" : "English"}
+          <span lang={l}>{l === "ko" ? "한국어" : "English"}</span>
         </Btn>
       ))}
     </div>
@@ -115,9 +115,10 @@ function Idle() {
         <LangTabs />
       </div>
       <div className="mt-12 text-center">
-        <div className="text-4xl font-black text-(--ba-plum)">{tr("selfCheckin", s.lang)}</div>
+        {/* 실제 화면처럼 두 언어 모두 영어 제목. 다른 언어로 쓴 곳은 lang으로 표시한다(화면 낭독기 발음, 언어 시험) */}
+        <div lang="en" className="text-4xl font-black text-(--ba-plum)">{tr("selfCheckin", s.lang)}</div>
         <div className="mt-3 text-2xl text-(--ba-ink)">{tr("selectAirline", s.lang)}</div>
-        <div className="text-lg text-(--ba-muted)">{s.lang === "ko" ? "Please select your airline." : "항공사를 선택해 주세요."}</div>
+        <div lang={s.lang === "ko" ? "en" : "ko"} className="text-lg text-(--ba-muted)">{s.lang === "ko" ? "Please select your airline." : "항공사를 선택해 주세요."}</div>
       </div>
       <div className="mx-auto mt-10 grid w-[720px] grid-cols-2 gap-6">
         {airlines.map((a) => (
@@ -260,7 +261,9 @@ function ScanArt() {
     <div className="flex flex-col items-center">
       <div className="text-6xl text-(--ba-violet) motion-safe:animate-bounce">⬆</div>
       <div className="flex h-28 w-64 flex-col items-center justify-center rounded-xl border-4 border-neutral-500 bg-neutral-800 text-white">
-        <div className="text-sm">여권 PASSPORT</div>
+        <div className="text-sm">
+          <span lang="ko">여권</span> <span lang="en">PASSPORT</span>
+        </div>
         <div className="mt-2 h-2 w-48 rounded bg-neutral-500" />
       </div>
     </div>
@@ -446,7 +449,7 @@ function SeatMap() {
         </div>
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-3 text-sm">
-            <b>{f.no}</b> {f.from.city.en} ({f.from.code}) ········ {f.to.city.en} ({f.to.code}) <span className="ml-auto text-(--ba-muted)">Widebody {f.aircraft}</span>
+            <b>{f.no}</b> {f.from.city[s.lang]} ({f.from.code}) ········ {f.to.city[s.lang]} ({f.to.code}) <span className="ml-auto text-(--ba-muted)">{s.lang === "ko" ? `기종 ${f.aircraft}` : `Widebody ${f.aircraft}`}</span>
           </div>
           <div className="space-y-1">
             {rows.map((row) => (
@@ -571,7 +574,7 @@ function BagCount() {
           {L("allowanceBtn")}
         </Btn>
         <div>
-          {L("sum")} <b>{total} bag(s)</b> · {L("sum")} <b>{won(fee)}</b>
+          {L("sum")} <b>{bagsN(total, s.lang)}</b> · {L("sum")} <b>{won(fee)}</b>
         </div>
       </div>
     </Frame>
@@ -699,8 +702,8 @@ function PopupLayer() {
             {s.scanned.map((id) => (
               <tr key={id} className="border-b">
                 <td className="py-2">{name(id)}</td>
-                <td>{BAG_ALLOWANCE} bag(s) · 23kg</td>
-                <td>BAGS REGISTERED {s.bags[id] ?? 0}</td>
+                <td>{bagsN(BAG_ALLOWANCE, s.lang)} · 23kg</td>
+                <td>{s.lang === "ko" ? `등록 수하물 ${bagsN(s.bags[id] ?? 0, "ko")}` : `BAGS REGISTERED ${s.bags[id] ?? 0}`}</td>
               </tr>
             ))}
           </tbody>
@@ -764,27 +767,35 @@ function Devices({ onDevice, waitPassport }: { onDevice: (id: string) => void; w
   return (
     <div className="flex h-[210px] gap-4 bg-neutral-800 p-4 text-white">
       <div className={`flex w-[420px] flex-col rounded-xl border-2 p-3 ${waitPassport ? "border-orange-400 bg-orange-500/20 motion-safe:animate-pulse" : "border-neutral-600"}`}>
-        <div className="text-sm font-bold">여권인식 Passport Scan</div>
+        <div className="text-sm font-bold">
+          <span lang="ko">여권인식</span> <span lang="en">Passport Scan</span>
+        </div>
         <div className="my-2 h-3 rounded bg-neutral-950" />
         <div className="flex gap-3">
           {booking.passengers.map((p) => (
             <button key={p.id} type="button" data-device="passport" data-value={p.id} onClick={() => onDevice(p.id)} className="flex flex-1 flex-col items-start rounded-lg bg-[#7a1f2b] px-3 py-2 text-left shadow hover:brightness-110">
-              <span className="text-xs opacity-80">PASSPORT 🛂</span>
+              <span lang="en" className="text-xs opacity-80">PASSPORT 🛂</span>
               <span className="font-bold">
                 {p.family} {p.given}
               </span>
             </button>
           ))}
         </div>
-        <div className="mt-2 text-xs text-neutral-400">↑ tap a passport to put it in the reader</div>
+        <div className="mt-2 text-xs text-neutral-400">{s.lang === "ko" ? "↑ 여권을 누르면 리더기에 넣어요" : "↑ tap a passport to put it in the reader"}</div>
       </div>
       <div className="flex w-36 flex-col gap-3 text-xs">
-        <div className="rounded border border-neutral-600 p-2">▦ 바코드 Barcode</div>
-        <div className="rounded border border-neutral-600 p-2">▭ 카드 Card</div>
+        <div className="rounded border border-neutral-600 p-2">
+          ▦ <span lang="ko">바코드</span> <span lang="en">Barcode</span>
+        </div>
+        <div className="rounded border border-neutral-600 p-2">
+          ▭ <span lang="ko">카드</span> <span lang="en">Card</span>
+        </div>
       </div>
       <div className="flex flex-1 gap-3">
         <div className="flex-1 rounded-xl border-2 border-neutral-600 p-3">
-          <div className="text-sm font-bold">탑승권을 가져가세요 Boarding Pass</div>
+          <div className="text-sm font-bold">
+            <span lang="ko">탑승권을 가져가세요</span> <span lang="en">Boarding Pass</span>
+          </div>
           <div className="mt-2 flex gap-2" data-device="boarding_passes">
             {Array.from({ length: printed }, (_, i) => (
               <div key={i} className="rounded bg-white px-2 py-1 text-xs text-neutral-900 shadow">
@@ -794,7 +805,9 @@ function Devices({ onDevice, waitPassport }: { onDevice: (id: string) => void; w
           </div>
         </div>
         <div className="w-40 rounded-xl border-2 border-neutral-600 p-3">
-          <div className="text-sm font-bold">수하물 태그 Bag Tag</div>
+          <div className="text-sm font-bold">
+            <span lang="ko">수하물 태그</span> <span lang="en">Bag Tag</span>
+          </div>
           <div className="mt-2 flex flex-col gap-1">
             {Array.from({ length: tags }, (_, i) => (
               <div key={i} className="rounded bg-amber-200 px-2 py-1 text-xs font-bold text-neutral-900">

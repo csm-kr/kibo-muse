@@ -17,12 +17,13 @@ import { initialState, step, type KioskEvent, type KioskState, type Target } fro
 import { plan, splitBags, type AirportIntent, type Stop } from "../planner";
 import { KiboBand, type BandChip } from "@/ui/KiboBand";
 import { KiboPointer } from "@/ui/KiboPointer";
+import { beat, GAP } from "@/ui/pointer";
 import { useView } from "@/ui/useView";
+import { useSamples } from "../../samples";
 import { AirportKiosk, KIOSK_H, KIOSK_W, type Highlight } from "./Kiosk";
 import { intentChips, screenLabel, statusSummary } from "./labels";
 import { t } from "./strings";
 
-const STEP_MS = 520;
 const PRINT_MS = 2500;
 const COMPLETE_MS = 20_000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -30,6 +31,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 interface InterpretResponse {
   say: string;
   replyLanguage: string;
+  // 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다(휴대폰이 그 언어로 바꾼다)
+  followSpoken?: boolean;
   intent: AirportIntent;
   plan: { kind: "plan"; events: KioskEvent[]; stop: Stop | null; notes: string[] } | { kind: "clarify"; missing: string[] } | { kind: "reject"; reason: string };
   gate: Gate | null;
@@ -79,7 +82,10 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
   const stateRef = useRef(state);
   const [hl, setHl] = useState<Highlight>(null);
   const [progress, setProgress] = useState<{ i: number; n: number } | null>(null);
-  const [text, setText] = useState(samples[0]);
+  // 입력란 기본값은 브라우저 언어에 맞춘 첫 예시. 고치거나 예시를 누르면 그 글
+  const examples = useSamples(samples);
+  const [typed, setText] = useState<string | null>(null);
+  const text = typed ?? examples[0];
   const [last, setLast] = useState<InterpretResponse | null>(null);
   const { scale, hide } = useFitScale(variant === "dev" ? 0 : 150 + 8, variant === "kiosk" ? 0 : variant === "show" ? 530 : 416);
   const [run, setRun] = useState<RunStats>(() => newRun("complete"));
@@ -135,7 +141,7 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
         const e: KioskEvent = { ...raw, by: "kibo" };
         setProgress({ i: i + 1, n: events.length });
         setHl({ target: e.target, value: e.value });
-        await sleep(STEP_MS);
+        await sleep(beat(i === 0).tap);
         const r = step(stateRef.current, e);
         if (!r.ok) {
           console.error("KIBO step failed", e, r.error);
@@ -144,7 +150,7 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
         }
         apply(r.state, "kibo");
         setHl(null);
-        await sleep(120);
+        await sleep(GAP);
       }
       return true;
     } finally {
@@ -175,11 +181,11 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
     pendingRef.current = body.intent;
     const p = body.plan;
     setChips(p.kind === "reject" ? [] : intentChips(body.intent, p.kind === "plan" ? p.stop : null));
-    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang: body.replyLanguage };
-    if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage };
+    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang: body.replyLanguage, followSpoken: body.followSpoken };
+    if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage, say: body.say, followSpoken: body.followSpoken };
     setWait(p.stop);
     // 관문 문구는 서버가 계획의 마지막 상태로 만든 고정 문구다. 재생이 성공해야 휴대폰에 간다
-    return { kind: "plan", events: p.events, lang: body.replyLanguage, done: { say: p.notes.includes("no_matching_seats") ? noSeatsText(body.replyLanguage) : "", gate: body.gate } };
+    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, done: { say: p.notes.includes("no_matching_seats") ? noSeatsText(body.replyLanguage) : "", gate: body.gate } };
   }
 
   // 사람이 관문을 넘겼다(여권을 넣거나 휴대폰에서 확인). 확인이면 상태 기계에 휴대폰 동의 증표를 남기고, 서버를 거치지 않고 바로 다시 계획한다
@@ -310,7 +316,7 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
     const label = screenLabel[state.screen][langOf(langRef.current)];
     const answering = hello !== helloSeenRef.current;
     helloSeenRef.current = hello;
-    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items: state.scanned.length, total: 0, kiosk: "Bridge Air check-in", kioskId: "airport", summary, air: { airline: state.airline, passports: state.scanned.length, seats: state.scanned.map((p) => state.seats[p]).filter(Boolean) }, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
+    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items: state.scanned.length, total: 0, kiosk: "Bridge Air check-in", kioskId: "airport", summary, air: { airline: state.airline, passports: state.scanned.length, seats: state.scanned.map((p) => state.seats[p]).filter(Boolean), ...(Object.keys(state.bags).length > 0 && { bags: Object.values(state.bags).reduce((n, b) => n + b, 0) }) }, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
   }, [state, busy, progress, hello, turn]);
 
   const banner = <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} />;
@@ -387,7 +393,7 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
         {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="mb-3 w-fit" />}
         <textarea aria-label="What the person says" className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt-2 flex flex-wrap gap-1">
-          {samples.map((s) => (
+          {examples.map((s) => (
             <button key={s} type="button" className="rounded bg-neutral-100 px-2 py-1 text-xs" onClick={() => setText(s)}>
               {s.slice(0, 18)}…
             </button>

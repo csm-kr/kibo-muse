@@ -1,10 +1,13 @@
 // 말 → Spark 해석 → 앞 의도와 합치기 → 화면 경로 계획(기차). 키는 서버에만 있다.
 import { logError, overSize, rateLimited, tooLarge } from "@/server/guard";
-import { langOf, planSay, rejectSay } from "@/engine/turn";
+import { planSay, rejectSay } from "@/engine/turn";
+import { buttonsFor, keywordsFor } from "@/kiosks/keywords";
+import { replyLang } from "@/kiosks/langmix";
 import { clarifySay, seatNote, trainGate } from "@/kiosks/train/gates";
 import { interpret } from "@/kiosks/train/interpret";
 import type { KioskState } from "@/kiosks/train/machine";
 import { mergeIntent, plan, type PlanResult, type TrainIntent } from "@/kiosks/train/planner";
+import { t } from "@/kiosks/train/ui/strings";
 
 export async function POST(req: Request) {
   // 공개 배포에서 IP별 분당 한도. 넘으면 429와 고정 문구
@@ -13,7 +16,7 @@ export async function POST(req: Request) {
   // 본문이 JSON이 아니거나 칸이 빠졌으면 400과 고정 값
   const { utterance, state, pending } = ((await req.json().catch(() => null)) ?? {}) as { utterance?: string; state?: KioskState; pending?: TrainIntent };
   if (typeof utterance !== "string" || !utterance.trim() || !state) return Response.json({ error: "bad_request" }, { status: 400 });
-  if (overSize("utteranceChars", utterance.length)) return tooLarge(req);
+  if (overSize("utteranceChars", utterance.length)) return tooLarge(req, "speech");
   // 대답 언어: 휴대폰이 주소에 붙인 언어(?lang=). 없으면(평가 하네스·옛 클라이언트·키오스크에서 친 말) Spark가 고른 언어
   const phone = new URL(req.url).searchParams.get("lang") || null;
 
@@ -38,8 +41,9 @@ export async function POST(req: Request) {
           : plan(state, intent);
     // 되묻기·계획·거절 모두 휴대폰과 같은 고정 문구(Spark 문장은 하지 않은 일을 말하거나 역 이름을 틀리게 쓸 수 있다)
     // 지난 시각은 발매기 시각(화면 위 시계)을 넣어 이유를 알린다
-    const lang = phone ? langOf(phone) : r.replyLanguage;
-    let say = p.kind === "reject" ? rejectSay(p.reason, lang, { now: `${String(state.nowHour).padStart(2, "0")}:00` }) : p.kind === "clarify" ? clarifySay(p.missing, lang) : r.say;
+    // 휴대폰 언어로 답한다. 다만 말한 언어가 분명히 다르면(순수 영어 등) 말한 언어로 답하고 휴대폰이 따라오게 한다(followSpoken)
+    const { lang, followSpoken } = replyLang(phone, r.replyLanguage, utterance, [...keywordsFor("train"), ...buttonsFor("train")]);
+    let say = p.kind === "reject" ? rejectSay(p.reason, lang, { now: `${String(state.nowHour).padStart(2, "0")}:00`, b: t.home[state.lang] ?? t.home.en }) : p.kind === "clarify" ? clarifySay(p.missing, lang) : r.say;
     let gate = null;
     let paymentHandoff = false;
     if (p.kind === "plan") {
@@ -50,7 +54,7 @@ export async function POST(req: Request) {
     // 계획은 KIBO의 조작만 담아야 한다. 사람 터치나 기기 사건이 섞이면 보내지 않는다
     if (p.kind === "plan" && p.events.some((e) => e.by !== "kibo")) return Response.json({ error: "plan_not_kibo" }, { status: 500 });
     const planOut = p.kind === "plan" ? { kind: p.kind, events: p.events, stop: p.stop, notes: p.notes } : p;
-    return Response.json({ say, replyLanguage: lang, intent, plan: planOut, gate, paymentHandoff, timing: { sparkMs: r.ms, totalMs: Math.round(performance.now() - t0) } });
+    return Response.json({ say, replyLanguage: lang, ...(followSpoken && { followSpoken }), intent, plan: planOut, gate, paymentHandoff, timing: { sparkMs: r.ms, totalMs: Math.round(performance.now() - t0) } });
   } catch (e) {
     // 예외 원문(Spark 오류 본문 포함)은 서버 로그에만 남기고 응답은 고정 값
     logError("train interpret", e);

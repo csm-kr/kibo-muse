@@ -42,7 +42,7 @@ function Idle() {
           <Btn target="start" className={`flex min-h-0 flex-1 flex-col items-start justify-between rounded-2xl p-5 text-left ${PRIMARY}`}>
             <span>
               <span className="block text-[34px] leading-10 font-black">{tr("orderHere", s.lang)}</span>
-              <span className="mt-1 block text-[13px] font-medium">{tr("touchToOrder", s.lang)}</span>
+              <span lang="en" className="mt-1 block text-[13px] font-medium">{tr("touchToOrder", s.lang)}</span>
             </span>
             <span className="self-end">
               <TapIcon size={52} />
@@ -51,7 +51,7 @@ function Idle() {
           <div className="flex gap-3">
             <Btn target="language" value={s.lang === "en" ? "ko" : "en"} className="flex h-[52px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-(--bb-muted) bg-white text-[14px] font-semibold text-(--bb-ink)">
               <GlobeIcon />
-              {s.lang === "en" ? "한국어" : "English"}
+              {s.lang === "en" ? <span lang="ko">한국어</span> : <span lang="en">English</span>}
             </Btn>
             <HelpBtn className="h-[52px] flex-1 rounded-xl" />
           </div>
@@ -86,12 +86,12 @@ function OrderType() {
         <div className="mt-auto mb-7 flex flex-col items-center gap-3">
           <div className="flex items-center gap-1 text-[13px] text-(--bb-muted)">
             <GlobeIcon size={14} />
-            언어 · Language
+            <span lang="ko">언어</span> · <span lang="en">Language</span>
           </div>
           <div className="flex gap-3">
             {(["en", "ko"] as const).map((l) => (
               <Btn key={l} target="language" value={l} className={`h-[52px] w-[170px] rounded-xl border-2 bg-white text-[15px] ${s.lang === l ? "border-(--bb-cobalt) font-bold text-(--bb-cobalt)" : "border-(--bb-line) font-medium text-(--bb-ink)"}`}>
-                {l === "en" ? "English" : "한국어"}
+                <span lang={l}>{l === "en" ? "English" : "한국어"}</span>
               </Btn>
             ))}
           </div>
@@ -364,7 +364,7 @@ function Added() {
         <div className="text-[18px] leading-6 font-bold">{tr("added", s.lang)}</div>
         {last && <div className="text-[16px] font-extrabold text-(--bb-navy)">{won(last.unitPrice * last.qty)}</div>}
         <Btn target="added_ok" className={`mt-1 h-[52px] w-[200px] rounded-xl text-[17px] font-extrabold ${PRIMARY}`}>
-          OK
+          {tr("ok", s.lang)}
         </Btn>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 // 키오스크 위 띠: 해석 중에는 "Understanding… · Muse Spark", 알아들으면 의도 칩이 차례로 나타나고, 재생 중에는 누른 수를 보인다.
 // slot: 키오스크 바깥, 키오스크 바로 위 칸에 놓는다(나란히 비교·영상). 키오스크 화면을 덮지 않아 KIBO가 누르는 버튼이 가려지지 않는다.
-// overlay: 개발 화면처럼 칸이 없을 때 키오스크 화면 맨 위에 겹친다.
+// overlay: 개발 화면처럼 칸이 없을 때 키오스크 화면 맨 위에 겹친다. 배경은 불투명(반투명이면 아래 키오스크 제목이 비쳐 띠 글자와 겹쳐 보인다).
 // slot 글자 크기는 720p 절반 크기에서도 읽히게 정했다(제목 32px, 모델 이름표 20px, 칩 22px).
 // 나란히 비교의 칸은 폭이 약 400px이라 22px 칩이 두 줄에 다 들어가지 않는다. 그래서 slot에서는 칩을 한 줄로 두고,
 // 넘치면 재생 진행도에 맞춰 왼쪽에서 오른쪽으로 흘린다(가려진 쪽은 흐리게). 줄이 반쯤 잘려 보이는 일이 없다.
@@ -88,7 +88,7 @@ export function KiboBand({ phase, chips, progress, slot = false, yourTurn, slow 
     );
 
   return (
-    <div className="absolute inset-x-0 top-0 z-30 overflow-hidden bg-neutral-900/92 px-4 pt-2 pb-2.5 text-white shadow-lg" data-kibo-band={phase} aria-live="polite">
+    <div className="absolute inset-x-0 top-0 z-30 overflow-hidden bg-neutral-900 px-4 pt-2 pb-2.5 text-white shadow-lg" data-kibo-band={phase} aria-live="polite">
       <div className="flex items-center gap-2 text-lg font-bold">
         {title}
         <span className="ml-auto rounded-full border border-white/30 px-2.5 py-0.5 text-xs font-semibold tracking-wide">Meta · Muse Spark</span>

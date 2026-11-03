@@ -36,11 +36,28 @@ describe("/api/train/interpret", () => {
     expect(body.replyLanguage).toBe("ko");
   });
 
+  it("한국어 휴대폰에 순수 영어 문장이면 영어 고정 문구로 답하고 followSpoken을 붙인다(역 이름은 판정에서 뺀다)", async () => {
+    said({ to: "harbor", day: 1, hour: 9, adults: 2, trainType: "express", seats: "window", replyLanguage: "en" });
+    const body = await post("Two adults to Harborlight tomorrow at nine, window seats please", "?lang=ko");
+    expect(body.replyLanguage).toBe("en");
+    expect(body.followSpoken).toBe(true);
+    expect(body.say).toBe(`Got it. I'll make the ${body.plan.events.length} taps for you.`);
+  });
+
+  it("거절 문구 속 버튼 이름은 키오스크 화면 글자다(나가기 = 화면 위 [처음으로]·[Home]). 휴대폰 언어로 옮기지 않는다", async () => {
+    said({ exit: true });
+    const at = async (lang: "ko" | "en", q: string) => (await POST(new Request(`http://x/api/train/interpret${q}`, { method: "POST", body: JSON.stringify({ utterance: "stop", state: initialState(lang) }) }))).json();
+    const vn = await at("ko", "?lang=vi");
+    expect(vn.say).toContain("[처음으로]");
+    expect(vn.say).not.toContain("[Về đầu]");
+    expect((await at("en", "?lang=ko")).say).toContain("[Home]");
+  });
+
   it("왕복·환불 요청, 나가기, 노선에 없는 역, 지난 시각, 9명 초과는 계획하지 않고 고정 문구로 거절한다(Spark 문장을 쓰지 않는다)", async () => {
     said({ to: "harbor", unsupported: "round_trip" });
     expect(await post("등대항 왕복으로 끊어 줘")).toMatchObject({ plan: { kind: "reject", reason: "train_unsupported" }, gate: null, say: "편도 승차권 예매만 도와드릴 수 있어요. 왕복·환불·변경은 화면에서 직접 해 주세요." });
     said({ exit: true });
-    expect((await post("그만할래요")).say).toBe("처음으로 가려면 화면 위 [처음으로]를 눌러 주세요. 결제된 것은 없어요.");
+    expect((await post("그만할래요")).say).toBe("처음으로 가려면 화면 위 [Home]를 눌러 주세요. 결제된 것은 없어요.");
     said({ unknownTo: "부산" });
     expect((await post("부산 가는 표")).plan).toEqual({ kind: "reject", reason: "unknown_station" });
     // 없는 출발역은 도착역이 있어도 거절한다(브리지중앙 출발로 바꿔 예약하지 않는다)

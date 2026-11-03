@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DOT, pointerGeometry, targetSelector } from "./pointer";
+import { beat, DOT, pointerGeometry, tapTimes, targetSelector } from "./pointer";
 
 describe("KIBO 포인터 자리", () => {
   it("버튼의 화면 좌표를 키오스크 안쪽 좌표로 바꾼다. 키오스크가 바깥에서 줄어 있으면(scale) 그만큼 되돌린다. 누르는 자리(점 K의 중심, 물결의 중심)는 버튼 오른쪽 아래 모서리 바깥쪽(오른쪽 끝 − 8, 아래 끝 + 8)이다", () => {
@@ -42,5 +42,19 @@ describe("KIBO 포인터 자리", () => {
   it("값이 없는 버튼은 data-value가 없는 것만, 값이 있으면 그 값과 같은 것만 고른다", () => {
     expect(targetSelector("pay")).toBe('[data-target="pay"]:not([data-value])');
     expect(targetSelector("seat", '36"H')).toBe('[data-target="seat"][data-value="36\\"H"]');
+  });
+
+  it("재생 시각표: 첫 탭은 계획이 도착한 뒤 200ms 안에 키오스크에 들어가고, 둘째 탭부터 간격(640ms)은 그대로다", () => {
+    const t = tapTimes(4);
+    expect(t[0]).toBeLessThanOrEqual(200);
+    expect(t.slice(1).map((x, i) => x - t[i])).toEqual([640, 640, 640]);
+  });
+
+  it("첫 단계도 점이 움직이고, 테두리가 누름보다 먼저 보이며, 누름이 끝나는 때가 탭 시각이다", () => {
+    for (const b of [beat(true), beat(false)]) {
+      expect(b.move).toBeGreaterThan(0);
+      expect(b.ringAt).toBeLessThan(b.pressAt);
+      expect(b.pressAt + b.press).toBe(b.tap);
+    }
   });
 });

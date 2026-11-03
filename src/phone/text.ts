@@ -4,6 +4,11 @@ import { langOf, type Lang } from "@/engine/turn";
 interface PhoneText {
   hold: string;
   listening: string;
+  // 마이크가 화면 밖일 때 띄우는 작은 누르고 말하기의 글자(짧게)
+  talk: string;
+  // 말한 언어를 따라 휴대폰 언어를 바꿨다는 한 줄(바뀐 언어로)과, 되돌리기 버튼의 이름(원래 언어로. 보이는 글자는 '↩ 언어 이름')
+  switched: string;
+  switchBack: string;
   sending: string;
   tooShort: string;
   micBlocked: string;
@@ -19,6 +24,19 @@ interface PhoneText {
   paid: (no: number) => string;
   // 받아쓰기가 비었거나 실패했고 서버 문구(say)도 없을 때
   retry: string;
+  // 권한 창이 떠 있는 동안 손을 뗐을 때, 55초가 되어 저절로 뗐을 때, 키오스크와의 연결이 끊겼을 때(머리줄)
+  allowRetry: string;
+  tooLong: string;
+  reconnecting: string;
+  // 화면 읽기: 두 번 탭으로 녹음을 시작했을 때 한 번, KIBO가 누르기 시작할 때 한 번(진행 띠는 읽히지 않는다), 말풍선의 말한 사람(나), 대화 칸 이름, 언어 단추 이름('언어: 한국어')
+  toggleOn: string;
+  tapStart: (steps: number) => string;
+  me: string;
+  chat: string;
+  language: string;
+  // 말을 보냈는데 키오스크가 25초 안에 대답하지 않을 때(키오스크 화면이 닫힘·연결 끊김), 휴대폰 인터넷이 끊겼을 때
+  noAnswer: string;
+  offline: string;
   // 상태 줄: 장바구니 개수, 결제를 마친 뒤의 단계 이름
   items: (n: number) => string;
   paidLabel: string;
@@ -28,6 +46,12 @@ interface PhoneText {
   passports: (n: number) => string;
   people: (n: number) => string;
   seats: (list: string[]) => string;
+  // 공항 상태 줄: 부치는 짐 개수. 기차 상태 줄: 타는 날(월, 일, 요일 0=일요일), 출발 시각, 좌석 등급
+  bags: (n: number) => string;
+  day: (month: number, date: number, weekday: number) => string;
+  departs: (hhmm: string) => string;
+  standardClass: string;
+  firstClass: string;
   // 대기 화면 인사(대화가 없을 때), 안내 모드 인사
   hello: string;
   helloSub: string;
@@ -64,6 +88,9 @@ const text: Record<Lang, PhoneText> = {
   en: {
     hold: "Hold to talk, release to send",
     listening: "Listening… release to send",
+    talk: "Talk",
+    switched: "Switched to English",
+    switchBack: "Back to English",
     sending: "Sending…",
     tooShort: "Hold the button while you speak",
     micBlocked: "The microphone is blocked. You can type instead.",
@@ -79,6 +106,16 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `Your order is done ✓ No. ${n}`,
 
     retry: "Please hold the button and say it again",
+    allowRetry: "If you allowed the microphone, press and hold again to talk",
+    tooLong: "That was over 55 seconds, so I sent what you said so far",
+    reconnecting: "Reconnecting…",
+    toggleOn: "Listening. Double-tap again to send",
+    tapStart: (n) => `KIBO will tap ${n} times`,
+    me: "Me:",
+    chat: "Conversation",
+    language: "Language",
+    noAnswer: "The kiosk didn't answer. Check that its screen is on, then say it again.",
+    offline: "Your phone is offline. Connect to the internet, then say it again.",
 
     items: (n) => (n === 1 ? "1 item" : `${n} items`),
     paidLabel: "Payment complete",
@@ -86,6 +123,11 @@ const text: Record<Lang, PhoneText> = {
     passports: (n) => (n === 1 ? "1 passport" : `${n} passports`),
     people: (n) => (n === 1 ? "1 passenger" : `${n} passengers`),
     seats: (xs) => `${xs.length === 1 ? "seat" : "seats"} ${xs.join("·")}`,
+    bags: (n) => (n === 1 ? "1 checked bag" : `${n} checked bags`),
+    day: (m, d, w) => `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][w]} ${m}/${d}`,
+    departs: (t) => `departs ${t}`,
+    standardClass: "Standard",
+    firstClass: "First class",
     hello: "Hi, I'm KIBO",
     helloSub: "I tap the kiosk for you",
     guideHello: "Take a photo of a kiosk screen and I'll show you where to tap",
@@ -114,6 +156,9 @@ const text: Record<Lang, PhoneText> = {
   ko: {
     hold: "누른 채로 말하고, 다 말하면 떼세요",
     listening: "듣고 있어요… 떼면 보내요",
+    talk: "말하기",
+    switched: "한국어로 바꿨어요",
+    switchBack: "한국어로 되돌리기",
     sending: "보내는 중…",
     tooShort: "누른 채로 말해 주세요",
     micBlocked: "마이크를 쓸 수 없어요. 글로 써 주세요.",
@@ -129,6 +174,16 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `주문이 끝났어요 ✓ 번호 ${n}`,
 
     retry: "다시 눌러서 말해 주세요",
+    allowRetry: "마이크를 허용했으면 다시 눌러 말해 주세요",
+    tooLong: "55초가 넘어서 여기까지 보냈어요",
+    reconnecting: "다시 연결 중…",
+    toggleOn: "듣고 있어요. 다시 두 번 탭하면 보내요",
+    tapStart: (n) => `KIBO가 ${n}번 누릅니다`,
+    me: "나:",
+    chat: "대화",
+    language: "언어",
+    noAnswer: "키오스크가 대답하지 않아요. 키오스크 화면이 켜져 있는지 보고 다시 말해 주세요.",
+    offline: "휴대폰 인터넷이 끊겼어요. 연결되면 다시 말해 주세요.",
 
     items: (n) => `${n}개`,
     paidLabel: "결제 완료",
@@ -136,6 +191,11 @@ const text: Record<Lang, PhoneText> = {
     passports: (n) => `여권 ${n}개`,
     people: (n) => `${n}명`,
     seats: (xs) => `좌석 ${xs.join("·")}`,
+    bags: (n) => `부치는 짐 ${n}개`,
+    day: (m, d, w) => `${m}/${d}(${"일월화수목금토"[w]})`,
+    departs: (t) => `${t} 출발`,
+    standardClass: "일반실",
+    firstClass: "특실",
     hello: "안녕하세요, KIBO예요",
     helloSub: "키오스크를 대신 눌러 드려요",
     guideHello: "키오스크 화면을 찍으면 누를 곳을 알려 드려요",
@@ -164,6 +224,9 @@ const text: Record<Lang, PhoneText> = {
   ja: {
     hold: "押したまま話して、離すと送信",
     listening: "聞いています… 離すと送信",
+    talk: "話す",
+    switched: "日本語に切り替えました",
+    switchBack: "日本語に戻す",
     sending: "送信中…",
     tooShort: "押したまま話してください",
     micBlocked: "マイクが使えません。文字で入力してください。",
@@ -179,6 +242,16 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `ご注文が完了しました ✓ 番号 ${n}`,
 
     retry: "もう一度押して話してください",
+    allowRetry: "マイクを許可したら、もう一度押して話してください",
+    tooLong: "55秒を超えたので、ここまでを送りました",
+    reconnecting: "再接続しています…",
+    toggleOn: "聞いています。もう一度ダブルタップすると送ります",
+    tapStart: (n) => `KIBOが${n}回押します`,
+    me: "わたし:",
+    chat: "会話",
+    language: "言語",
+    noAnswer: "キオスクから返事がありません。画面がついているか確かめて、もう一度話してください。",
+    offline: "スマートフォンがインターネットにつながっていません。つながったら、もう一度話してください。",
 
     items: (n) => `${n}点`,
     paidLabel: "お支払い完了",
@@ -186,6 +259,11 @@ const text: Record<Lang, PhoneText> = {
     passports: (n) => `パスポート ${n}冊`,
     people: (n) => `${n}名`,
     seats: (xs) => `座席 ${xs.join("·")}`,
+    bags: (n) => `預け荷物 ${n}個`,
+    day: (m, d, w) => `${m}/${d}(${"日月火水木金土"[w]})`,
+    departs: (t) => `${t}発`,
+    standardClass: "普通車",
+    firstClass: "特別車",
     hello: "こんにちは、KIBOです",
     helloSub: "キオスクを代わりに操作します",
     guideHello: "キオスクの画面を撮影すると、押す場所をお知らせします",
@@ -214,6 +292,9 @@ const text: Record<Lang, PhoneText> = {
   vi: {
     hold: "Giữ để nói, thả ra để gửi",
     listening: "Đang nghe… thả ra để gửi",
+    talk: "Nói",
+    switched: "Đã chuyển sang Tiếng Việt",
+    switchBack: "Quay lại Tiếng Việt",
     sending: "Đang gửi…",
     tooShort: "Hãy giữ nút trong khi nói",
     micBlocked: "Không dùng được micrô. Bạn có thể gõ chữ.",
@@ -229,6 +310,16 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `Đơn đã xong ✓ Số ${n}`,
 
     retry: "Hãy nhấn giữ và nói lại",
+    allowRetry: "Nếu đã cho phép micrô, hãy nhấn giữ và nói lại",
+    tooLong: "Đã quá 55 giây nên tôi gửi phần bạn đã nói",
+    reconnecting: "Đang kết nối lại…",
+    toggleOn: "Đang nghe. Chạm hai lần nữa để gửi",
+    tapStart: (n) => `KIBO sẽ bấm ${n} lần`,
+    me: "Tôi:",
+    chat: "Cuộc trò chuyện",
+    language: "Ngôn ngữ",
+    noAnswer: "Kiosk chưa trả lời. Hãy xem màn hình kiosk còn bật không rồi nói lại.",
+    offline: "Điện thoại đang mất mạng. Khi có kết nối, hãy nói lại.",
 
     items: (n) => `${n} món`,
     paidLabel: "Đã thanh toán",
@@ -236,6 +327,11 @@ const text: Record<Lang, PhoneText> = {
     passports: (n) => `${n} hộ chiếu`,
     people: (n) => `${n} hành khách`,
     seats: (xs) => `ghế ${xs.join("·")}`,
+    bags: (n) => `${n} kiện hành lý ký gửi`,
+    day: (m, d, w) => `${w === 0 ? "CN" : `T${w + 1}`}, ${d}/${m}`,
+    departs: (t) => `khởi hành ${t}`,
+    standardClass: "ghế thường",
+    firstClass: "hạng nhất",
     hello: "Xin chào, tôi là KIBO",
     helloSub: "Tôi bấm kiosk thay bạn",
     guideHello: "Chụp màn hình kiosk, tôi sẽ chỉ chỗ cần bấm",
@@ -264,6 +360,9 @@ const text: Record<Lang, PhoneText> = {
   zh: {
     hold: "按住说话，松开发送",
     listening: "正在听… 松开发送",
+    talk: "说话",
+    switched: "已切换为中文",
+    switchBack: "改回中文",
     sending: "正在发送…",
     tooShort: "请按住按钮说话",
     micBlocked: "无法使用麦克风。可以改为输入文字。",
@@ -279,6 +378,16 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `订单已完成 ✓ 号码 ${n}`,
 
     retry: "请再按住说一遍",
+    allowRetry: "如果已允许使用麦克风，请再按住说话",
+    tooLong: "已超过55秒，已发送到这里为止的内容",
+    reconnecting: "正在重新连接…",
+    toggleOn: "正在听。再次双击即可发送",
+    tapStart: (n) => `KIBO 将点击 ${n} 次`,
+    me: "我：",
+    chat: "对话",
+    language: "语言",
+    noAnswer: "自助机没有回应。请看看屏幕是否开着，然后再说一遍。",
+    offline: "手机没有网络。连上网络后请再说一遍。",
 
     items: (n) => `${n} 件`,
     paidLabel: "支付完成",
@@ -286,6 +395,11 @@ const text: Record<Lang, PhoneText> = {
     passports: (n) => `护照 ${n} 本`,
     people: (n) => `${n} 位乘客`,
     seats: (xs) => `座位 ${xs.join("·")}`,
+    bags: (n) => `托运行李 ${n} 件`,
+    day: (m, d, w) => `${m}月${d}日(周${"日一二三四五六"[w]})`,
+    departs: (t) => `${t}出发`,
+    standardClass: "普通座",
+    firstClass: "一等座",
     hello: "你好，我是 KIBO",
     helloSub: "我替您操作自助机",
     guideHello: "拍下自助机屏幕，我会告诉您该点哪里",
@@ -314,6 +428,9 @@ const text: Record<Lang, PhoneText> = {
   es: {
     hold: "Mantén pulsado para hablar, suelta para enviar",
     listening: "Escuchando… suelta para enviar",
+    talk: "Hablar",
+    switched: "Cambiado a Español",
+    switchBack: "Volver a Español",
     sending: "Enviando…",
     tooShort: "Mantén pulsado el botón mientras hablas",
     micBlocked: "El micrófono está bloqueado. Puedes escribir.",
@@ -329,6 +446,16 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `Pedido terminado ✓ Número ${n}`,
 
     retry: "Mantén pulsado y dilo otra vez",
+    allowRetry: "Si permitiste el micrófono, mantén pulsado otra vez para hablar",
+    tooLong: "Pasaron 55 segundos, así que envié lo que dijiste hasta ahora",
+    reconnecting: "Reconectando…",
+    toggleOn: "Escuchando. Toca dos veces otra vez para enviar",
+    tapStart: (n) => `KIBO va a pulsar ${n} veces`,
+    me: "Yo:",
+    chat: "Conversación",
+    language: "Idioma",
+    noAnswer: "El quiosco no respondió. Mira si su pantalla está encendida y dilo otra vez.",
+    offline: "Tu teléfono no tiene internet. Cuando se conecte, dilo otra vez.",
 
     items: (n) => (n === 1 ? "1 producto" : `${n} productos`),
     paidLabel: "Pago completado",
@@ -336,6 +463,11 @@ const text: Record<Lang, PhoneText> = {
     passports: (n) => (n === 1 ? "1 pasaporte" : `${n} pasaportes`),
     people: (n) => (n === 1 ? "1 pasajero" : `${n} pasajeros`),
     seats: (xs) => `${xs.length === 1 ? "asiento" : "asientos"} ${xs.join("·")}`,
+    bags: (n) => (n === 1 ? "1 maleta facturada" : `${n} maletas facturadas`),
+    day: (m, d, w) => `${["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][w]} ${d}/${m}`,
+    departs: (t) => `sale a las ${t}`,
+    standardClass: "estándar",
+    firstClass: "primera clase",
     hello: "Hola, soy KIBO",
     helloSub: "Toco el quiosco por usted",
     guideHello: "Haga una foto de la pantalla del quiosco y le diré dónde tocar",
@@ -364,3 +496,6 @@ const text: Record<Lang, PhoneText> = {
 };
 
 export const phoneText = (language: string) => text[langOf(language)];
+
+// 실패했을 때 휴대폰이 보이고 읽어 줄 한 줄. 휴대폰 인터넷이 끊겼으면 다시 말해도 소용없으니 연결부터 알린다. 아니면 받은 문구(서버 say 등)
+export const failLine = (tx: PhoneText, online: boolean, line: string) => (online ? line : tx.offline);

@@ -24,18 +24,19 @@ function lineChips(l: Omit<IntentLine, "menuId"> & { menuId?: string }): string[
   return out;
 }
 
-export function intentChips(intent: FastfoodIntent, endScreen: Screen | null): Chip[] {
+// lang: 키오스크 화면 언어. 칩은 영어지만 버튼 이름만 키오스크 화면 글자 그대로 쓴다(한국어 키오스크면 '결제하기')
+export function intentChips(intent: FastfoodIntent, endScreen: Screen | null, lang: KioskLang): Chip[] {
   const texts = [
     ...(intent.orderType ? [intent.orderType === "eat_in" ? "Eat in" : "Take out"] : []),
     ...(intent.current ? lineChips(intent.current) : []),
     ...(intent.items ?? []).flatMap(lineChips),
   ];
   const chips: Chip[] = texts.map((text) => ({ text, tone: "normal" }));
-  if (endScreen === "review") chips.push({ text: "Pay → blocked. You tap Pay", tone: "blocked" });
+  if (endScreen === "review") chips.push({ text: `${t.pay[lang]} → blocked. You tap ${t.pay[lang]}`, tone: "blocked" });
   return chips;
 }
 
-// 휴대폰 상태 줄의 단계 이름(휴대폰의 6개 언어)
+// 휴대폰 상태 줄의 단계 이름(휴대폰의 6개 언어). {b}는 키오스크 결제 버튼의 화면 글자(t.pay, 키오스크 언어 그대로)로 바꿔 쓴다
 export const screenLabel: Record<Screen, Record<PhoneLang, string>> = {
   idle: { en: "Welcome screen", ko: "첫 화면", ja: "スタート画面", vi: "Màn hình chào", zh: "欢迎页面", es: "Pantalla de inicio" },
   order_type: { en: "Eat in or take out", ko: "매장·포장 고르기", ja: "店内か持ち帰り", vi: "Ăn tại chỗ hay mang đi", zh: "堂食或外带", es: "Comer aquí o para llevar" },
@@ -48,7 +49,7 @@ export const screenLabel: Record<Screen, Record<PhoneLang, string>> = {
   customize: { en: "Ingredients", ko: "재료 빼기·추가", ja: "具材の変更", vi: "Thành phần", zh: "配料", es: "Ingredientes" },
   added: { en: "Added to cart", ko: "담기 완료", ja: "カートに追加", vi: "Đã thêm vào giỏ", zh: "已加入购物车", es: "Añadido al pedido" },
   upsell: { en: "Dessert offer", ko: "디저트 추천", ja: "デザートのおすすめ", vi: "Gợi ý tráng miệng", zh: "甜点推荐", es: "Oferta de postre" },
-  review: { en: "Order review · you tap Pay", ko: "주문 확인 · 결제는 직접", ja: "注文の確認 · お支払いはご自身で", vi: "Xem lại đơn · bạn tự bấm Thanh toán", zh: "确认订单 · 请您自己点支付", es: "Revisar pedido · tú pulsas Pagar" },
+  review: { en: "Order review · you tap [{b}]", ko: "주문 확인 · 결제는 직접", ja: "注文の確認 · お支払いはご自身で", vi: "Xem lại đơn · bạn tự bấm [{b}]", zh: "确认订单 · 请您自己点［{b}］", es: "Revisar pedido · tú pulsas [{b}]" },
   payment: { en: "Payment", ko: "결제", ja: "お支払い", vi: "Thanh toán", zh: "支付", es: "Pago" },
 };
 

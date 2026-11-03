@@ -13,17 +13,18 @@ import { useRoom } from "@/sync/room";
 import { limitedReject } from "@/ui/limited";
 import { KiboBand, type BandChip } from "@/ui/KiboBand";
 import { KiboPointer } from "@/ui/KiboPointer";
+import { beat, GAP } from "@/ui/pointer";
 import { PairBadge, useQrFlag } from "@/ui/PairBadge";
 import { useView } from "@/ui/useView";
+import { useSamples } from "../../samples";
 import { seatNote, trainGate } from "../gates";
 import { initialState, step, type KioskEvent, type KioskState, type Target } from "../machine";
 import { plan, type Stop, type TrainIntent } from "../planner";
-import { paxTotal } from "../rail";
+import { hhmm, legs, paxTotal } from "../rail";
 import { TrainKiosk, KIOSK_H, KIOSK_W, type Highlight } from "./Kiosk";
 import { intentChips, screenLabel, statusSummary } from "./labels";
 import { t } from "./strings";
 
-const STEP_MS = 520;
 const PRINT_MS = 2500;
 const COMPLETE_MS = 20_000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -33,6 +34,8 @@ const fresh = () => initialState("ko");
 interface InterpretResponse {
   say: string;
   replyLanguage: string;
+  // 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다(휴대폰이 그 언어로 바꾼다)
+  followSpoken?: boolean;
   intent: TrainIntent;
   plan: { kind: "plan"; events: KioskEvent[]; stop: Stop | null; notes: string[] } | { kind: "clarify"; missing: string[] } | { kind: "reject"; reason: string };
   gate: LinkGate | null;
@@ -79,7 +82,10 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
   const stateRef = useRef(state);
   const [hl, setHl] = useState<Highlight>(null);
   const [progress, setProgress] = useState<{ i: number; n: number } | null>(null);
-  const [text, setText] = useState(samples[0]);
+  // 입력란 기본값은 브라우저 언어에 맞춘 첫 예시. 고치거나 예시를 누르면 그 글
+  const examples = useSamples(samples);
+  const [typed, setText] = useState<string | null>(null);
+  const text = typed ?? examples[0];
   const [last, setLast] = useState<InterpretResponse | null>(null);
   const { scale, hide } = useFitScale(variant === "dev" ? 0 : 150 + 8, variant === "kiosk" ? 0 : 416);
   const [run, setRun] = useState<RunStats>(() => newRun("reservation"));
@@ -135,7 +141,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
         const e: KioskEvent = { ...raw, by: "kibo" };
         setProgress({ i: i + 1, n: events.length });
         setHl({ target: e.target, value: e.value });
-        await sleep(STEP_MS);
+        await sleep(beat(i === 0).tap);
         const r = step(stateRef.current, e);
         if (!r.ok) {
           console.error("KIBO step failed", e, r.error);
@@ -144,7 +150,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
         }
         apply(r.state, "kibo");
         setHl(null);
-        await sleep(120);
+        await sleep(GAP);
       }
       return true;
     } finally {
@@ -174,13 +180,13 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     langRef.current = body.replyLanguage;
     pendingRef.current = body.intent;
     const p = body.plan;
-    setChips(p.kind === "reject" ? [] : intentChips(body.intent, p.kind === "plan" ? p.stop : null));
-    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang: body.replyLanguage };
+    setChips(p.kind === "reject" ? [] : intentChips(body.intent, p.kind === "plan" ? p.stop : null, stateRef.current.lang));
+    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang: body.replyLanguage, followSpoken: body.followSpoken };
     // 거절 문구는 서버가 이유에 값(발매기 시각 등)을 넣은 고정 문구다
-    if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage, say: body.say };
+    if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage, say: body.say, followSpoken: body.followSpoken };
     setWait(p.stop);
     // 관문 문구는 서버가 만든 고정 문구다. 결제하기 앞에서 멈추면 휴대폰에 결제 넘기기 안내가 간다
-    return { kind: "plan", events: p.events, lang: body.replyLanguage, done: { say: seatNote(p.notes, body.replyLanguage), gate: body.gate, paymentHandoff: body.paymentHandoff, payButton: t.pay[stateRef.current.lang] } };
+    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, done: { say: seatNote(p.notes, body.replyLanguage), gate: body.gate, paymentHandoff: body.paymentHandoff, payButton: t.pay[stateRef.current.lang] } };
   }
 
   // 사람이 늦은 열차를 휴대폰에서 확인했다. 그 확인을 의도에 넣고 서버를 거치지 않고 바로 다시 계획한다.
@@ -194,7 +200,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     const p = plan(stateRef.current, next);
     if (p.kind !== "plan") return null;
     setWait(p.stop);
-    setChips(intentChips(next, p.stop));
+    setChips(intentChips(next, p.stop, stateRef.current.lang));
     return { events: p.events, lang: langRef.current, done: { say: seatNote(p.notes, langRef.current), gate: trainGate(p.stop, langRef.current), paymentHandoff: p.stop?.kind === "human", payButton: t.pay[stateRef.current.lang] } };
   }
 
@@ -305,10 +311,16 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     const seats = state.chosenSeats ?? state.reservation?.seats ?? [];
     // 휴대폰에는 내부 화면 이름(train_list 등)을 보이지 않는다
     const summary = statusSummary(state.to, seats, langRef.current);
+    // 휴대폰이 결제 전에 맞는지 볼 수 있게 타는 날(키오스크 날짜), 고른 열차의 출발 시각, 좌석 등급도 싣는다
+    const pick = state.reservation ?? state.pick;
+    const leg = pick && state.to ? legs(state.from, state.to).find((l) => l.train.no === pick.trainNo) : undefined;
+    const day = new Date();
+    day.setDate(day.getDate() + state.day);
+    const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
     const label = screenLabel[state.screen][langOf(langRef.current)];
     const answering = hello !== helloSeenRef.current;
     helloSeenRef.current = hello;
-    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items: 0, total: state.reservation?.total ?? 0, kiosk: "Bridge Rail tickets", kioskId: "train", summary, rail: { from: state.from, to: state.to, people: paxTotal(state.pax), seats }, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
+    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items: 0, total: state.reservation?.total ?? 0, kiosk: "Bridge Rail tickets", kioskId: "train", summary, rail: { from: state.from, to: state.to, people: paxTotal(state.pax), seats, date, ...(pick && { cls: pick.cls }), ...(leg && { dep: hhmm(leg.dep) }) }, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
   }, [state, busy, progress, hello, turn]);
 
   const timeoutPopup =
@@ -373,7 +385,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
         {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="mb-3 w-fit" />}
         <textarea aria-label="What the person says" className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt-2 flex flex-wrap gap-1">
-          {samples.map((s) => (
+          {examples.map((s) => (
             <button key={s} type="button" className="rounded bg-neutral-100 px-2 py-1 text-xs" onClick={() => setText(s)}>
               {s.slice(0, 18)}…
             </button>

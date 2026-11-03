@@ -49,13 +49,24 @@ const busy: Record<Lang, string> = {
   zh: "请求太多了。请稍后再试。",
   es: "Demasiadas solicitudes. Inténtelo de nuevo en un momento.",
 };
-const big: Record<Lang, string> = {
-  en: "That is too long. Please say it more briefly or use a smaller photo.",
-  ko: "너무 길어요. 더 짧게 말하거나 더 작은 사진으로 다시 해 주세요.",
-  ja: "長すぎます。短くおっしゃるか、小さい写真でもう一度お試しください。",
-  vi: "Quá dài. Xin hãy nói ngắn hơn hoặc dùng ảnh nhỏ hơn.",
-  zh: "内容太长了。请说得短一些，或换一张更小的照片。",
-  es: "Es demasiado largo. Dígalo más breve o use una foto más pequeña.",
+// 너무 큰 요청. 말(녹음·받아쓴 글·친 글)과 사진은 할 일이 달라 문구를 나눈다
+const big: Record<"speech" | "photo", Record<Lang, string>> = {
+  speech: {
+    en: "That was too long. Please say it again, more briefly.",
+    ko: "말이 너무 길어요. 더 짧게 다시 말해 주세요.",
+    ja: "長すぎます。もう少し短く、もう一度おっしゃってください。",
+    vi: "Câu nói quá dài. Xin hãy nói lại ngắn hơn.",
+    zh: "说的话太长了。请说得短一些，再说一遍。",
+    es: "Fue demasiado largo. Dígalo otra vez, más breve.",
+  },
+  photo: {
+    en: "That photo is too large. Please try again with a smaller photo.",
+    ko: "사진이 너무 커요. 더 작은 사진으로 다시 해 주세요.",
+    ja: "写真が大きすぎます。小さい写真でもう一度お試しください。",
+    vi: "Ảnh quá lớn. Xin hãy thử lại với ảnh nhỏ hơn.",
+    zh: "照片太大了。请换一张更小的照片再试。",
+    es: "La foto es demasiado grande. Inténtelo con una foto más pequeña.",
+  },
 };
 
 // 한도를 넘었으면 429 응답, 아니면 null
@@ -64,7 +75,7 @@ export function rateLimited(kind: GuardKind, req: Request, now = Date.now()): Re
   return Response.json({ error: "rate_limited", say: busy[reqLang(req)] }, { status: 429, headers: { "Retry-After": "30" } });
 }
 
-export const tooLarge = (req: Request) => Response.json({ error: "too_large", say: big[reqLang(req)] }, { status: 413 });
+export const tooLarge = (req: Request, what: "speech" | "photo") => Response.json({ error: "too_large", say: big[what][reqLang(req)] }, { status: 413 });
 
 // 오류 원문(모델 API 오류 본문, 내부 예외 문장)은 응답에 넣지 않고 서버 로그에만 남긴다. 이미지·base64는 로그에도 남기지 않는다
 export const logError = (where: string, e: unknown) =>

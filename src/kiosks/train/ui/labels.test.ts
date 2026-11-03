@@ -3,8 +3,10 @@ import { intentChips, screenLabel, statusSummary } from "./labels";
 
 describe("해석 결과 칩·휴대폰 상태 줄 — 기차", () => {
   it("알아들은 도착역·날짜·인원·열차·좌석을 칩으로 보이고, 결제하기 앞에서 멈추면 그 관문을 빨간 칩으로 붙인다", () => {
-    expect(intentChips({ to: "harbor", day: 1, hour: 9, minute: 30, adults: 2, trainType: "express", seats: "window" }, { kind: "human", what: "pay", reservation: { trainNo: 103, cls: "general", seats: [], total: 0 } }).map((c) => c.text)).toEqual(["→ Harborlight", "Tomorrow 09:30", "2 adults", "Express", "Window seats", "Pay → you tap"]);
-    expect(intentChips({ to: "harbor", day: 3, hour: 15, adults: 1, seniors: 1 }, { kind: "ack", what: "later_train", trainNo: 141, dep: "16:30" })).toEqual([
+    expect(intentChips({ to: "harbor", day: 1, hour: 9, minute: 30, adults: 2, trainType: "express", seats: "window" }, { kind: "human", what: "pay", reservation: { trainNo: 103, cls: "general", seats: [], total: 0 } }, "en").map((c) => c.text)).toEqual(["→ Harborlight", "Tomorrow 09:30", "2 adults", "Express", "Window seats", "Pay → you tap"]);
+    // 버튼 이름만 키오스크 화면 글자로(한국어 키오스크는 '결제하기')
+    expect(intentChips({ to: "harbor" }, { kind: "human", what: "pay", reservation: { trainNo: 103, cls: "general", seats: [], total: 0 } }, "ko").at(-1)?.text).toBe("결제하기 → you tap");
+    expect(intentChips({ to: "harbor", day: 3, hour: 15, adults: 1, seniors: 1 }, { kind: "ack", what: "later_train", trainNo: 141, dep: "16:30" }, "en")).toEqual([
       { text: "→ Harborlight", tone: "normal" },
       { text: "In 3 days 15:00", tone: "normal" },
       { text: "1 adult · 1 senior", tone: "normal" },
