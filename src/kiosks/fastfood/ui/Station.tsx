@@ -9,16 +9,17 @@ import { langOf, type Understood } from "@/engine/turn";
 import { useKiboTurn } from "@/engine/useKiboTurn";
 import { openLink, type Link, type LinkMsg } from "@/sync/link";
 import { useRoom } from "@/sync/room";
+import { limitedReject } from "@/ui/limited";
 import { PairBadge, useQrFlag } from "@/ui/PairBadge";
 import { FASTFOOD_TASK } from "@/engine/trialLog";
 import { TrialPanel, useLogFlag, useTrialLog } from "@/ui/TrialRecorder";
 import { KiboBand, type BandChip } from "@/ui/KiboBand";
 import { KiboPointer } from "@/ui/KiboPointer";
 import { useView } from "@/ui/useView";
-import { initialState, step, type KioskEvent, type KioskState, type Screen, type Target } from "../machine";
+import { initialState, step, type CartLine, type KioskEvent, type KioskState, type Screen, type Target } from "../machine";
 import type { FastfoodIntent } from "../planner";
 import { FastfoodKiosk, type Highlight } from "./Kiosk";
-import { intentChips, screenLabel } from "./labels";
+import { intentChips, lineName, orderLines, screenLabel, statusSummary } from "./labels";
 import { t } from "./strings";
 
 const STEP_MS = 520;
@@ -46,25 +47,27 @@ function speak(text: string, lang: string) {
 
 // 키오스크(960 높이)를 창 높이에 맞춘다. extra = 키오스크 위아래에 붙는, 크기가 고정된 칸들의 높이
 function useFitScale(extra: number) {
-  const [scale, setScale] = useState(0.8);
+  // 맞추기 전(서버 렌더와 하이드레이션 직전)에는 null. 그동안 화면을 숨겨, 크기가 바뀌며 밀리는 것(CLS)을 없앤다
+  const [scale, setScale] = useState<number | null>(null);
   useLayoutEffect(() => {
     const fit = () => setScale(Math.min((window.innerHeight - 24 - extra) / 960, 1.25));
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, [extra]);
-  return scale;
+  return { scale: scale ?? 0.8, hide: scale === null ? ({ visibility: "hidden" } as const) : undefined };
 }
 
 // 재생이 끝난 뒤 사용자에게 알리는 고정 문구
 const doneSay = {
+  // b: 키오스크 화면의 결제 버튼 글자(키오스크 언어). 휴대폰 카드의 [b]와 같은 이름을 말한다
   pay: {
-    en: "Your order is on the screen. Please check it and tap Pay yourself.",
-    ko: "주문이 화면에 있어요. 확인하시고 [결제]는 직접 눌러 주세요.",
-    ja: "ご注文が画面に出ています。確認して、お支払いはご自身で押してください。",
-    vi: "Đơn của bạn đã ở trên màn hình. Hãy kiểm tra và tự bấm Thanh toán.",
-    zh: "您的订单已在屏幕上。请确认后自己点“支付”。",
-    es: "Su pedido está en la pantalla. Revíselo y pulse Pagar usted mismo.",
+    en: (b: string) => `Your order is on the screen. Please check it and tap [${b}] yourself.`,
+    ko: (b: string) => `주문이 화면에 있어요. 확인하시고 [${b}]는 직접 눌러 주세요.`,
+    ja: (b: string) => `ご注文が画面に出ています。確認して、[${b}]はご自身で押してください。`,
+    vi: (b: string) => `Đơn của bạn đã ở trên màn hình. Hãy kiểm tra và tự bấm [${b}].`,
+    zh: (b: string) => `您的订单已在屏幕上。请确认后自己点[${b}]。`,
+    es: (b: string) => `Su pedido está en la pantalla. Revíselo y pulse [${b}] usted mismo.`,
   },
   // 계획이 메뉴 화면에서 끝났을 때. 실제 사람은 "그게 다예요"를 스스로 말하지 않을 가능성이 커서 알려 준다
   more: {
@@ -107,20 +110,25 @@ function RunBar({ run }: { run: RunStats }) {
   return (
     <div className={`flex h-[104px] w-full items-center gap-4 rounded-2xl px-5 whitespace-nowrap ${done ? "bg-teal-700 text-white" : "bg-white"}`} data-run-done={done}>
       <div className="leading-none">
-        <div className="text-[15px] font-semibold opacity-70">Your taps</div>
+        {/* 끝난 청록 바탕에서는 흐림을 줄인다(70%는 대비 3.46, 90%는 4.66) */}
+        <div className={`text-[15px] font-semibold ${done ? "opacity-90" : "opacity-70"}`}>Your taps</div>
         <div className="text-[56px] font-black tabular-nums" data-run-taps>
           {run.humanTaps}
         </div>
       </div>
-      {done && (
-        <div className="kibo-check min-w-0 text-[28px] leading-tight font-bold whitespace-normal" data-run-check>
-          ✓ Ready to pay
+      {/* 끝나면 체크를 오른쪽 칸 맨 위에 한 줄로 두고 화면 수·시간을 그 아래 한 줄로 모은다.
+          433px 칸에 누른 수·체크·실측 세 칸을 나란히 두면 체크가 두 줄로 접혔다. 칸 높이(104)는 그대로 */}
+      <div className="ml-auto shrink-0 text-right text-[24px] leading-tight tabular-nums">
+        {done && (
+          <div className="kibo-check text-[28px] font-bold" data-run-check>
+            ✓ Ready to pay
+          </div>
+        )}
+        <div className="opacity-80">
+          {done ? <div>{run.screens} screens · {(ms / 1000).toFixed(1)} s</div> : <div>{run.screens} screens</div>}
+          {run.kiboTaps > 0 && <div>KIBO {run.kiboTaps} taps</div>}
+          {!done && <div>{(ms / 1000).toFixed(1)} s</div>}
         </div>
-      )}
-      <div className="ml-auto shrink-0 text-right text-[24px] leading-tight tabular-nums opacity-80">
-        <div>{run.screens} screens</div>
-        {run.kiboTaps > 0 && <div>KIBO {run.kiboTaps} taps</div>}
-        <div>{(ms / 1000).toFixed(1)} s</div>
       </div>
     </div>
   );
@@ -143,12 +151,20 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
   const warnedRef = useRef(false);
   const [state, setState] = useState<KioskState>(initialState);
   const stateRef = useRef(state);
+  // 시연용 모의 결제. machine은 모른다. 사람이 결제 화면에서 '카드 넣기'를 누르면 주문번호를 보인다(그 장바구니가 그대로일 때만)
+  const [paid, setPaid] = useState<{ no: number; cart: CartLine[] } | null>(null);
+  const paidNo = paid && state.screen === "payment" && paid.cart === state.cart ? paid.no : null;
+  // 무조작 타이머가 읽는다: 결제를 마친 화면은 경고 없이 처음 화면으로 돌아간다
+  const paidRef = useRef(false);
+  useEffect(() => {
+    paidRef.current = paidNo !== null;
+  }, [paidNo]);
   const [hl, setHl] = useState<Highlight>(null);
   const [progress, setProgress] = useState<{ i: number; n: number } | null>(null);
   const [text, setText] = useState(samples[0]);
   const [last, setLast] = useState<InterpretResponse | null>(null);
   // 나란히 비교에서는 띠 칸(150)·실측 막대(104)·간격까지 한 화면(1080)에 들어가게 줄인다
-  const scale = useFitScale(variant === "compare" ? 150 + 104 + 24 + 8 : variant === "kiosk" ? 150 + 8 : 0);
+  const { scale, hide } = useFitScale(variant === "compare" ? 150 + 104 + 24 + 8 : variant === "kiosk" ? 150 + 8 : 0);
   const [run, setRun] = useState<RunStats>(() => newRun("review"));
   const linkRef = useRef<Link | null>(null);
   const [hello, setHello] = useState(0);
@@ -216,14 +232,19 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     }
   }
 
+  // 휴대폰이 말과 함께 보낸 언어. 한도(429) 문구를 그 언어로 받는다
+  const sayLangRef = useRef("");
   async function understand(utterance: string, signal: AbortSignal): Promise<Understood<KioskEvent>> {
     setChips([]);
-    const res = await fetch("/api/fastfood/interpret", {
+    // 휴대폰 말에만 그 언어(?lang)를 붙인다. 서버는 그 언어로 답한다. 키오스크에서 친 말은 붙이지 않아 Spark가 고른 언어로 답한다
+    const res = await fetch(`/api/fastfood/interpret${sayLangRef.current ? `?lang=${encodeURIComponent(sayLangRef.current)}` : ""}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ utterance, state: stateRef.current, pending: pendingRef.current ?? undefined }),
       signal,
     });
+    const limited = await limitedReject(res, sayLangRef.current);
+    if (limited) return limited;
     if (!res.ok) throw new Error(`interpret ${res.status}`);
     const body = (await res.json()) as InterpretResponse;
     setLast(body);
@@ -237,8 +258,9 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang };
     if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang };
     const l = langOf(lang);
-    const say = [p.dropped.length ? doneSay.dropped[l] : "", doneSay[p.endScreen === "review" ? "pay" : "more"][l]].filter(Boolean).join(" ");
-    return { kind: "plan", events: p.events, lang, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton: t.pay[stateRef.current.lang] } };
+    const payButton = t.pay[stateRef.current.lang];
+    const say = [p.dropped.length ? doneSay.dropped[l] : "", p.endScreen === "review" ? doneSay.pay[l](payButton) : doneSay.more[l]].filter(Boolean).join(" ");
+    return { kind: "plan", events: p.events, lang, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton } };
   }
 
   function send(m: LinkMsg) {
@@ -256,7 +278,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     lastActRef.current = Date.now();
     const id = setInterval(() => {
       if (turn.busy()) return;
-      const ph = idlePhase(Date.now() - lastActRef.current, stateRef.current.screen);
+      const ph = idlePhase(Date.now() - lastActRef.current, stateRef.current.screen, paidRef.current);
       if (ph.kind === "reset") {
         apply(initialState());
         log({ kind: "reset", by: "kiosk", screen: "idle" });
@@ -297,6 +319,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
 
   function ask(utterance: string) {
     localRef.current = true;
+    sayLangRef.current = "";
     touchActivity();
     // 키오스크 앞에서 친 말은 지금 카드에 대한 말이다(휴대폰 말은 카드 id를 붙여 온다)
     turn.hear({ text: utterance, lang: "auto", gateId: turn.gateId() ?? undefined });
@@ -307,6 +330,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     log({ kind: "turn", by: "phone", screen: stateRef.current.screen });
     setText(m.text);
     touchActivity();
+    sayLangRef.current = m.lang;
     turn.hear(m);
   });
 
@@ -342,10 +366,16 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     const total = state.cart.reduce((n, l) => n + l.qty * l.unitPrice, 0);
     const items = state.cart.reduce((n, l) => n + l.qty, 0);
     const label = screenLabel[state.screen][langOf(replyLang)];
+    // 품목 수·합계도 단계 이름과 같은 언어로 보낸다(없으면 휴대폰이 영어로 채운다)
+    // 담는 중이거나 마지막에 담은 품목 이름을 앞에 붙인다(Spark가 다른 버거로 바꿔 넣어도 사람이 휴대폰에서 알아채게)
+    const current = state.draft ?? state.cart.at(-1);
+    const summary = statusSummary(items, total, replyLang, current && lineName(current, state.lang));
     const answering = hello !== helloSeenRef.current;
     helloSeenRef.current = hello;
-    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items, total, kioskId: "fastfood", ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
-  }, [state, busy, progress, hello, replyLang, turn]);
+    // cart·draft: machine 상태 원자료. 휴대폰이 품목 이름을 자기 언어(ko/en)로 그린다(lines·summary는 키오스크 언어라서)
+    // kioskLang: 키오스크 화면 언어. 휴대폰이 키오스크 버튼 이름(예: Pay)을 화면과 같게 적는다
+    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items, total, kioskId: "fastfood", summary, cart: state.cart, draft: state.draft, kioskLang: state.lang, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }), ...((state.screen === "review" || state.screen === "payment") && { lines: orderLines(state.cart, state.lang) }), ...(paidNo !== null && { paid: paidNo }) });
+  }, [state, busy, progress, hello, replyLang, turn, paidNo]);
 
   const banner = <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} />;
 
@@ -362,7 +392,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
               touchActivity();
               log({ kind: "tap", by: "human", screen: stateRef.current.screen, target: "keep_going" });
             }}
-            className="mt-6 w-full rounded bg-orange-500 py-4 text-xl font-bold text-white"
+            className="mt-6 w-full rounded-xl bg-(--bb-cobalt) py-4 text-xl font-bold text-white"
           >
             {t.continue[state.lang]}
           </button>
@@ -376,6 +406,14 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
         <FastfoodKiosk
           state={state}
           press={press}
+          pay={{
+            no: paidNo,
+            // 결제한 순간부터 처음 화면으로 돌아갈 시간을 센다
+            onPay: () => {
+              touchActivity();
+              setPaid({ no: 100 + Math.floor(Math.random() * 900), cart: state.cart });
+            },
+          }}
           banner={
             <>
               {/* 재생이 주문 확인에서 끝나면 사람이 누를 결제 버튼에 고리를 그린다 */}
@@ -391,15 +429,15 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
 
   if (variant === "kiosk")
     return (
-      <div className="flex min-h-screen flex-col items-center gap-2 bg-neutral-200 p-3">
-        <div className="h-[150px]" style={{ width: 540 * scale }}>
+      <main style={hide} className="flex min-h-screen flex-col items-center gap-2 bg-neutral-200 p-3">
+        <h1 className="sr-only">{t.kioskTitle[state.lang]}</h1>
+        {/* 띠 칸은 KIBO가 일하지 않는 대기 화면에서 비어 있다. KIBO 연결 QR은 그 칸 오른쪽 아래, 키오스크 틀 바로 위에 붙인
+            스티커처럼 둔다(키오스크 화면 내용을 가리지 않는다). ?qr=0이면 숨긴다 */}
+        <div className="relative h-[150px]" style={{ width: 540 * scale }}>
           <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} slot />
+          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute right-0 bottom-0" />}
         </div>
-        {/* QR은 대기 화면 위쪽 광고 칸(버튼 없음) 안에 둔다. ?qr=0이면 숨긴다 */}
-        <div className="relative">
-          {kiosk}
-          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute top-3 right-3" />}
-        </div>
+        {kiosk}
         {logOn && (
           <TrialPanel
             events={trial.events}
@@ -412,37 +450,40 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
             }}
           />
         )}
-      </div>
+      </main>
     );
 
   if (variant === "compare")
     return (
-      <div className="flex flex-col items-center gap-3" style={{ width: 540 * scale }}>
+      <div className="flex flex-col items-center gap-3" style={{ width: 540 * scale, ...hide }}>
         {/* 띠 칸: 평소에는 제목, KIBO가 알아듣고 누르는 동안에는 띠 */}
-        <div className="flex h-[150px] w-full items-end justify-center">
+        {/* KIBO 연결 QR은 띠 칸 오른쪽 위에 둔다(제목은 아래 가운데). 키오스크 화면 내용을 가리지 않는다 */}
+        <div className="@container relative flex h-[150px] w-full items-end justify-center">
+          {/* 좁은 화면(xl 미만)은 휴대폰으로 보는 경우라 그 화면의 QR을 같은 휴대폰으로 찍을 수 없다. 접힌 제목을 덮지 않게 숨긴다.
+              가로 배치여도 화면 높이가 낮아 키오스크가 좁으면(띠 320px 이하) 제목이 두 줄로 접혀 배지 아래로 들어가므로 숨긴다.
+              배지(높이 100)는 4px 올려 한 줄 제목(띠 아래 52)과 겹치지 않게 한다 */}
+          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute -top-1 right-0 max-xl:hidden @max-[320px]:hidden" />}
           {phase === "thinking" || phase === "replaying" ? (
             <div className="h-full w-full">
               <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} slot />
             </div>
           ) : (
-            <div className="pb-1 text-[32px] font-bold">{title}</div>
+            <h2 className="pb-1 text-[32px] font-bold">{title}</h2>
           )}
         </div>
-        <div className="relative">
-          {kiosk}
-          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute top-3 right-3" />}
-        </div>
+        {kiosk}
         <RunBar run={run} />
       </div>
     );
 
   return (
-    <div className="flex min-h-screen items-start justify-center gap-8 bg-neutral-200 p-3">
+    <main style={hide} className="flex min-h-screen items-start justify-center gap-8 bg-neutral-200 p-3">
+      <h1 className="sr-only">{t.kioskTitle[state.lang]}</h1>
       {kiosk}
 
       <div className="w-96 rounded-xl bg-white p-4 text-sm shadow">
         <div className="mb-2 font-bold">KIBO dev console</div>
-        <textarea className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
+        <textarea aria-label="KIBO에게 할 말 (Say to KIBO)" className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt-2 flex flex-wrap gap-1">
           {samples.map((s) => (
             <button key={s} type="button" className="rounded bg-neutral-100 px-2 py-1 text-xs" onClick={() => setText(s)}>
@@ -486,6 +527,6 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

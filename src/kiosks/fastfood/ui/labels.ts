@@ -1,10 +1,10 @@
 // 결정적 장면에서 사람이 읽는 이름: Spark가 알아들은 것(의도 칩)과 휴대폰에 보일 단계 이름.
 
-import type { Lang as PhoneLang } from "@/engine/turn";
-import type { Screen } from "../machine";
-import { addOns, findItem } from "../menu";
+import { langOf, type Lang as PhoneLang } from "@/engine/turn";
+import type { CartLine, Draft, Screen } from "../machine";
+import { addOns, findItem, type Lang as KioskLang } from "../menu";
 import type { FastfoodIntent, IntentLine } from "../planner";
-import { ingredientName } from "./strings";
+import { ingredientName, t } from "./strings";
 
 export interface Chip {
   text: string;
@@ -51,3 +51,36 @@ export const screenLabel: Record<Screen, Record<PhoneLang, string>> = {
   review: { en: "Order review · you tap Pay", ko: "주문 확인 · 결제는 직접", ja: "注文の確認 · お支払いはご自身で", vi: "Xem lại đơn · bạn tự bấm Thanh toán", zh: "确认订单 · 请您自己点支付", es: "Revisar pedido · tú pulsas Pagar" },
   payment: { en: "Payment", ko: "결제", ja: "お支払い", vi: "Thanh toán", zh: "支付", es: "Pago" },
 };
+
+// 휴대폰 상태 줄의 요약: 장바구니 품목 수와 합계(휴대폰 언어). 금액 표기는 키오스크 화면과 같게 ₩와 쉼표
+const summaryText: Record<PhoneLang, (n: number) => string> = {
+  en: (n) => `${n} item(s)`,
+  ko: (n) => `${n}개`,
+  ja: (n) => `${n}点`,
+  vi: (n) => `${n} món`,
+  zh: (n) => `${n} 件`,
+  es: (n) => `${n} producto(s)`,
+};
+// current: 담는 중이거나 마지막에 담은 품목 이름. 사람이 휴대폰에서 바뀐 품목(다른 버거 등)을 알아채게 앞에 붙인다
+export const statusSummary = (items: number, total: number, language: string, current?: string) =>
+  `${current ? `${current} · ` : ""}${summaryText[langOf(language)](items)} · ₩${total.toLocaleString("en-US")}`;
+
+// 휴대폰에 보이는 품목 이름. 키오스크 화면 글자 그대로(키오스크 언어) 써서 사람이 화면에서 바로 찾게 한다. 주문 확인 화면과 같은 꼴: 이름 사이즈 세트
+export function lineName(line: Pick<Draft, "menuId" | "mode" | "size">, kioskLang: KioskLang) {
+  const name = findItem(line.menuId)?.name[kioskLang] ?? line.menuId;
+  return line.mode === "set" ? [name, line.size, t.set[kioskLang]].filter(Boolean).join(" ") : name;
+}
+
+// 휴대폰 주문 확인 카드의 품목 줄: 이름, 세트 구성·뺀 재료·추가, 수량
+export const orderLines = (cart: CartLine[], kioskLang: KioskLang) =>
+  cart.map((l) => ({
+    name: lineName(l, kioskLang),
+    detail: [
+      ...(l.mode === "set" ? [l.side, l.drink].map((id) => (id ? findItem(id)?.name[kioskLang] : undefined)) : []),
+      l.remove.length ? `− ${l.remove.map((r) => ingredientName[r]?.[kioskLang] ?? r).join(", ")}` : undefined,
+      l.add.length ? `+ ${l.add.map((a) => addOns.find((x) => x.id === a)?.name[kioskLang] ?? a).join(", ")}` : undefined,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    qty: l.qty,
+  }));

@@ -2,6 +2,7 @@
 // 다른 기기 길(Realtime broadcast, 채널 kibo:<room>, DB 테이블은 쓰지 않음)로도 함께 보낸다(bothLink).
 // 그래서 나란히 비교·영상 화면의 키오스크는 내장 휴대폰과 실제 휴대폰을 함께 받는다.
 import { RealtimeClient } from "@supabase/realtime-js";
+import type { CartLine, Draft } from "@/kiosks/fastfood/machine";
 
 export type LinkMsg =
   // 휴대폰 → 키오스크: 사용자가 한 말(전사문). id로 같은 메시지가 두 번 와도 한 번만 처리한다
@@ -21,7 +22,22 @@ export type LinkMsg =
   | { type: "done"; re: string; ok: boolean; say: string; replyLanguage: string; gate: LinkGate | null; paymentHandoff?: boolean; payButton?: string; }
   // 키오스크 → 휴대폰: 지금 화면과 조작 진행. kiosk·summary는 공항처럼 장바구니가 없는 키오스크용.
   // gate는 hello에 답할 때만 붙는다(지금 떠 있는 카드, 없으면 null). 다시 연결한 휴대폰이 카드를 잃지 않게
-  | { type: "status"; screen: string; busy: boolean; step?: number; steps?: number; items: number; total: number; kiosk?: string; kioskId?: string; summary?: string; label?: string; gate?: LinkGate | null; };
+  // lines: 주문 확인·결제 화면의 품목 줄(휴대폰 주문 확인 카드). paid: 사람이 결제를 마친 뒤의 주문번호(시연용 모의 결제)
+  | { type: "status"; screen: string; busy: boolean; step?: number; steps?: number; items: number; total: number; kiosk?: string; kioskId?: string; summary?: string; label?: string; gate?: LinkGate | null; lines?: { name: string; detail: string; qty: number }[]; paid?: number; air?: TripAir; rail?: TripRail; cart?: CartLine[]; draft?: Draft | null; kioskLang?: "en" | "ko"; };
+
+// 공항·기차 상태의 데이터. 휴대폰이 이것으로 자기 언어 요약을 만든다(없으면, 즉 옛 키오스크면 summary 글을 쓴다)
+export interface TripAir {
+  airline: string | null;
+  passports: number;
+  seats: string[];
+}
+export interface TripRail {
+  from: string;
+  to: string | null;
+  people: number;
+  // "7-1A" 꼴(호차-좌석)
+  seats: string[];
+}
 
 export interface LinkGate {
   kind: "ack" | "device" | "done";

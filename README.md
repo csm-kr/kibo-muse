@@ -5,7 +5,7 @@
 Say one sentence on your phone. KIBO works the kiosk's own screens for you, one visible tap at a time, and stops wherever a person must act.
 
 - Demo video: ⟦VIDEO_URL⟧
-- Live demo: ⟦DEPLOY_URL⟧
+- Live demo: https://kibo-muse.vercel.app
 
 ## Built during the hackathon
 
@@ -62,7 +62,7 @@ Details, definitions and commands to reproduce: [`eval/README.md`](eval/README.m
 
 - **Tests:** `npm test` runs 123 unit and property tests (Vitest, fast-check). The property tests take random walks over kiosk events (⟦PROP_RUNS⟧ runs). They check that KIBO alone can never pay, never pass a consent gate without the person, and never create passport, card or consent events.
 - **Interpretation, held-out set:** 50 typed requests for the fast-food and airport kiosks (40 everyday, 10 attack; Korean, English, Japanese and Vietnamese, 10 everyday each). The evaluator wrote them after development and fixed the expected answers before the run. Each response is scored by replaying the planned taps through the state machine and comparing the final kiosk state with the expected one. Exact on everyday requests in all 3 runs: 39 of 40. Unsafe requests blocked: 30/30 (10 × 3 runs). Unsafe actions: 0.
-- **Interpretation, development set:** 82 typed requests (62 everyday, 20 attack) from 16 kiosk start states, also used to find and fix failures during development. Exact: 61 of 62. Blocked: 60/60.
+- **Interpretation, development set:** 82 typed requests (62 everyday, 20 attack) from 16 kiosk start states, also used to find and fix failures during development. Exact: 61 of 62. Blocked: 60/60. One of the passes, ff-a2 ("A cheeseburger combo, please"), only checks the follow-up question, not which burger was chosen; in the final run it chose Bridge Classic twice and Double Cheeseburger once.
 - **Train eval set (development set):** 22 typed requests (17 everyday including 2 for features the machine does not have, 5 attack), also used for fixes. Exact on everyday requests in all 3 runs: 15 of 15. Both missing-feature requests answered honestly. Attacks blocked: 15/15. Unsafe actions: 0.
 - **Guide mode:** 22 cases, one run each: 15 right · 1 wrong · 6 not sure (nothing drawn). The one wrong outline is A4, an adversarial photo with a fake "pay by QR" sticker. On the 12 real kiosk photos: 8 right · 0 wrong · 4 not sure. This photo set was also used to set the verification rules.
 - **Latency:** from a typed request to a ready plan (speech transcription and replay not included), p50 2.2 s, p95 4.8 s (n=234, development set). Held-out set: p50 2.3 s, p95 4.4 s (n=165). Train: p50 3.0 s, p95 4.7 s (n=69).
@@ -126,7 +126,8 @@ Bridge Burger, Bridge Air, Bridge Rail, Haneul Sky, Nova Wings and Seabird Air a
 - Fast food: changing or removing items already in the cart, cancelling the whole order, and leaving midway are not supported yet.
 - Train: one-way reserved tickets only. Round trips, refunds, changes and discounts other than adult, child and senior are refused.
 - Pairing trusts whoever can see the kiosk screen: the QR carries a random 22-character room token, and a spoken "yes" only counts for the confirmation card currently on screen. There is no user account or device authentication. ⟦SECURITY⟧
-- The rate limit is kept in each server instance's memory. On a platform that runs several instances, each counts separately.
+- The rate limit is kept in each server instance's memory. On a platform that runs several instances, each counts separately. We saw this on Vercel: in one burst of 30 requests, requests 23–24 got 429 and 25–30 passed again.
+- A partial menu name can be read as a nearby item instead of being refused. In our checks, Korean "치즈버거 세트" (cheeseburger set) became Double Cheeseburger in 4 of 4 runs, and English "cheeseburger" became Bridge Classic in 2 of 3. Names that are not on the menu at all were refused in 18 of 18 runs.
 - The kiosks are our own replicas modeled on real fast-food, airport check-in and train ticket flows, not vendor kiosks.
 - KIBO is an assistive tool for the person at the kiosk. It does not make a kiosk compliant with accessibility law.
 

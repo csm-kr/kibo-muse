@@ -14,7 +14,8 @@ function fakeSpark(json: object) {
   return sent;
 }
 const base = { orderType: "none", items: [], current: { mode: "none", size: "none", side: "none", drink: "none", remove: [], addOns: [], qty: 0 }, dropCurrent: false, unknownItems: [], checkout: false, requestPayment: false, replyLanguage: "ko", say: "피클을 뺐어요." };
-const call = async (utterance: string) => (await POST(new Request("http://x/api/fastfood/interpret", { method: "POST", body: JSON.stringify({ utterance, state: initialState() }) }))).json();
+// q: 주소 뒤에 붙일 것(휴대폰이 보내는 ?lang=)
+const call = async (utterance: string, q = "") => (await POST(new Request(`http://x/api/fastfood/interpret${q}`, { method: "POST", body: JSON.stringify({ utterance, state: initialState() }) }))).json();
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -47,5 +48,48 @@ describe("/api/fastfood/interpret", () => {
     const cancelled = await call("전부 취소해 주세요");
     expect(cancelled.plan).toEqual({ kind: "reject", reason: "cancel_order" });
     expect(cancelled.say).toBe("주문 전체 취소는 화면의 [취소]를 직접 눌러 주세요.");
+  });
+
+  it("되묻기 Spark 문장이 다른 언어 문자를 섞으면(실측 「…1개ですね」) 담을 품목 이름과 빠진 칸으로 만든 고정 문구로 바꾸고, 섞이지 않았으면 그대로 쓴다", async () => {
+    const line = { menuId: "double_cheese", mode: "set", size: "none", side: "fries", drink: "none", remove: [], addOns: [], qty: 1 };
+    fakeSpark({ ...base, items: [line], unsupported: "none", replyLanguage: "ko", say: "더블 치즈버거 세트 1개ですね. 매장식사인가요 포장인가요?" });
+    const mixed = await call("더블 치즈버거 세트 하나요");
+    expect(mixed.plan.kind).toBe("clarify");
+    expect(mixed.say).toBe("더블 치즈버거 세트 ×1 담을게요. 매장에서 드시나요, 포장하시나요? 사이즈는 M, L 중 무엇으로 할까요? 음료는 무엇으로 할까요?");
+
+    fakeSpark({ ...base, items: [line], unsupported: "none", replyLanguage: "ko", say: "더블 치즈버거 세트 1개요? 매장인지 포장인지 알려주세요." });
+    expect((await call("더블 치즈버거 세트 하나요")).say).toBe("더블 치즈버거 세트 1개요? 매장인지 포장인지 알려주세요.");
+  });
+
+  // 장면 8 리허설: 한국어 휴대폰인데 받아쓰기가 영어를 섞자 Spark가 영어로 되물었다
+  const mixedKo = "Double Cheeseburger set 하나 제로 콜라로 먹고 갈게요";
+  const sizeAsk = { ...base, orderType: "eat_in", items: [{ menuId: "double_cheese", mode: "set", size: "none", side: "none", drink: "zero_cola", remove: [], addOns: [], qty: 1 }], unsupported: "none", replyLanguage: "en", say: "Double Cheeseburger set one, Zero Cola, eat in. M or L size?" };
+
+  it("휴대폰 언어(?lang)가 대답 언어다: Spark가 다른 언어로 되물으면 휴대폰 언어 고정 되묻기, 같은 언어면 Spark 문장을 쓴다", async () => {
+    fakeSpark(sizeAsk);
+    const ko = await call(mixedKo, "?lang=ko");
+    expect(ko.plan.kind).toBe("clarify");
+    expect(ko.say).toBe("더블 치즈버거 세트 ×1 담을게요. 사이즈는 M, L 중 무엇으로 할까요?");
+    expect(ko.replyLanguage).toBe("ko");
+    // 같은 언어 판정은 정규화한다(Korean = ko-KR)
+    fakeSpark({ ...sizeAsk, replyLanguage: "ko-KR", say: "더블 치즈버거 세트 1개, 사이즈는 M, L 중 어느 걸로 할까요?" });
+    expect((await call(mixedKo, "?lang=Korean")).say).toBe("더블 치즈버거 세트 1개, 사이즈는 M, L 중 어느 걸로 할까요?");
+  });
+
+  it("휴대폰 언어(?lang)가 있으면 계획·거절 문구도 그 언어다", async () => {
+    fakeSpark({ ...sizeAsk, items: [], say: "Okay." });
+    const planned = await call("eat in", "?lang=ko");
+    expect(planned.plan.kind).toBe("plan");
+    expect(planned.say).toBe(planSay(planned.plan.events.length, "ko"));
+    expect(planned.replyLanguage).toBe("ko");
+    fakeSpark({ ...sizeAsk, unsupported: "cancel_order" });
+    expect((await call("cancel everything", "?lang=ko")).say).toBe("주문 전체 취소는 화면의 [취소]를 직접 눌러 주세요.");
+  });
+
+  it("?lang이 없으면(평가 하네스·옛 클라이언트) 지금처럼 Spark가 고른 언어로 답한다", async () => {
+    fakeSpark(sizeAsk);
+    const body = await call(mixedKo);
+    expect(body.say).toBe(sizeAsk.say);
+    expect(body.replyLanguage).toBe("en");
   });
 });

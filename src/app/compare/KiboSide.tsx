@@ -10,7 +10,8 @@ export function KiboSide() {
   const room = useRoom(undefined);
   if (!room) return null;
   return (
-    <div className="flex items-center">
+    // 좁은 화면에서는 키오스크 아래에 휴대폰을 쌓는다(폭은 화면에 맞춤). xl(1280) 이상은 가로 그대로
+    <div className="flex flex-col items-center gap-8 max-xl:w-full xl:flex-row xl:gap-0">
       <FastfoodStation variant="compare" room={room} title="KIBO · one sentence" />
       <PhoneSide room={room} />
     </div>

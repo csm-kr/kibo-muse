@@ -65,3 +65,15 @@ export function rateLimited(kind: GuardKind, req: Request, now = Date.now()): Re
 }
 
 export const tooLarge = (req: Request) => Response.json({ error: "too_large", say: big[reqLang(req)] }, { status: 413 });
+
+// 오류 원문(모델 API 오류 본문, 내부 예외 문장)은 응답에 넣지 않고 서버 로그에만 남긴다. 이미지·base64는 로그에도 남기지 않는다
+export const logError = (where: string, e: unknown) =>
+  console.error(
+    where,
+    String((e as Error)?.message ?? e)
+      // 키 꼴 토큰(sk-·sb_secret_·LLM_ 접두어)은 가린다. 상류 오류 본문이 키를 되돌려줄 수 있다
+      .replace(/\b(?:sk-|sb_secret_|LLM_)[^\s"',;]+/g, "<key>")
+      .replace(/data:image\/[^\s"']+/g, "<image>")
+      .replace(/[A-Za-z0-9+/=]{200,}/g, "<base64>")
+      .slice(0, 300),
+  );

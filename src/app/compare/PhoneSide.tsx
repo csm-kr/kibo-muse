@@ -25,15 +25,16 @@ export function PhoneSide({ room }: { room: string }) {
   }, [room]);
 
   return (
-    <div className="flex items-center">
-      <svg width="72" height="24" viewBox="0 0 72 24" className="shrink-0 overflow-visible" aria-hidden data-kibo-link={busy ? "busy" : "idle"}>
+    // 좁은 화면에서는 이음선을 빼고 말풍선·휴대폰을 화면 폭에 맞춘다(최대 400). xl(1280) 이상은 그대로
+    <div className="flex items-center max-xl:w-full max-xl:justify-center">
+      <svg width="72" height="24" viewBox="0 0 72 24" className="shrink-0 overflow-visible max-xl:hidden" aria-hidden data-kibo-link={busy ? "busy" : "idle"}>
         <line x1="0" y1="12" x2="72" y2="12" stroke="#0f766e" strokeWidth="4" strokeLinecap="round" strokeDasharray="6 10" className={busy ? "kibo-link-busy" : ""} />
         {said && <circle key={said.n} cx="72" cy="12" r="5" fill="#0f766e" className="kibo-link-dot" />}
       </svg>
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4 max-xl:w-full max-xl:max-w-[400px]">
         {/* 긴 문장은 24px·3줄, 아주 긴 문장(100자 넘음, 베트남어 등)은 22px·4줄에서 자른다(말풍선이 휴대폰을 밀어내지 않게) */}
-        <div className={`relative w-[400px] rounded-3xl bg-white px-6 py-4 leading-snug font-semibold shadow-md ${!said ? "text-[28px]" : said.text.length > 100 ? "text-[22px]" : said.text.length > 60 ? "text-[24px]" : "text-[28px]"}`} data-said>
-          {said ? <span className={said.text.length > 100 ? "line-clamp-4" : "line-clamp-3"}>{`“${said.text}”`}</span> : <span className="text-neutral-400">Say one sentence on the phone</span>}
+        <div className={`relative w-[400px] max-xl:w-full rounded-3xl bg-white px-6 py-4 leading-snug font-semibold shadow-md ${!said ? "text-[28px]" : said.text.length > 100 ? "text-[22px]" : said.text.length > 60 ? "text-[24px]" : "text-[28px]"}`} data-said>
+          {said ? <span className={said.text.length > 100 ? "line-clamp-4" : "line-clamp-3"}>{`“${said.text}”`}</span> : <span className="text-neutral-500">Say one sentence on the phone</span>}
           <span className="absolute -bottom-3 left-1/2 h-6 w-6 -translate-x-1/2 rotate-45 bg-white" aria-hidden />
         </div>
         <Phone room={room} embedded />

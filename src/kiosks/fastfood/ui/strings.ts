@@ -7,9 +7,9 @@ export const t = {
   language: { en: "Language", ko: "언어" },
   accessibility: { en: "Accessibility", ko: "도움 기능" },
   rewardsTitle: { en: "Collect points", ko: "포인트를 적립하세요" },
-  rewardsSub: { en: "Scan before paying", ko: "결제 전 선택 필수" },
+  rewardsSub: { en: "Scan your app barcode", ko: "앱 바코드를 스캔하세요" },
   cashNotice: { en: "Cash payments at the front counter only · Mobile vouchers accepted", ko: "현금 결제는 카운터에서만 가능 · 모바일 상품권 사용 가능" },
-  adTitle: { en: "NEW Spicy Chicken", ko: "NEW 스파이시 치킨" },
+  adTitle: { en: "Spicy Chicken", ko: "스파이시 치킨" },
   adSub: { en: "Crispy whole thigh, fiery glaze", ko: "통다리살에 매콤한 소스" },
   whereEat: { en: "Where will you eat today?", ko: "식사 방법을 선택해 주세요" },
   eatIn: { en: "Eat in", ko: "매장에서 식사" },
@@ -44,6 +44,33 @@ export const t = {
   total: { en: "Total", ko: "합계" },
   paymentTitle: { en: "Insert or tap your card", ko: "카드를 넣거나 대 주세요" },
   paymentSub: { en: "Payment is always done by you.", ko: "결제는 언제나 직접 합니다." },
+  // 시연용 모의 결제. 실제로 결제하지 않는다
+  insertCard: { en: "Insert card (demo)", ko: "카드 넣기 (시연)" },
+  paidTitle: { en: "Payment complete", ko: "결제 완료" },
+  orderNo: { en: "Order No.", ko: "주문번호" },
+  demoNote: { en: "Demo only. No real payment was made.", ko: "시연용이에요. 실제로 결제되지 않았어요." },
+  // 실물 수준 화면(critic-demo kiosk-spec.md)에 더한 문구
+  touchToOrder: { en: "Touch to start", ko: "Touch to order" },
+  menuHint: { en: "Choose what you'd like", ko: "원하는 메뉴를 선택하세요" },
+  // 화면에 보이지 않는 페이지 제목(h1, 화면 낭독기·axe page-has-heading-one)
+  kioskTitle: { en: "Bridge Burger order kiosk", ko: "브리지 버거 주문 키오스크" },
+  // 세트 단계 표시(왼쪽, 좁은 칸)의 짧은 이름
+  stepSize: { en: "Meal size", ko: "세트 사이즈" },
+  stepSide: { en: "Side", ko: "사이드" },
+  stepDrink: { en: "Drink", ko: "음료" },
+  stepConfirm: { en: "Confirm", ko: "주문 확인" },
+  bannerTitle: { en: "Make it a meal", ko: "세트로 더 든든하게" },
+  nutrition: { en: "Nutrition", ko: "영양정보" },
+  rewardsShort: { en: "Earn points", ko: "포인트 적립" },
+  rewardsSubShort: { en: "Scan app barcode", ko: "앱 바코드 스캔" },
+  deleteLine: { en: "Delete", ko: "삭제" },
+  subtotal: { en: "Subtotal", ko: "소계" },
+  payMethodTitle: { en: "Choose how to pay", ko: "결제 방법을 선택해 주세요" },
+  cardPay: { en: "Card", ko: "카드 결제" },
+  mobileVoucher: { en: "Mobile voucher", ko: "모바일 상품권" },
+  amountDue: { en: "Amount due", ko: "결제 금액" },
+  icCard: { en: "IC credit / debit card", ko: "IC 신용·체크카드" },
+  receiptNote: { en: "Take your receipt. Pick up your order at the counter when your number is called.", ko: "영수증을 받아 주세요 · 번호가 표시되면 카운터에서 받아 가세요" },
   kiboOperating: { en: "KIBO is operating the kiosk", ko: "KIBO가 키오스크를 조작하는 중" },
   step: { en: "Step", ko: "단계" },
   set: { en: "Meal", ko: "세트" },
@@ -53,36 +80,6 @@ export const t = {
 } satisfies Record<string, Record<Lang, string>>;
 
 export const won = (n: number) => `₩${n.toLocaleString("en-US")}`;
-
-// 상품 아이콘. 실제 사진 대신 쓴다.
-export const icon: Record<string, string> = {
-  classic: "🍔",
-  double_cheese: "🍔",
-  spicy_chicken: "🍗",
-  bulgogi: "🍔",
-  shrimp: "🍤",
-  veggie: "🥬",
-  fries: "🍟",
-  cheese_sticks: "🧀",
-  coleslaw: "🥗",
-  corn_salad: "🌽",
-  nuggets4: "🍗",
-  cola: "🥤",
-  zero_cola: "🥤",
-  lemon_soda: "🍋",
-  orange_soda: "🍊",
-  iced_tea: "🧋",
-  americano: "☕",
-  iced_latte: "🧊",
-  milkshake: "🥛",
-  sundae: "🍨",
-  apple_pie: "🥧",
-  recommended: "⭐",
-  burgers: "🍔",
-  sides: "🍟",
-  drinks: "🥤",
-  desserts: "🍦",
-};
 
 export const ingredientName: Record<string, Record<Lang, string>> = {
   cheese: { en: "Cheese", ko: "치즈" },

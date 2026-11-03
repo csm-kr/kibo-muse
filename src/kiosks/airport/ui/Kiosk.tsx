@@ -7,7 +7,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { BAG_ALLOWANCE, BLOCKS, EXCESS_FEE, FIRST_ROW, MAX_BAGS, MAX_OFFSET, ROWS, VISIBLE_ROWS, airlines, booking, findPassenger, isExit, isPaid, isTakenByOthers, type Lang } from "../booking";
 import { seatHolder, type KioskState, type Target } from "../machine";
+import { krFont } from "../../fastfood/ui/tokens";
 import { circled, t, won } from "./strings";
+import { airVars } from "./tokens";
 
 export type Highlight = { target: Target; value?: string } | null;
 
@@ -36,9 +38,9 @@ function Btn({ target, value, className = "", children, label }: { target: Targe
 }
 
 const Primary = ({ target, children }: { target: Target; children: ReactNode }) => (
-  <Btn target={target} className="flex items-center gap-3 rounded-md bg-red-600 py-3 pr-3 pl-6 text-xl font-bold text-white shadow">
+  <Btn target={target} className="flex min-h-14 items-center gap-3 rounded-lg bg-(--ba-violet) py-3 pr-3 pl-6 text-xl font-bold text-white shadow active:bg-(--ba-press)">
     {children}
-    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-lg text-red-600">❯</span>
+    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-lg text-(--ba-violet)">❯</span>
   </Btn>
 );
 
@@ -50,7 +52,7 @@ function Clock() {
     const id = setInterval(f, 10_000);
     return () => clearInterval(id);
   }, []);
-  return <div className="text-lg text-neutral-500">◷ {now}</div>;
+  return <div className="text-lg text-(--ba-muted)">◷ {now}</div>;
 }
 
 function LangTabs() {
@@ -58,7 +60,7 @@ function LangTabs() {
   return (
     <div className="flex gap-1">
       {(["ko", "en"] as const).map((l) => (
-        <Btn key={l} target="language" value={l} className={`rounded-t-md px-4 py-2 text-base ${s.lang === l ? "bg-white font-bold text-teal-800" : "bg-teal-900/40 text-white"}`}>
+        <Btn key={l} target="language" value={l} className={`min-h-11 rounded-t-lg px-5 text-base ${s.lang === l ? "bg-white font-bold text-(--ba-plum)" : "bg-white/15 text-white"}`}>
           {s.lang === l && "✔ "}
           {l === "ko" ? "한국어" : "English"}
         </Btn>
@@ -73,7 +75,7 @@ function Frame({ title, children, right }: { title: string; children: ReactNode;
   const banner = s.banner && { no_booking: tr("noBooking", s.lang), already_added: tr("alreadyAdded", s.lang), seat_changed: tr("seatChanged", s.lang), passport_only: tr("passportOnly", s.lang) }[s.banner];
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-12 items-end justify-between bg-teal-800 px-4">
+      <div className="flex h-12 items-end justify-between bg-(--ba-plum) px-4">
         <LangTabs />
         {airline && (
           <div className="mb-2 font-black tracking-wide text-white">
@@ -81,17 +83,17 @@ function Frame({ title, children, right }: { title: string; children: ReactNode;
           </div>
         )}
       </div>
-      <div className="flex items-end justify-between border-b-4 border-teal-800 px-4 pt-3">
-        <div className="rounded-t-lg bg-teal-800 px-6 py-2 text-xl font-bold text-white">{title}</div>
+      <div className="flex items-end justify-between border-b-4 border-(--ba-plum) px-4 pt-3">
+        <div className="rounded-t-lg bg-(--ba-plum) px-6 py-2 text-xl font-bold text-white">{title}</div>
         <Clock />
       </div>
-      {banner && <div className={`px-6 py-2 text-lg font-bold ${s.banner === "seat_changed" ? "bg-emerald-50 text-emerald-700" : s.banner === "passport_only" ? "bg-amber-50 text-amber-800" : "bg-red-50 text-red-700"}`}>{banner}</div>}
+      {banner && <div className={`px-6 py-2 text-lg font-bold ${s.banner === "seat_changed" ? "bg-emerald-50 text-emerald-700" : s.banner === "passport_only" ? "bg-(--ba-tint) text-(--ba-plum)" : "bg-red-50 text-red-700"}`}>{banner}</div>}
       <div className="min-h-0 flex-1 overflow-hidden px-6 py-4">{children}</div>
-      <div className="flex h-20 items-center gap-3 border-t border-neutral-200 bg-neutral-50 px-4">
-        <Btn target="exit" className="flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-lg">
+      <div className="flex h-20 items-center gap-3 border-t border-(--ba-line) bg-[#FAF8FC] px-4">
+        <Btn target="exit" className="flex min-h-11 items-center gap-2 rounded-lg border border-(--ba-line) bg-white px-4 text-lg">
           ⓧ {tr("exit", s.lang)}
         </Btn>
-        <Btn target="help" className="flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-lg">
+        <Btn target="help" className="flex min-h-11 items-center gap-2 rounded-lg border border-(--ba-line) bg-white px-4 text-lg">
           ? {tr("help", s.lang)}
         </Btn>
         <div className="ml-auto flex items-center gap-3">{right}</div>
@@ -108,19 +110,19 @@ const name = (id: string) => {
 function Idle() {
   const { s } = useK();
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-sky-100 to-white">
-      <div className="flex h-12 items-end bg-teal-800 px-4">
+    <div className="flex h-full flex-col bg-gradient-to-b from-(--ba-tint) to-white">
+      <div className="flex h-12 items-end bg-(--ba-plum) px-4">
         <LangTabs />
       </div>
       <div className="mt-12 text-center">
-        <div className="text-4xl font-black text-teal-900">{tr("selfCheckin", s.lang)}</div>
-        <div className="mt-3 text-2xl text-neutral-700">{tr("selectAirline", s.lang)}</div>
-        <div className="text-lg text-neutral-500">{s.lang === "ko" ? "Please select your airline." : "항공사를 선택해 주세요."}</div>
+        <div className="text-4xl font-black text-(--ba-plum)">{tr("selfCheckin", s.lang)}</div>
+        <div className="mt-3 text-2xl text-(--ba-ink)">{tr("selectAirline", s.lang)}</div>
+        <div className="text-lg text-(--ba-muted)">{s.lang === "ko" ? "Please select your airline." : "항공사를 선택해 주세요."}</div>
       </div>
       <div className="mx-auto mt-10 grid w-[720px] grid-cols-2 gap-6">
         {airlines.map((a) => (
-          <Btn key={a.id} target="airline" value={a.id} className="flex h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-neutral-200 bg-white shadow-md">
-            <span className="text-5xl text-teal-700">{a.mark}</span>
+          <Btn key={a.id} target="airline" value={a.id} className="flex h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-(--ba-line) bg-white shadow-md active:border-(--ba-violet)">
+            <span className="text-5xl text-(--ba-violet)">{a.mark}</span>
             <span className="text-2xl font-bold">{a.name[s.lang]}</span>
           </Btn>
         ))}
@@ -146,11 +148,11 @@ function DangerousGoods() {
     ["🔧", "dgTools"],
   ];
   const col = (head: string, rows: [string, keyof typeof t][]) => (
-    <div className="flex-1 rounded-lg border border-neutral-200">
-      <div className="rounded-t-lg bg-neutral-100 px-3 py-2 text-sm font-bold">{head}</div>
+    <div className="flex-1 rounded-lg border border-(--ba-line)">
+      <div className="rounded-t-lg bg-(--ba-tint) px-3 py-2 text-sm font-bold text-(--ba-plum)">{head}</div>
       {rows.map(([icon, k]) => (
         <div key={k} className="flex items-center gap-3 border-t border-neutral-100 px-3 py-2">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-2xl">{icon}</span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-2xl">{icon}</span>
           <span className="text-sm leading-tight">{L(k)}</span>
         </div>
       ))}
@@ -160,9 +162,9 @@ function DangerousGoods() {
     <Frame
       title={L("dgTitle")}
       right={
-        <Btn target="accept_dangerous_goods" className="flex items-center gap-3 rounded-md bg-red-600 py-3 pr-3 pl-6 text-lg font-bold text-white shadow">
+        <Btn target="accept_dangerous_goods" className="flex min-h-14 items-center gap-3 rounded-lg bg-(--ba-violet) py-3 pr-3 pl-6 text-lg font-bold text-white shadow active:bg-(--ba-press)">
           {L("dgAgree")}
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-red-600">❯</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-(--ba-violet)">❯</span>
         </Btn>
       }
     >
@@ -180,10 +182,10 @@ function PowerBanks() {
   const { s } = useK();
   const L = (k: keyof typeof t) => tr(k, s.lang);
   const card = (n: number, title: keyof typeof t, body: ReactNode) => (
-    <div className="flex-1 rounded-lg border border-sky-200 bg-sky-50 p-2">
+    <div className="flex-1 rounded-lg border border-(--ba-line) bg-[#FAF8FC] p-2">
       <div className="mb-1 flex items-start justify-between gap-1">
-        <span className="text-[13px] leading-tight font-bold">{L(title)}</span>
-        <span className="shrink-0 rounded-full border border-sky-400 px-1.5 text-[10px] text-sky-700">Check {n}</span>
+        <span className="text-[13px] leading-tight font-bold text-(--ba-plum)">{L(title)}</span>
+        <span className="shrink-0 rounded-full bg-(--ba-violet) px-1.5 text-[11px] font-bold text-white">Check {n}</span>
       </div>
       <div className="space-y-0.5 text-xs leading-snug">{body}</div>
     </div>
@@ -243,8 +245,8 @@ function Lookup() {
     <Frame title={L("lookupTitle")}>
       <div className="mx-auto mt-4 grid w-[760px] grid-cols-2 gap-6">
         {opts.map(([value, label, icon]) => (
-          <Btn key={value} target="lookup" value={value} className="flex h-44 flex-col overflow-hidden rounded-lg border-2 border-neutral-300 bg-white shadow">
-            <span className="w-full bg-[#1e2a5a] py-2 text-lg font-bold text-white">{L(label)}</span>
+          <Btn key={value} target="lookup" value={value} className="flex h-44 flex-col overflow-hidden rounded-xl border-2 border-(--ba-line) bg-white shadow active:border-(--ba-violet)">
+            <span className="w-full bg-(--ba-plum) py-2.5 text-lg font-bold text-white">{L(label)}</span>
             <span className="flex flex-1 items-center justify-center text-6xl">{icon}</span>
           </Btn>
         ))}
@@ -256,7 +258,7 @@ function Lookup() {
 function ScanArt() {
   return (
     <div className="flex flex-col items-center">
-      <div className="text-6xl text-red-600 motion-safe:animate-bounce">⬆</div>
+      <div className="text-6xl text-(--ba-violet) motion-safe:animate-bounce">⬆</div>
       <div className="flex h-28 w-64 flex-col items-center justify-center rounded-xl border-4 border-neutral-500 bg-neutral-800 text-white">
         <div className="text-sm">여권 PASSPORT</div>
         <div className="mt-2 h-2 w-48 rounded bg-neutral-500" />
@@ -268,7 +270,7 @@ function ScanArt() {
 function Passport({ add }: { add?: boolean }) {
   const { s } = useK();
   return (
-    <Frame title={tr(add ? "addTitle" : "passportTitle", s.lang)} right={add && <Btn target="cancel_add" className="rounded-md border border-neutral-400 bg-white px-5 py-3 text-lg">ⓧ {tr("cancelAdd", s.lang)}</Btn>}>
+    <Frame title={tr(add ? "addTitle" : "passportTitle", s.lang)} right={add && <Btn target="cancel_add" className="min-h-14 rounded-lg border border-(--ba-muted) bg-white px-5 text-lg">ⓧ {tr("cancelAdd", s.lang)}</Btn>}>
       <div className="flex h-full items-center gap-10 px-6">
         <ScanArt />
         <div className="space-y-6 text-2xl leading-snug">
@@ -285,7 +287,7 @@ function Passengers() {
   return (
     <Frame title={tr("passportTitle", s.lang)} right={<Primary target="proceed">{tr("proceedN", s.lang).replace("{n}", String(s.scanned.length))}</Primary>}>
       <div className="flex h-full gap-6">
-        <div className="flex w-56 flex-col items-center justify-center gap-4 rounded-lg bg-neutral-100 text-7xl">
+        <div className="flex w-56 flex-col items-center justify-center gap-4 rounded-xl bg-(--ba-tint) text-7xl">
           <span>📘</span>
           <span>📖</span>
         </div>
@@ -298,7 +300,7 @@ function Passengers() {
                 return (
                   <tr key={id} className="border-b border-neutral-200">
                     <td className="py-3 font-bold">{name(id)}</td>
-                    <td className="text-emerald-600">✔</td>
+                    <td className="text-emerald-700">✔</td>
                     <td>
                       {tr("passportNo", s.lang)} ****{p.passportNo.slice(-4)}
                     </td>
@@ -311,7 +313,7 @@ function Passengers() {
             </tbody>
           </table>
           <div className="mt-6 flex justify-end">
-            <Btn target="add_companion" className="rounded-md bg-orange-500 px-5 py-3 text-lg font-bold text-white">
+            <Btn target="add_companion" className="min-h-12 rounded-lg border-2 border-(--ba-violet) bg-white px-5 text-lg font-bold text-(--ba-violet)">
               {tr("addCompanion", s.lang)} ⊕
             </Btn>
           </div>
@@ -346,10 +348,10 @@ function FlightInfo() {
         </tbody>
       </table>
       <div className="mt-3 flex justify-end gap-3">
-        <Btn target="mileage" className="rounded-md bg-neutral-700 px-4 py-2 text-base font-bold text-white">
+        <Btn target="mileage" className="min-h-11 rounded-lg border border-(--ba-muted) bg-white px-4 text-base font-bold">
           {L("mileage")}
         </Btn>
-        <Btn target="add_companion" className="rounded-md bg-orange-500 px-4 py-2 text-base font-bold text-white">
+        <Btn target="add_companion" className="min-h-11 rounded-lg border-2 border-(--ba-violet) bg-white px-4 text-base font-bold text-(--ba-violet)">
           {L("addCompanion")} ⊕
         </Btn>
       </div>
@@ -374,7 +376,7 @@ function FlightInfo() {
             <td className="px-3 py-3">
               <div className="flex items-center gap-3">
                 <span className="font-mono font-bold">{s.scanned.map((p) => s.seats[p]).join(", ")}</span>
-                <Btn target="open_seat_map" className="rounded-md bg-red-600 px-3 py-2 text-base font-bold text-white">
+                <Btn target="open_seat_map" className="min-h-11 rounded-lg bg-(--ba-violet) px-4 text-base font-bold text-white active:bg-(--ba-press)">
                   {L("seatMap")}
                 </Btn>
               </div>
@@ -393,20 +395,20 @@ function Seat({ seat }: { seat: string }) {
   const taken = (holder && ours < 0) || (!holder && isTakenByOthers(seat));
   const paid = !taken && isPaid(seat);
   const exit = !taken && isExit(seat);
-  // 범례 4종: 선택불가(회색 ✕) / 선택가능(하늘색) / 일행선택(분홍) / 현재선택(청록 ✓). 유료(S)·비상구는 덧붙인 표시
+  // 범례 4종: 선택불가(회색 ✕) / 선택가능(연보라) / 일행선택(베리) / 현재선택(보라 ✓). 유료(S, 점선 테두리)·비상구(진한 테두리)는 덧붙인 표시
   const current = ours >= 0 && holder === s.seatSel;
   const cls =
     ours >= 0
       ? current
-        ? "bg-teal-600 text-white ring-2 ring-teal-800"
-        : "bg-pink-600 text-white"
+        ? "bg-(--ba-violet) text-white ring-2 ring-(--ba-plum) ring-offset-1"
+        : "bg-(--ba-berry) text-white"
       : taken
-        ? "bg-neutral-300 text-neutral-500"
+        ? "bg-neutral-200 text-neutral-600"
         : paid
-          ? "bg-amber-100 text-amber-800 border-2 border-amber-500"
+          ? "border-2 border-dashed border-(--ba-violet) bg-white text-(--ba-violet)"
           : exit
-            ? "bg-cyan-300 text-cyan-950 border-2 border-emerald-500"
-            : "bg-cyan-300 text-cyan-950";
+            ? "border-2 border-(--ba-plum) bg-(--ba-lilac) text-(--ba-ink)"
+            : "bg-(--ba-lilac) text-(--ba-ink)";
   return (
     <Btn target="seat" value={seat} label={seat} className={`flex h-9 w-11 items-center justify-center rounded-t-lg rounded-b text-sm font-bold ${cls}`}>
       {ours >= 0 ? `${current ? "✓" : ""}${circled(ours)}` : taken ? "✕" : paid ? "S" : ""}
@@ -424,7 +426,7 @@ function SeatMap() {
       title={L("seatTitle")}
       right={
         <>
-          <Btn target="seat_back" className="rounded-md border border-neutral-400 bg-white px-6 py-3 text-xl">
+          <Btn target="seat_back" className="min-h-14 rounded-lg border border-(--ba-muted) bg-white px-6 text-xl">
             {L("back")}
           </Btn>
           <Primary target="seat_continue">{L("continue")}</Primary>
@@ -434,7 +436,7 @@ function SeatMap() {
       <div className="flex h-full gap-4">
         <div className="w-56 space-y-2">
           {s.scanned.map((id, i) => (
-            <Btn key={id} target="select_passenger" value={id} className={`w-full rounded-lg border-2 px-3 py-2 text-left ${s.seatSel === id ? "border-orange-500 bg-orange-50" : "border-neutral-200 bg-white"}`}>
+            <Btn key={id} target="select_passenger" value={id} className={`w-full rounded-lg border-2 px-3 py-2 text-left ${s.seatSel === id ? "border-(--ba-violet) bg-(--ba-tint)" : "border-(--ba-line) bg-white"}`}>
               <div className="font-bold">
                 {circled(i)} {name(id)}
               </div>
@@ -444,59 +446,59 @@ function SeatMap() {
         </div>
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-3 text-sm">
-            <b>{f.no}</b> {f.from.city.en} ({f.from.code}) ········ {f.to.city.en} ({f.to.code}) <span className="ml-auto text-neutral-500">Widebody {f.aircraft}</span>
+            <b>{f.no}</b> {f.from.city.en} ({f.from.code}) ········ {f.to.city.en} ({f.to.code}) <span className="ml-auto text-(--ba-muted)">Widebody {f.aircraft}</span>
           </div>
           <div className="space-y-1">
             {rows.map((row) => (
               <div key={row} className="flex items-center gap-1">
-                <span className="w-9 text-center text-[10px] font-bold text-emerald-600">{row === FIRST_ROW ? "EXIT" : <span className="text-base font-normal text-neutral-300">(</span>}</span>
+                <span className="w-9 text-center text-[11px] font-bold text-(--ba-plum)">{row === FIRST_ROW ? "EXIT" : <span className="text-base font-normal text-neutral-300">(</span>}</span>
                 {BLOCKS.map((block, bi) => (
                   <div key={bi} className="flex items-center gap-1">
-                    {bi > 0 && <span className="w-8 text-center text-xs text-neutral-500">{row}</span>}
+                    {bi > 0 && <span className="w-8 text-center text-xs text-(--ba-muted)">{row}</span>}
                     {block.map((l) => (
                       <Seat key={l} seat={`${row}${l}`} />
                     ))}
                   </div>
                 ))}
-                <span className="w-9 text-center text-[10px] font-bold text-emerald-600">{row === FIRST_ROW ? "EXIT" : <span className="text-base font-normal text-neutral-300">)</span>}</span>
+                <span className="w-9 text-center text-[11px] font-bold text-(--ba-plum)">{row === FIRST_ROW ? "EXIT" : <span className="text-base font-normal text-neutral-300">)</span>}</span>
               </div>
             ))}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" data-legend>
             <span>
-              <span className="inline-block h-3 w-3 bg-neutral-300" />✕ {L("legendTaken")}
+              <span className="inline-block h-3 w-3 bg-neutral-200" />✕ {L("legendTaken")}
             </span>
             <span>
-              <span className="inline-block h-3 w-3 bg-cyan-300" /> {L("legendAvail")}
+              <span className="inline-block h-3 w-3 bg-(--ba-lilac)" /> {L("legendAvail")}
             </span>
             <span>
-              <span className="inline-block h-3 w-3 bg-pink-600" /> {L("legendCompanion")}
+              <span className="inline-block h-3 w-3 bg-(--ba-berry)" /> {L("legendCompanion")}
             </span>
             <span>
-              <span className="inline-block h-3 w-3 bg-teal-600" />✓ {L("legendCurrent")}
+              <span className="inline-block h-3 w-3 bg-(--ba-violet)" />✓ {L("legendCurrent")}
             </span>
             <span className="text-neutral-300">|</span>
             <span>
-              <span className="inline-block h-3 w-3 border-2 border-amber-500 bg-amber-100" />S {L("legendPaid")}
+              <span className="inline-block h-3 w-3 border-2 border-dashed border-(--ba-violet) bg-white" />S {L("legendPaid")}
             </span>
             <span>
-              <span className="inline-block h-3 w-3 border-2 border-emerald-500 bg-cyan-300" /> {L("legendExit")}
+              <span className="inline-block h-3 w-3 border-2 border-(--ba-plum) bg-(--ba-lilac)" /> {L("legendExit")}
             </span>
           </div>
         </div>
         <div className="flex w-20 flex-col items-center gap-2">
-          <Btn target="scroll_up" label="scroll up" className="h-12 w-14 rounded bg-red-600 text-2xl text-white">
+          <Btn target="scroll_up" label="scroll up" className="h-12 w-14 rounded-lg bg-(--ba-violet) text-2xl text-white active:bg-(--ba-press)">
             ▲
           </Btn>
           <div className="text-xs">{L("front")}</div>
-          <div className="relative h-48 w-8 rounded-full border-2 border-neutral-400">
-            <div className="absolute inset-x-0 rounded-full bg-orange-400/60" style={{ top: `${(s.seatOffset / ROWS.length) * 100}%`, height: `${(VISIBLE_ROWS / ROWS.length) * 100}%` }} />
+          <div className="relative h-48 w-8 rounded-full border-2 border-(--ba-line)">
+            <div className="absolute inset-x-0 rounded-full bg-(--ba-lilac)" style={{ top: `${(s.seatOffset / ROWS.length) * 100}%`, height: `${(VISIBLE_ROWS / ROWS.length) * 100}%` }} />
           </div>
           <div className="text-xs">{L("rear")}</div>
-          <Btn target="scroll_down" label="scroll down" className="h-12 w-14 rounded bg-red-600 text-2xl text-white">
+          <Btn target="scroll_down" label="scroll down" className="h-12 w-14 rounded-lg bg-(--ba-violet) text-2xl text-white active:bg-(--ba-press)">
             ▼
           </Btn>
-          <div className="text-[10px] text-neutral-400">{s.seatOffset >= MAX_OFFSET ? "" : `${FIRST_ROW + s.seatOffset + VISIBLE_ROWS}+`}</div>
+          <div className="text-xs text-(--ba-muted)">{s.seatOffset >= MAX_OFFSET ? "" : `${FIRST_ROW + s.seatOffset + VISIBLE_ROWS}+`}</div>
         </div>
       </div>
     </Frame>
@@ -509,11 +511,11 @@ function BagsQuestion() {
     <Frame title={tr("bagsTitle", s.lang)}>
       <div className="flex h-full flex-col items-center justify-center gap-4">
         <div className="mb-4 text-3xl font-bold">{tr("bagsQuestion", s.lang).replace("{city}", `${booking.flight.to.city[s.lang]} (${booking.flight.to.code})`)}</div>
-        <Btn target="bags_none" className="w-96 rounded-full border-2 border-neutral-400 bg-white py-5 text-2xl font-bold">
+        <Btn target="bags_none" className="w-96 rounded-full border-2 border-(--ba-violet) bg-white py-5 text-2xl font-bold text-(--ba-violet)">
           {tr("noBags", s.lang)}
         </Btn>
-        <div className="text-neutral-500">{tr("or", s.lang)}</div>
-        <Btn target="bags_yes" className="w-96 rounded-full bg-red-600 py-5 text-2xl font-bold text-white">
+        <div className="text-(--ba-muted)">{tr("or", s.lang)}</div>
+        <Btn target="bags_yes" className="w-96 rounded-full bg-(--ba-violet) py-5 text-2xl font-bold text-white active:bg-(--ba-press)">
           🧳 {tr("haveBags", s.lang)}
         </Btn>
       </div>
@@ -547,14 +549,14 @@ function BagCount() {
               <td className="px-3 py-3 font-bold">{name(id)}</td>
               <td className="px-3 py-3">
                 <div className="flex items-center gap-1">
-                  <span className="text-neutral-400">◀</span>
+                  <span className="text-(--ba-muted)" aria-hidden>◀</span>
                   {Array.from({ length: MAX_BAGS + 1 }, (_, n) => (
-                    <Btn key={n} target="set_bags" value={`${id}:${n}`} className={`h-12 w-14 rounded border-2 text-xl font-bold ${s.bags[id] === n ? "border-red-700 bg-red-600 text-white" : "border-neutral-300 bg-white"}`}>
+                    <Btn key={n} target="set_bags" value={`${id}:${n}`} className={`h-12 w-14 rounded border-2 text-xl font-bold ${s.bags[id] === n ? "border-(--ba-plum) bg-(--ba-violet) text-white" : "border-(--ba-line) bg-white"}`}>
                       {s.bags[id] === n && "✔"}
                       {n}
                     </Btn>
                   ))}
-                  <span className="text-neutral-400">▶</span>
+                  <span className="text-(--ba-muted)" aria-hidden>▶</span>
                 </div>
               </td>
               <td className="px-3 py-3">
@@ -565,7 +567,7 @@ function BagCount() {
         </tbody>
       </table>
       <div className="mt-3 flex items-center justify-between text-lg">
-        <Btn target="show_allowance" className="rounded-md border border-neutral-400 bg-white px-4 py-2">
+        <Btn target="show_allowance" className="min-h-11 rounded-lg border border-(--ba-muted) bg-white px-4">
           {L("allowanceBtn")}
         </Btn>
         <div>
@@ -591,21 +593,21 @@ function Printing() {
   const row = (label: string, done: number, total: number, what: string) => (
     <div className="flex w-[420px] items-center justify-between border-b border-neutral-200 py-3 text-2xl">
       <span>{label}</span>
-      <span className="rounded border-2 border-teal-700 px-4 py-1 font-mono font-bold tabular-nums" data-print={what}>
+      <span className="rounded border-2 border-(--ba-violet) px-4 py-1 font-mono font-bold text-(--ba-plum) tabular-nums" data-print={what}>
         {done}/{total}
       </span>
     </div>
   );
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-8 bg-neutral-50">
+    <div className="flex h-full flex-col items-center justify-center gap-8 bg-[#FAF8FC]">
       <div className="text-3xl font-bold">{tr("printing", s.lang)}</div>
       <div>
         {row(tr("printBoarding", s.lang), Math.max(0, n - tags), passes, "boarding_pass")}
         {tags > 0 && row(tr("printBagTag", s.lang), Math.min(n, tags), tags, "bag_tag")}
       </div>
-      <div className="flex gap-2 rounded bg-neutral-200 px-6 py-3">
+      <div className="flex gap-2 rounded-full bg-(--ba-tint) px-6 py-3">
         {Array.from({ length: 12 }, (_, i) => (
-          <span key={i} className="h-3 w-3 rounded-full bg-teal-700 motion-safe:animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />
+          <span key={i} className="h-3 w-3 rounded-full bg-(--ba-violet) motion-safe:animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />
         ))}
       </div>
     </div>
@@ -621,12 +623,12 @@ function Complete() {
       title={L("finish")}
       right={
         <>
-          <div className="rounded-md border border-neutral-300 bg-white px-4 py-3 text-base text-neutral-500">{L("itinerary")}</div>
+          <div className="rounded-lg border border-(--ba-line) bg-white px-4 py-3 text-base text-(--ba-muted)">{L("itinerary")}</div>
           <Primary target="finish">{L("finish")}</Primary>
         </>
       }
     >
-      <div className="mb-6 text-3xl font-bold">{L("completeTitle")}</div>
+      <div className="mb-6 text-3xl font-bold text-(--ba-plum)">{L("completeTitle")}</div>
       <div className="flex gap-10">
         <div className="w-64 space-y-4 text-2xl">
           <div>
@@ -653,19 +655,30 @@ function PopupLayer() {
   if (!s.popup) return null;
   const L = (k: keyof typeof t) => tr(k, s.lang);
   const close = (
-    <Btn target="close_popup" className="rounded-md bg-neutral-800 px-8 py-3 text-xl font-bold text-white">
+    <Btn target="close_popup" className="min-h-14 rounded-lg bg-(--ba-violet) px-10 text-xl font-bold text-white active:bg-(--ba-press)">
       {L("close")}
     </Btn>
   );
+  // 화면 낭독기가 읽는 팝업 이름
+  const popupName: Record<NonNullable<KioskState["popup"]>, string> = {
+    exit_confirm: L("exit"),
+    help: L("help"),
+    allowance: L("allowanceTitle"),
+    paid_seat: L("legendPaid"),
+    exit_row: L("legendExit"),
+    excess: L("excess"),
+    mileage: L("mileage"),
+    end_adding: L("endAddQ"),
+  };
   const body: Record<NonNullable<KioskState["popup"]>, ReactNode> = {
     exit_confirm: (
       <>
         <p className="text-2xl">{L("exitConfirm")}</p>
         <div className="flex gap-4">
-          <Btn target="exit_yes" className="rounded-md bg-red-600 px-8 py-3 text-xl font-bold text-white">
+          <Btn target="exit_yes" className="min-h-14 rounded-lg bg-(--ba-violet) px-10 text-xl font-bold text-white active:bg-(--ba-press)">
             {L("yes")}
           </Btn>
-          <Btn target="close_popup" className="rounded-md border border-neutral-400 px-8 py-3 text-xl">
+          <Btn target="close_popup" className="min-h-14 rounded-lg border border-(--ba-muted) px-10 text-xl">
             {L("no")}
           </Btn>
         </div>
@@ -710,7 +723,7 @@ function PopupLayer() {
     excess: (
       <>
         <p className="text-2xl">{L("excessText")}</p>
-        <Btn target="excess_ok" className="rounded-md bg-red-600 px-8 py-3 text-xl font-bold text-white">
+        <Btn target="excess_ok" className="min-h-14 rounded-lg bg-(--ba-violet) px-10 text-xl font-bold text-white active:bg-(--ba-press)">
           {L("ok")}
         </Btn>
       </>
@@ -726,10 +739,10 @@ function PopupLayer() {
         <div className="text-5xl">🗒️</div>
         <p className="text-2xl">{L("endAddQ")}</p>
         <div className="flex w-full gap-4">
-          <Btn target="end_add_no" className="flex-1 rounded-md border border-neutral-400 bg-white px-4 py-3 text-xl">
+          <Btn target="end_add_no" className="min-h-14 flex-1 rounded-lg border border-(--ba-muted) bg-white px-4 text-xl">
             {L("endAddNo")} ✕
           </Btn>
-          <Btn target="end_add_yes" className="flex-1 rounded-md bg-teal-600 px-4 py-3 text-xl font-bold text-white">
+          <Btn target="end_add_yes" className="min-h-14 flex-1 rounded-lg bg-(--ba-violet) px-4 text-xl font-bold text-white active:bg-(--ba-press)">
             {L("endAddYes")} →
           </Btn>
         </div>
@@ -737,8 +750,8 @@ function PopupLayer() {
     ),
   };
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-900/50" role="dialog" data-popup={s.popup}>
-      <div className="flex w-[560px] flex-col items-center gap-6 rounded-xl bg-white p-8 text-center">{body[s.popup]}</div>
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-neutral-900/50" role="dialog" aria-modal="true" aria-label={popupName[s.popup]} data-popup={s.popup}>
+      <div className="flex w-[560px] flex-col items-center gap-6 rounded-2xl border-t-8 border-(--ba-plum) bg-white p-8 text-center shadow-xl">{body[s.popup]}</div>
     </div>
   );
 }
@@ -824,8 +837,8 @@ export function AirportKiosk({
   };
   return (
     <K.Provider value={{ s: state, press }}>
-      <div className="w-[1024px] overflow-hidden rounded-2xl border-8 border-neutral-700 bg-neutral-700 shadow-2xl">
-        <div className="relative h-[768px] overflow-hidden bg-white text-neutral-900" data-screen={state.screen}>
+      <div lang={state.lang} style={{ ...airVars, fontFamily: krFont }} className="w-[1024px] overflow-hidden rounded-2xl border-8 border-neutral-700 bg-neutral-700 shadow-2xl">
+        <div className="relative h-[768px] overflow-hidden bg-white text-(--ba-ink)" data-screen={state.screen}>
           {screens[state.screen]}
           <PopupLayer />
           {banner}

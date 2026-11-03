@@ -10,6 +10,7 @@ import { langOf, type Resumed, type Understood } from "@/engine/turn";
 import { useKiboTurn } from "@/engine/useKiboTurn";
 import { openLink, type Link, type LinkGate, type LinkMsg } from "@/sync/link";
 import { useRoom } from "@/sync/room";
+import { limitedReject } from "@/ui/limited";
 import { KiboBand, type BandChip } from "@/ui/KiboBand";
 import { KiboPointer } from "@/ui/KiboPointer";
 import { PairBadge, useQrFlag } from "@/ui/PairBadge";
@@ -17,6 +18,7 @@ import { useView } from "@/ui/useView";
 import { seatNote, trainGate } from "../gates";
 import { initialState, step, type KioskEvent, type KioskState, type Target } from "../machine";
 import { plan, type Stop, type TrainIntent } from "../planner";
+import { paxTotal } from "../rail";
 import { TrainKiosk, KIOSK_H, KIOSK_W, type Highlight } from "./Kiosk";
 import { intentChips, screenLabel, statusSummary } from "./labels";
 import { t } from "./strings";
@@ -49,14 +51,15 @@ function speak(text: string, lang: string) {
 
 // 창에 맞춘다. extraH = 키오스크 위 띠 칸, extraW = 옆 개발 콘솔
 function useFitScale(extraH: number, extraW: number) {
-  const [scale, setScale] = useState(0.6);
+  // 맞추기 전(서버 렌더와 하이드레이션 직전)에는 null. 그동안 화면을 숨겨, 크기가 바뀌며 밀리는 것(CLS)을 없앤다
+  const [scale, setScale] = useState<number | null>(null);
   useLayoutEffect(() => {
     const fit = () => setScale(Math.min((window.innerHeight - 24 - extraH) / KIOSK_H, (window.innerWidth - 24 - extraW) / KIOSK_W, 1));
     fit();
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
   }, [extraH, extraW]);
-  return scale;
+  return { scale: scale ?? 0.6, hide: scale === null ? ({ visibility: "hidden" } as const) : undefined };
 }
 
 const samples = [
@@ -78,7 +81,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
   const [progress, setProgress] = useState<{ i: number; n: number } | null>(null);
   const [text, setText] = useState(samples[0]);
   const [last, setLast] = useState<InterpretResponse | null>(null);
-  const scale = useFitScale(variant === "dev" ? 0 : 150 + 8, variant === "kiosk" ? 0 : 416);
+  const { scale, hide } = useFitScale(variant === "dev" ? 0 : 150 + 8, variant === "kiosk" ? 0 : 416);
   const [run, setRun] = useState<RunStats>(() => newRun("reservation"));
   const linkRef = useRef<Link | null>(null);
   const [hello, setHello] = useState(0);
@@ -151,14 +154,19 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     }
   }
 
+  // 휴대폰이 말과 함께 보낸 언어. 한도(429) 문구를 그 언어로 받는다
+  const sayLangRef = useRef("");
   async function understand(utterance: string, signal: AbortSignal): Promise<Understood<KioskEvent>> {
     setChips([]);
-    const res = await fetch("/api/train/interpret", {
+    // 휴대폰 말에만 그 언어(?lang)를 붙인다. 서버는 그 언어로 답한다. 키오스크에서 친 말은 붙이지 않아 Spark가 고른 언어로 답한다
+    const res = await fetch(`/api/train/interpret${sayLangRef.current ? `?lang=${encodeURIComponent(sayLangRef.current)}` : ""}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ utterance, state: stateRef.current, pending: pendingRef.current ?? undefined }),
       signal,
     });
+    const limited = await limitedReject(res, sayLangRef.current);
+    if (limited) return limited;
     if (!res.ok) throw new Error(`interpret ${res.status}`);
     const body = (await res.json()) as InterpretResponse;
     setLast(body);
@@ -246,6 +254,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
 
   function ask(utterance: string) {
     localRef.current = true;
+    sayLangRef.current = "";
     touchActivity();
     // 발매기 앞에서 친 말은 지금 카드에 대한 말이다(휴대폰 말은 카드 id를 붙여 온다)
     turn.hear({ text: utterance, lang: "auto", gateId: turn.gateId() ?? undefined });
@@ -262,6 +271,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
       localRef.current = false;
       setText(m.text);
       touchActivity();
+      sayLangRef.current = m.lang;
       turn.hear(m);
     }
     if (m.type === "ack") {
@@ -298,7 +308,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     const label = screenLabel[state.screen][langOf(langRef.current)];
     const answering = hello !== helloSeenRef.current;
     helloSeenRef.current = hello;
-    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items: 0, total: state.reservation?.total ?? 0, kiosk: "Bridge Rail tickets", kioskId: "train", summary, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
+    linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items: 0, total: state.reservation?.total ?? 0, kiosk: "Bridge Rail tickets", kioskId: "train", summary, rail: { from: state.from, to: state.to, people: paxTotal(state.pax), seats }, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }) });
   }, [state, busy, progress, hello, turn]);
 
   const timeoutPopup =
@@ -308,7 +318,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
           <div className="text-6xl">⏱️</div>
           <div className="mt-4 text-2xl font-bold">{state.lang === "ko" ? "시간이 더 필요하세요?" : "Need more time?"}</div>
           <div className="mt-2 text-neutral-600">{state.lang === "ko" ? `${idle.secondsLeft}초 후 처음 화면으로 돌아갑니다` : `Returning to the start screen in ${idle.secondsLeft}s`}</div>
-          <button type="button" onClick={touchActivity} className="mt-6 w-full rounded bg-amber-400 py-4 text-xl font-bold text-neutral-900">
+          <button type="button" onClick={touchActivity} className="mt-6 w-full rounded-lg bg-(--br-wine) py-4 text-xl font-bold text-white">
             {state.lang === "ko" ? "계속하기" : "Keep going"}
           </button>
         </div>
@@ -340,28 +350,28 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
   const yourTurn = phase === "waiting_gate" && waiting ? (waiting.kind === "device" ? "insert your card" : waiting.kind === "ack" ? "confirm on the phone" : null) : null;
   if (variant === "kiosk")
     return (
-      <div className="flex min-h-screen flex-col items-center gap-2 bg-neutral-200 p-3">
-        <div className="h-[150px]" style={{ width: KIOSK_W * scale }}>
+      <main style={hide} className="flex min-h-screen flex-col items-center gap-2 bg-neutral-200 p-3">
+        <h1 className="sr-only">Bridge Rail ticket kiosk</h1>
+        {/* 띠 칸은 대기 화면에서 비어 있다. KIBO 연결 QR은 그 칸 오른쪽 아래, 키오스크 틀 바로 위에 붙인 스티커처럼 둔다
+            (키오스크 화면 내용을 가리지 않는다). ?qr=0이면 숨긴다 */}
+        <div className="relative h-[150px]" style={{ width: KIOSK_W * scale }}>
           <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} slot yourTurn={yourTurn} />
+          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute right-0 bottom-0" />}
         </div>
-        {/* QR은 첫 화면 위쪽 빈 칸(버튼 없음)에 둔다. ?qr=0이면 숨긴다 */}
-        <div className="relative">
-          {kiosk}
-          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute top-14 right-3" />}
-        </div>
-      </div>
+        {kiosk}
+      </main>
     );
 
   return (
-    <div className="flex min-h-screen items-start justify-center gap-6 bg-neutral-200 p-3">
-      <div className="relative">
-        {kiosk}
-        {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute top-14 right-3" />}
-      </div>
+    <main style={hide} className="flex min-h-screen items-start justify-center gap-6 bg-neutral-200 p-3">
+      {kiosk}
 
       <div className="w-96 rounded-xl bg-white p-4 text-sm shadow">
-        <div className="mb-2 font-bold">KIBO dev console · train</div>
-        <textarea className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
+        {/* 개발 콘솔 보기도 공개 데모 화면이라 이 제목이 쪽 제목(h1)이다 */}
+        <h1 className="mb-2 font-bold">KIBO dev console · train</h1>
+        {/* 첫 화면 링크(/kiosk/train)로 온 심사위원도 휴대폰을 바로 짝지을 수 있게 QR을 띄운다. 키오스크 화면은 가리지 않는다. ?qr=0이면 숨긴다 */}
+        {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="mb-3 w-fit" />}
+        <textarea aria-label="What the person says" className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt-2 flex flex-wrap gap-1">
           {samples.map((s) => (
             <button key={s} type="button" className="rounded bg-neutral-100 px-2 py-1 text-xs" onClick={() => setText(s)}>
@@ -376,7 +386,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
           <div className="mt-3 rounded border-2 border-orange-400 bg-orange-50 p-2" data-waiting={waiting.what}>
             <div className="font-bold">Waiting for the person: {waiting.what === "later_train" ? `later train ${waiting.trainNo} at ${waiting.dep}` : waiting.what}</div>
             {waiting.kind === "ack" && (
-              <button type="button" disabled={busy} onClick={() => ack(waiting.what)} className="mt-2 w-full rounded bg-orange-500 py-1.5 font-bold text-white disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={() => ack(waiting.what)} className="mt-2 w-full rounded bg-orange-500 py-1.5 font-bold text-[#042F2E] disabled:opacity-50">
                 ✔ Person confirms
               </button>
             )}
@@ -413,6 +423,6 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

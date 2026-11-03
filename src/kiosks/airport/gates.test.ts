@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { gateFor } from "./gates";
+import { keywordsFor } from "../keywords";
+import { mixedScript } from "../langmix";
+import { clarifySay, gateFor, gateLang } from "./gates";
 import { t } from "./ui/strings";
 
 describe("확정 관문 카드", () => {
@@ -25,5 +27,26 @@ describe("위험물 관문 카드", () => {
       expect(t.pb1a[l], l).toContain("160");
       expect(t.pb2b[l], l).not.toMatch(/up to 5|5개/);
     }
+  });
+});
+
+describe("공항 고정 되묻기 문구", () => {
+  it("알아들은 항공사 이름(데이터)과 빠진 칸만 묻는다. 6개 언어 모두 그 언어의 문자 체계만 쓴다", () => {
+    expect(clarifySay(["travelers", "bags"], { airline: "nova_wings" }, "ko")).toBe("노바윙스 체크인을 도와드릴게요. 알려 주세요: 체크인할 인원, 부치는 짐 개수.");
+    expect(clarifySay(["airline", "travelers", "bags"], {}, "en-US")).toBe("Please tell me: airline, number of travelers, number of checked bags.");
+    // 일본어·중국어는 문장 사이에 공백을 두지 않는다
+    expect(clarifySay(["travelers"], { airline: "seabird_air" }, "zh")).toBe("为您办理 Seabird Air 的值机。请告诉我：办理值机的人数。");
+    expect(clarifySay(["bags"], { airline: "seabird_air" }, "ja")).toBe("Seabird Airのチェックインをお手伝いします。教えてください：預ける荷物の数。");
+    for (const l of ["en", "ko", "ja", "vi", "zh", "es"]) {
+      const say = clarifySay(["travelers", "bags"], { airline: "seabird_air" }, l);
+      expect(say, l).toMatch(/Seabird Air|시버드항공/);
+      expect(mixedScript(say, l, "", keywordsFor("airport")), `${l}: ${say}`).toBe(false);
+    }
+  });
+});
+
+describe("관문 문구 언어", () => {
+  it("언어 이름('Chinese', 'Spanish')도 turn.ts의 langOf와 같이 읽는다", () => {
+    expect(["Chinese", "Spanish", "Korean", "zh-CN", "es", "fr"].map(gateLang)).toEqual(["zh", "es", "ko", "zh", "es", "en"]);
   });
 });

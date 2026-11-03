@@ -14,7 +14,8 @@ const said = (over: Record<string, unknown>) => {
     return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
   });
 };
-const post = async (utterance: string) => (await POST(new Request("http://x/api/train/interpret", { method: "POST", body: JSON.stringify({ utterance, state: initialState() }) }))).json();
+// q: 주소 뒤에 붙일 것(휴대폰이 보내는 ?lang=)
+const post = async (utterance: string, q = "") => (await POST(new Request(`http://x/api/train/interpret${q}`, { method: "POST", body: JSON.stringify({ utterance, state: initialState() }) }))).json();
 
 describe("/api/train/interpret", () => {
   it("한 문장이면 결제하기 바로 앞(예약 확인)까지 KIBO 탭만으로 계획하고, 결제는 사람에게 넘긴다. 대답은 고정 문구다", async () => {
@@ -26,6 +27,13 @@ describe("/api/train/interpret", () => {
     expect(body.paymentHandoff).toBe(true);
     expect(body.gate).toBeNull();
     expect(body.say).toBe(`알겠어요. 제가 ${body.plan.events.length}번 눌러 드릴게요.`);
+  });
+
+  it("휴대폰 언어(?lang)가 대답 언어다: Spark가 영어를 골라도 한국어 휴대폰에는 한국어 고정 문구로 답한다", async () => {
+    said({ to: "harbor", day: 1, hour: 9, adults: 2, trainType: "express", seats: "window", replyLanguage: "en" });
+    const body = await post("Harbor 가는 express, 내일 9시 어른 2명 창가", "?lang=ko");
+    expect(body.say).toBe(`알겠어요. 제가 ${body.plan.events.length}번 눌러 드릴게요.`);
+    expect(body.replyLanguage).toBe("ko");
   });
 
   it("왕복·환불 요청, 나가기, 노선에 없는 역, 지난 시각, 9명 초과는 계획하지 않고 고정 문구로 거절한다(Spark 문장을 쓰지 않는다)", async () => {

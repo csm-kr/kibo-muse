@@ -1,16 +1,15 @@
 // 사람이 해야 하는 관문의 안내문. 규정 내용이 섞여 있어 Spark가 만들지 않고 고정 번역문을 쓴다.
 // 언어는 휴대폰이 지원하는 6개(영·한·일·베트남·중·스페인)이고, 그 밖의 언어는 영어로 보낸다.
 
-import { BAG_ALLOWANCE } from "./booking";
-import type { Stop } from "./planner";
+import { langOf } from "@/engine/turn";
+import { airlines, BAG_ALLOWANCE } from "./booking";
+import type { AirportIntent, Missing, Stop } from "./planner";
 
 export type GateLang = "en" | "ko" | "ja" | "vi" | "zh" | "es";
 type Texts = Record<GateLang, string>;
 
-export const gateLang = (code: string | undefined): GateLang => {
-  const k = (code ?? "").toLowerCase().slice(0, 2);
-  return (["en", "ko", "ja", "vi", "zh", "es"] as const).find((l) => l === k) ?? "en";
-};
+// 언어 코드('zh-CN')와 언어 이름('Chinese')을 모두 turn.ts와 같이 읽는다
+export const gateLang = (code: string | undefined): GateLang => langOf(code);
 
 const dangerousGoods: Texts = {
   en: "Before check-in, you must confirm this yourself. No explosives, flammable, toxic or radioactive items in any bag. Power banks, spare batteries and lighters cannot go in checked bags. Knives, tools and bats cannot go in the cabin. Say “yes” or tap “I confirm”.",
@@ -130,3 +129,29 @@ export function gateFor(stop: Stop | null, code: string, bagsTotal: number): Gat
 }
 
 export const noSeatsText = (code: string) => noSeats[gateLang(code)];
+
+// 되묻기 고정 문구: Spark 되묻기 문장이 다른 언어 문자를 섞었을 때 대신 쓴다. 알아들은 항공사 이름을 넣어 다른 항공사로 바꿔 알아들은 일이 보이게 한다
+const airlineHead: Texts = {
+  en: "Checking in with {a}.",
+  ko: "{a} 체크인을 도와드릴게요.",
+  ja: "{a}のチェックインをお手伝いします。",
+  vi: "Tôi sẽ giúp làm thủ tục {a}.",
+  zh: "为您办理 {a} 的值机。",
+  es: "Le ayudo a facturar con {a}.",
+};
+const ask: Record<GateLang, { head: string; sep: string; end: string; item: Record<Missing, string> }> = {
+  en: { head: "Please tell me: ", sep: ", ", end: ".", item: { airline: "airline", travelers: "number of travelers", bags: "number of checked bags" } },
+  ko: { head: "알려 주세요: ", sep: ", ", end: ".", item: { airline: "항공사", travelers: "체크인할 인원", bags: "부치는 짐 개수" } },
+  ja: { head: "教えてください：", sep: "、", end: "。", item: { airline: "航空会社", travelers: "チェックインする人数", bags: "預ける荷物の数" } },
+  vi: { head: "Xin cho biết: ", sep: ", ", end: ".", item: { airline: "hãng hàng không", travelers: "số người làm thủ tục", bags: "số kiện hành lý ký gửi" } },
+  zh: { head: "请告诉我：", sep: "、", end: "。", item: { airline: "航空公司", travelers: "办理值机的人数", bags: "托运行李件数" } },
+  es: { head: "Dígame, por favor: ", sep: ", ", end: ".", item: { airline: "aerolínea", travelers: "número de pasajeros", bags: "número de maletas facturadas" } },
+};
+
+export function clarifySay(missing: Missing[], intent: AirportIntent, code: string) {
+  const l = gateLang(code);
+  const airline = airlines.find((a) => a.id === intent.airline)?.name[l === "ko" ? "ko" : "en"];
+  const a = ask[l];
+  // 일본어·중국어는 문장 사이에 공백을 두지 않는다
+  return [...(airline ? [airlineHead[l].replace("{a}", airline)] : []), a.head + missing.map((m) => a.item[m]).join(a.sep) + a.end].join(l === "ja" || l === "zh" ? "" : " ");
+}

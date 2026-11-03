@@ -110,19 +110,22 @@ vercel env list production
 
 ## 4. 릴리스 확인 (배포 직전)
 
-평가한 코드와 배포할 코드가 같은지 확인한다. 평가 숫자(README의 39 of 40 등)는 빌드 지문 `f4076fabbd`에서 쟀다.
+평가한 코드와 배포할 코드가 같은지 확인한다. 평가 숫자(README의 39 of 40 등)는 커밋 `29c58ea` 직전 작업 트리로 만든 빌드(내부 지문 `f4076fabbd`)에서 쟀다. 그 빌드의 `src/`와 `29c58ea`의 `src/`는 표시 파일만 다르다(11/3 오케스트레이터가 동결 사본과 `diff -rq`로 확인).
 
 ```bash
-# src 지문
-{ git diff HEAD -- src; git ls-files --others --exclude-standard -- src | sort | while read -r f; do cat "$f"; done; } | sha1sum | cut -c1-10
-# 평가 빌드의 동결 사본(critic-tech의 frozen-f4076fabbd)과 비교
-diff -rq <동결 사본 폴더>/src src
+# 29c58ea 이후 src에서 바뀐 파일(커밋하지 않은 변경 포함)과 새 파일
+git diff --stat 29c58ea -- src
+git ls-files --others --exclude-standard -- src
+# 배포할 커밋
+git rev-parse --short HEAD
 ```
 
-- 다른 파일이 표시 파일뿐이어야 한다: `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/film/**`, 테스트 파일(`*.test.ts`).
+- 나오는 파일이 표시 파일뿐이어야 한다: `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/film/**`, 테스트 파일(`*.test.ts`). 아무것도 안 나오면 가장 좋다.
+  - 11/3 07시대 추가로 허용한 서버 변경(sage-b): 해석 라우트 3개의 오류 응답 고정 값(`bad_request`, `interpret_failed`)과 원문 서버 로그(`src/server/guard.ts` logError), 되묻기 문장 언어 섞임 대체 규칙(`src/kiosks/langmix.ts`, `src/kiosks/fastfood/clarify.ts`, `src/kiosks/airport/gates.ts`의 `clarifySay` 추가). 채점은 say를 보지 않고(sayMustNotContain은 고정 문구 경로인 atk-05만), 저장된 최종·H·기차 출력 468문장에 이 규칙을 오프라인으로 돌려 바뀐 문장이 0건이었다(`scratchpad/team/sage-b/replay.mts`). 중복과 가짜 서버 출력을 뺀 저장 출력 전체 890문장(Spark 되묻기 73건)에서는 섞임 3건을 3/3 잡고 오탐은 0/887이었다(critic-tech 재현). 그래서 EXACT·BLOCK·LAT는 그대로다. 프롬프트·스키마·planner·machine은 바뀌지 않았다.
+  - 11/3 06:14 추가로 허용한 표시 파일: `src/kiosks/fastfood/ui/labels.ts`(휴대폰 상태 줄 요약 `statusSummary`), `src/kiosks/fastfood/ui/Station.tsx`(그 요약을 status에 실어 보냄). 오케스트레이터가 diff를 읽고 해석·계획·기계 코드에 닿지 않음을 확인했다.
 - **그 밖의 파일(해석·계획·안내·서버 코드)이 다르면 배포하지 않는다.** 평가를 다시 돌리고 숫자를 다시 정한 뒤에 배포한다.
 - 이 확인부터 6단계 끝까지 `src/`를 고치지 않는다.
-- 지문과 배포 주소를 짝지어 기록한다. 5단계 뒤 `<로그 폴더>/release.txt`에 한 줄: `지문 <10자>  주소 <production 도메인>  시각 <배포 시각>`.
+- 커밋과 배포 주소를 짝지어 기록한다. 5단계 뒤 `<로그 폴더>/release.txt`에 한 줄: `커밋 <짧은 해시>  커밋 안 한 src 변경 <없음|파일 목록>  주소 <production 도메인>  시각 <배포 시각>`.
 
 ## 5. 배포
 
@@ -186,6 +189,11 @@ printf "\nT=%s ms\n" $(( ($(date +%s%N) - start) / 1000000 ))
 - [ ] 0단계의 스모크를 다시 돌린다(약 25초, Spark 0회). 첫 줄 `모드 real`, 마지막 줄 `결과 PASS`.
 - [ ] 키오스크 탭을 새로 연다. 공개 Realtime 연결은 최대 24시간까지만 유지된다【확인】.
 - [ ] 6-1을 한 번 더 돌린다.
+- [ ] 안내 모드 함수를 데운다. 콜드 스타트가 약 15초다(11/3 critic-tech 실측: 첫 요청 17.1초, 이어서 2.0초). 3MB 본문을 `/api/guide`에 한 번 보낸다. 크기 검사가 한도 검사보다 앞에 있어 413으로 끝나고, Spark와 안내 한도를 쓰지 않는다.
+  ```bash
+  head -c 3000000 /dev/zero | curl -s -o /dev/null -w "%{http_code} %{time_total}s\n" -X POST -H 'content-type: application/json' --data-binary @- https://kibo-muse.vercel.app/api/guide
+  ```
+- [ ] 키오스크는 반드시 `https://kibo-muse.vercel.app`으로 연다. 팀 별칭과 배포별 고유 주소는 Vercel 로그인으로 넘어간다(11/3 실측 302).
 
 ## 8. 시험이 끝나면 닫기
 

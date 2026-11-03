@@ -52,7 +52,7 @@ export const screenLabel: Record<Screen, Record<Lang, string>> = {
 // 휴대폰 상태 줄의 요약: 도착역과 정한 좌석(휴대폰 언어)
 const carWord: Record<Lang, (car: string) => string> = { en: (c) => `Car ${c}`, ko: (c) => `${c}호차`, ja: (c) => `${c}号車`, vi: (c) => `Toa ${c}`, zh: (c) => `${c}号车厢`, es: (c) => `Coche ${c}` };
 // ["7-1A", "7-1B"] → "7호차 1A·1B" (호차마다 묶는다)
-function seatsText(seats: string[], l: Lang) {
+export function seatsText(seats: string[], l: Lang) {
   const byCar = new Map<string, string[]>();
   for (const id of seats) {
     const [car, rest] = id.split("-");

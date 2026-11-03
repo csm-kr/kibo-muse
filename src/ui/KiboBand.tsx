@@ -39,7 +39,8 @@ export function KiboBand({ phase, chips, progress, slot = false, yourTurn, slow 
 
   if (phase === "waiting_gate" && slot && yourTurn)
     return (
-      <div className="flex h-full items-center rounded-2xl bg-orange-500 px-5 text-[32px] leading-tight font-bold text-white" data-kibo-band="your_turn" aria-live="polite">
+      // 주황 위 글자는 진한 청록(ink #042F2E, 대비 5.16). 흰 글자는 2.80이라 쓰지 않는다
+      <div className="flex h-full items-center rounded-2xl bg-orange-500 px-5 text-[32px] leading-tight font-bold text-[#042F2E]" data-kibo-band="your_turn" aria-live="polite">
         Your turn · {yourTurn}
       </div>
     );

@@ -9,4 +9,10 @@ describe("무조작 시간 초과", () => {
     expect(idlePhase(120_000, "menu")).toEqual({ kind: "reset" });
     expect(idlePhase(999_999, "idle")).toEqual({ kind: "active" });
   });
+
+  it("결제를 마친 화면(주문번호)은 경고 없이 15초 뒤 처음 화면으로 돌린다", () => {
+    expect(idlePhase(14_999, "payment", true)).toEqual({ kind: "active" });
+    expect(idlePhase(15_000, "payment", true)).toEqual({ kind: "reset" });
+    expect(idlePhase(100_000, "payment", true)).toEqual({ kind: "reset" });
+  });
 });

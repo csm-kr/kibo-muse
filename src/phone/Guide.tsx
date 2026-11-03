@@ -9,7 +9,9 @@
 import { useRef, useState } from "react";
 import { fitWithin, maskTransform, zoomBox, type Box, type Point } from "@/guide/geometry";
 import { speechFor, type GuideLine } from "@/guide/speech";
+import { CameraIcon, KiboMark } from "./icons";
 import { speak } from "./speak";
+import { phoneText } from "./text";
 
 interface Shot {
   image: string;
@@ -41,8 +43,9 @@ interface CheckLine {
 type Draw = { mask: Mask | null; box: Box | null; point: Point | null; pending: boolean };
 
 const DEFAULT_QUESTION = "What should I press next on this screen?";
-const STAGE_TEXT = { spark: "Muse Spark · finding the button", sam: "SAM 3.1 · tracing its shape", check: "Checking the label" } as const;
-const STAGE_DOT = { spark: "bg-sky-400", sam: "bg-orange-400", check: "bg-emerald-400" } as const;
+// 단계 표시 문구는 휴대폰 언어(phoneText)로, 점 색은 휴대폰 토큰(청록·주황)으로
+const STAGE_TEXT = { spark: "stageSpark", sam: "stageSam", check: "stageCheck" } as const;
+const STAGE_DOT = { spark: "bg-[var(--k-teal)]", sam: "bg-[var(--k-orange)]", check: "bg-[var(--k-teal)]" } as const;
 
 async function shrink(file: File): Promise<Omit<Shot, "question">> {
   const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
@@ -98,6 +101,7 @@ function Photo({ shot, draw, alt, crop }: { shot: Shot; draw: Draw | null; alt: 
 
 // question: 입력 칸의 글(비면 기본 질문). language: 안내 문장 언어(Spark), tts: 읽기 언어
 export function GuideCamera({ question, language, tts, onAsked }: { question: string; language: string; tts: string; onAsked?: () => void }) {
+  const tx = phoneText(tts);
   const fileRef = useRef<HTMLInputElement>(null);
   // 다시 찍으면 앞 요청의 늦은 응답은 버린다
   const reqRef = useRef(0);
@@ -120,7 +124,7 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
       s = { ...(await shrink(file)), question: question.trim() || shot?.question || DEFAULT_QUESTION };
     } catch {
       setShot(null);
-      setError("Couldn't read this photo. Please take it again with the camera (HEIC isn't supported).");
+      setError(tx.photoError);
       return;
     }
     setShot(s);
@@ -157,7 +161,7 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
         }
       }
     } catch {
-      if (req === reqRef.current) setError("Couldn't read the screen. Please try again.");
+      if (req === reqRef.current) setError(tx.readError);
     }
   }
 
@@ -182,8 +186,8 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
 
   return (
     <>
-      <button type="button" onClick={retake} aria-label="Take a photo of the kiosk screen" className="shrink-0 rounded-lg border border-neutral-300 bg-white px-3 text-xl" data-guide-camera>
-        📷
+      <button type="button" onClick={retake} aria-label={tx.camera} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--k-line)] px-2.5" data-guide-camera>
+        <CameraIcon />
       </button>
       <input
         ref={fileRef}
@@ -197,23 +201,24 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
         }}
       />
       {(shot || error) && (
-        <div className="absolute inset-0 z-40 flex flex-col bg-neutral-950 text-white" data-guide={error ? "error" : stage ? `looking_${stage}` : !spark?.found ? "not_found" : verified ? "found" : "unsure"}>
+        <div className="absolute inset-0 z-40 flex flex-col bg-[var(--k-bg)] text-white" data-guide={error ? "error" : stage ? `looking_${stage}` : !spark?.found ? "not_found" : verified ? "found" : "unsure"}>
           <div className="flex items-center gap-2 px-4 py-3">
-            <span className="font-bold">Guide</span>
-            <span className="text-sm opacity-70">· KIBO shows, you tap</span>
-            <button type="button" onClick={close} className="ml-auto rounded-lg bg-white/15 px-3 py-1.5 text-sm">
-              Close
+            <KiboMark />
+            <span className="font-bold">{tx.guideTitle}</span>
+            <span className="text-sm text-[var(--k-muted)]">· {tx.guideSub}</span>
+            <button type="button" onClick={close} className="ml-auto min-h-11 rounded-lg bg-white/15 px-3 py-1.5 text-sm">
+              {tx.close}
             </button>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3">
             {shot && (
               <div className="relative">
-                <Photo shot={shot} draw={draw} alt={spark?.instruction ?? "Kiosk screen photo"} />
+                <Photo shot={shot} draw={draw} alt={spark?.instruction ?? tx.photoAlt} />
                 {stage === "spark" && <div className="absolute inset-0 rounded-lg bg-black/35" aria-hidden />}
                 {stage && (
                   <div className="absolute top-2 left-2 flex items-center gap-2 rounded-full bg-neutral-900/85 px-3 py-1.5 text-base font-semibold" role="status" data-guide-stage={stage}>
                     <span className={`h-2.5 w-2.5 rounded-full motion-safe:animate-pulse ${STAGE_DOT[stage]}`} aria-hidden />
-                    {STAGE_TEXT[stage]}
+                    {tx[STAGE_TEXT[stage]]}
                   </div>
                 )}
               </div>
@@ -221,16 +226,16 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
             {showZoom && <Photo shot={shot} draw={draw} alt="" crop={crop} />}
             {spark && (
               <div className="flex flex-wrap gap-1.5 text-base font-semibold">
-                <span className="rounded-full border border-white/30 px-2.5 py-0.5">Muse Spark: where</span>
-                {verified && check.mask && <span className="rounded-full border border-white/30 px-2.5 py-0.5">SAM 3.1: exact shape</span>}
+                <span className="rounded-full border border-white/30 px-2.5 py-0.5">{tx.whereChip}</span>
+                {verified && check.mask && <span className="rounded-full border border-white/30 px-2.5 py-0.5">{tx.shapeChip}</span>}
               </div>
             )}
           </div>
           <div className="space-y-3 px-4 pt-3 pb-6" aria-live="polite">
-            {shot && <div className="text-sm opacity-70">“{shot.question}”</div>}
+            {shot && <div className="text-sm opacity-70">“{shot.question === DEFAULT_QUESTION ? tx.guideAsk : shot.question}”</div>}
             {spark && (
               <div className="rounded-xl bg-white p-4 text-lg leading-snug text-neutral-900">
-                {spark.found && spark.label && <div className="mb-1 text-sm font-bold text-orange-600">[{spark.label}]</div>}
+                {spark.found && spark.label && <div className="mb-1 text-sm font-bold text-orange-700">[{spark.label}]</div>}
                 {/* Spark의 위치 표현("오른쪽 아래")은 검증을 통과했을 때만 보인다. 못 찾았다는 말은 그대로 */}
                 {(!spark.found || verified) && spark.instruction}
               </div>
@@ -240,9 +245,11 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
                 {check.unsure}
               </div>
             )}
-            {error && <div className="rounded-xl bg-red-600 p-4 text-lg leading-snug">{error}</div>}
-            <button type="button" onClick={retake} className="w-full rounded-xl bg-orange-500 py-3 text-lg font-bold">
-              📷 {spark ? "Next screen" : "Take again"}
+            {/* 오류는 빨강 바탕 큰 상자 대신 빨간 띠와 밝은 빨강 글자(바탕 위 7.62) */}
+            {error && <div className="rounded-xl border-l-4 border-[#F87171] bg-[var(--k-surface)] p-4 text-lg leading-snug text-[#FCA5A5]">{error}</div>}
+            {/* 주황 위 글자는 ink(5.16) */}
+            <button type="button" onClick={retake} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--k-orange)] py-3 text-lg font-bold text-[var(--k-ink)]">
+              <CameraIcon /> {spark ? tx.nextShot : tx.retake}
             </button>
           </div>
         </div>

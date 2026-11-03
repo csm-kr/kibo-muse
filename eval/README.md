@@ -2,14 +2,17 @@
 
 Three evaluations back the numbers in the main README: **interpretation** (fast food and airport), **train**, and **guide mode** (photo → which button). The sets and scorers were written by a separate evaluator role on the team, not by the person who tuned the prompts. They are copied here unchanged except for file paths (see [Provenance](#provenance)).
 
-All final numbers were measured against one production build. The build is identified by a fingerprint of `src/` only:
+All final numbers were measured against one production build, built from the working tree before commit `29c58ea` (internal fingerprint `f4076fabbd`). Its `src/` is identical to `src/` in commit `29c58ea` except for display-only files: `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/film/**`, plus the test file `src/app/page.test.ts` (not part of the app build). To see what has changed in `src/` since then:
 
 ```bash
-{ git diff HEAD -- src; git ls-files --others --exclude-standard -- src | sort | while read -r f; do cat "$f"; done; } | sha1sum | cut -c1-10
+git diff --stat 29c58ea -- src
 ```
 
-Final build fingerprint: `f4076fabbd`. Result files are in [`results/`](results/).
-Changes after the evaluated build touch display only: `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/film/**`, plus the test file `src/app/page.test.ts` (not part of the app build).
+Server changes made after the evaluated build do not touch the prompt, schema, planner or state machine. They fix error responses (fixed codes instead of exception text) and add one rule for the follow-up question only: when Spark's question mixes in another script (seen as 「…1개ですね」 in a Korean reply), it is replaced with a fixed question built from the item names and the missing details. The scorers do not grade that sentence. Replaying the rule over the 468 saved sentences from the final, held-out and train runs changed 0 of them. Across every distinct saved run (890 sentences, 73 of them follow-up questions written by Spark), Spark mixed scripts in 3 follow-up questions; the rule caught all 3 and flagged 0 of the other 887.
+
+A second post-evaluation rule picks the reply language: when the phone sends its UI language (`?lang=`), the spoken reply follows it, and a follow-up question Spark wrote in another language is replaced by the fixed question in the phone's language. The scoring harness never sends `?lang`, so its requests take the unchanged path. Because the route files are in the scorer's fingerprint list, the fingerprints stored with the results above no longer match the current tree; the plans themselves come from the unchanged prompt, schema, planner and state machine.
+
+Result files are in [`results/`](results/).
 
 ## Before you run
 

@@ -34,7 +34,7 @@ export function KiboPointer({ hl, active, screen, finale }: { hl: Spot | null; a
   const find = (s: Spot) => {
     const layer = layerRef.current!;
     const el = layer.parentElement?.querySelector<HTMLElement>(targetSelector(s.target, s.value));
-    return el ? { el, g: pointerGeometry(layer.getBoundingClientRect(), layer.offsetWidth, el.getBoundingClientRect()) } : null;
+    return el ? { el, g: pointerGeometry(layer.getBoundingClientRect(), layer.offsetWidth, layer.offsetHeight, el.getBoundingClientRect()) } : null;
   };
 
   // 한 단계: 이동 → 테두리 → 누름·물결 → 놓기. hl이 비면(step 직후) 테두리만 사라진다
@@ -119,7 +119,7 @@ export function KiboPointer({ hl, active, screen, finale }: { hl: Spot | null; a
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-30" aria-hidden>
       <div ref={ringRef} className="absolute rounded-xl border-4 border-orange-500" style={{ opacity: 0 }} />
       <div ref={moveRef} className="absolute top-0 left-0 z-10" style={{ opacity: 0 }} data-kibo-pointer>
-        <div ref={dotRef} style={{ width: DOT, height: DOT }} className="flex items-center justify-center rounded-full bg-teal-600 text-base font-black text-white shadow-[0_0_0_3px_white,0_4px_10px_rgba(0,0,0,0.35)]">
+        <div ref={dotRef} style={{ width: DOT, height: DOT }} className="flex items-center justify-center rounded-full bg-teal-700 text-base font-black text-white shadow-[0_0_0_3px_white,0_4px_10px_rgba(0,0,0,0.35)]">
           K
         </div>
       </div>

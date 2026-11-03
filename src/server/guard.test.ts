@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { overSize, tokenBucket } from "./guard";
+import { describe, expect, it, vi } from "vitest";
+import { logError, overSize, tokenBucket } from "./guard";
 
 describe("API 비용 방어", () => {
   it("토큰 버킷: IP마다 분당 n회. 다 쓰면 거절하고, 시간이 지난 만큼(분당 n개 비율) 다시 찬다", () => {
@@ -17,5 +17,15 @@ describe("API 비용 방어", () => {
     expect([overSize("wavBytes", 2_000_000), overSize("wavBytes", 2_000_001)]).toEqual([false, true]);
     expect([overSize("imageChars", 2_000_000), overSize("imageChars", 2_000_001)]).toEqual([false, true]);
     expect([overSize("utteranceChars", 500), overSize("utteranceChars", 501)]).toEqual([false, true]);
+  });
+
+  it("서버 로그에서 키 꼴 토큰(sk-, sb_secret_, LLM_)은 <key>로 가린다", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    logError("interpret failed:", new Error("HTTP 401 Bearer sk-fake99 / sb_secret_fake9 / LLM_fake|9.x rejected"));
+    const line = String(log.mock.calls[0]);
+    expect(line).not.toMatch(/fake/);
+    expect(line.match(/<key>/g)).toHaveLength(3);
+    expect(line).toMatch(/HTTP 401 Bearer <key>/);
+    log.mockRestore();
   });
 });

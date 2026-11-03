@@ -29,15 +29,18 @@ export function PairBadge({ room, at = "fixed right-3 bottom-3" }: { room: strin
 
   return (
     <div className={`${at} z-50 flex items-center gap-2.5 rounded-xl bg-white/95 p-2 pr-3 shadow-lg`} data-pair={room}>
-      {qr && (
-        // eslint-disable-next-line @next/next/no-img-element -- 브라우저에서 만든 QR data URL
-        <img src={qr.src} alt={`Scan to connect your phone: ${qr.url}`} width={84} height={84} />
-      )}
+      {/* QR은 브라우저에서 늦게 만들어진다. 그 전에도 84×84 자리를 비워 두어 배지 크기가 바뀌지 않게 한다(CLS) */}
+      <div className="h-[84px] w-[84px] shrink-0" data-pair-qr>
+        {qr && (
+          // eslint-disable-next-line @next/next/no-img-element -- 브라우저에서 만든 QR data URL
+          <img src={qr.src} alt={`Scan to connect your phone: ${qr.url}`} width={84} height={84} />
+        )}
+      </div>
       <div className="text-xs leading-tight text-neutral-600">
         <div className="font-bold text-teal-800">KIBO</div>
         <div>휴대폰으로 찍어 연결</div>
         <div>Scan to talk to this kiosk</div>
-        <div className="mt-1 font-mono text-[10px] text-neutral-400">…{room.slice(-4)}</div>
+        <div className="mt-1 font-mono text-[10px] text-neutral-600">…{room.slice(-4)}</div>
       </div>
     </div>
   );

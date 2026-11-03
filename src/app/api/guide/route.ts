@@ -8,12 +8,10 @@ import { toPixelBox, toPixelPoint, type Box } from "@/guide/geometry";
 import { locate } from "@/guide/locate";
 import { samMask } from "@/guide/sam";
 import { checkBox, cropDataUrl, cropVerified, readButtonText, unsureText } from "@/guide/verify";
-import { MAX, overSize, rateLimited, tooLarge } from "@/server/guard";
+import { logError, MAX, overSize, rateLimited, tooLarge } from "@/server/guard";
 
 const okSize = (v: unknown): v is number => Number.isInteger(v) && (v as number) > 0 && (v as number) <= 4096;
 const line = (o: object) => new TextEncoder().encode(`${JSON.stringify(o)}\n`);
-// 서버 로그에는 오류 원문을 남기되 이미지·base64는 남기지 않는다
-const logError = (where: string, e: unknown) => console.error(where, String((e as Error)?.message ?? e).replace(/data:image\/[^\s"']+/g, "<image>").replace(/[A-Za-z0-9+/=]{200,}/g, "<base64>").slice(0, 300));
 
 export async function POST(req: Request) {
   // 사진(약 1.5MB) + 질문을 넘는 본문은 읽기 전에 거절한다. 휴대폰은 긴 변 1280 JPEG로 줄여 보낸다
