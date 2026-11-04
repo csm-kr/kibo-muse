@@ -531,6 +531,8 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
 
       <div className="w-96 rounded-xl bg-white p-4 text-sm shadow">
         <div className="mb-2 font-bold">KIBO dev console</div>
+        {/* 첫 화면 링크(/kiosk/fastfood)로 온 심사위원도 휴대폰을 바로 짝지을 수 있게 QR을 띄운다(공항·기차와 같다). ?qr=0이면 숨긴다 */}
+        {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="mb-3 w-fit" />}
         <textarea aria-label="KIBO에게 할 말 (Say to KIBO)" className="h-24 w-full rounded border border-neutral-300 p-2" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt-2 flex flex-wrap gap-1">
           {examples.map((s) => (

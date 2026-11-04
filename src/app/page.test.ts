@@ -9,10 +9,16 @@ import { numbers } from "./film/numbers";
 import Home from "./page";
 
 describe("첫 화면", () => {
-  it("데모 링크 5개와 Meta 공식 제품이 아니라는 고지가 있다", () => {
+  it("데모 링크 5개와 Meta 공식 제품이 아니라는 고지가 있다. 키오스크 링크는 QR이 바로 보이는 키오스크 화면(?view=kiosk)으로 간다", () => {
     const html = renderToStaticMarkup(createElement(Home));
-    for (const href of ["/compare", "/kiosk/fastfood", "/kiosk/airport", "/kiosk/train", "/phone"]) expect(html).toContain(`href="${href}"`);
+    for (const href of ["/compare", "/kiosk/fastfood?view=kiosk", "/kiosk/airport?view=kiosk", "/kiosk/train?view=kiosk", "/phone"]) expect(html).toContain(`href="${href}"`);
     expect(html).toContain("Not an official Meta product");
+  });
+
+  it("How to try 단계: QR을 휴대폰으로 찍고, 마이크를 한 번 탭해 한 문장, 1.5초 조용하면 보내고, 결제·동의는 사람이 한다. 키오스크마다 예문이 있다", () => {
+    const html = renderToStaticMarkup(createElement(Home));
+    expect(html).toContain("How to try");
+    for (const s of ["Scan the QR code", "tap the mic once", "1.5 seconds", "payment, consent or a passport scan", "double cheeseburger", "Bridge Air to Tokyo", "Harborlight"]) expect(html).toContain(s);
   });
 
   it("휴대폰이 없는 사람에게 나란히 비교에서 시작해 휴대폰 칸에 글로 치면 된다고 알리고, 그 카드에 Start here를 붙인다", () => {

@@ -4,7 +4,7 @@ Say one sentence on your phone. KIBO works the kiosk's own screens for you, one 
 
 > **Not an official Meta product.** KIBO is an independent entry to the Meta Global AI Developer Hackathon 2026, hosted by Meta and Cerebral Valley (Indie Developer track). It uses Meta models through the Meta Model API. It is not built, endorsed or reviewed by Meta.
 
-- Demo video: ⟦VIDEO_URL⟧
+- Demo video: https://youtu.be/yN6VwokL_bA
 - Live demo: https://kibo-muse.vercel.app. **No phone needed:** start with "Touch vs KIBO" (`/compare`) and type a sentence into the phone panel on the right.
 
 ## Built during the hackathon
@@ -64,7 +64,7 @@ Audio and photos are sent to Meta models for that one request and are not stored
 
 Details, definitions and commands to reproduce: [`eval/README.md`](eval/README.md).
 
-- **Tests:** `npm test` runs 296 unit and property tests in 74 files (Vitest, fast-check). The property tests take random walks over kiosk events. The fast-food and airport walks run 60 times each in `npm test`, and the fast-food walk also passed 1,000 walks in a separate run (`PROP_RUNS=1000`). They check that KIBO alone can never pay, never pass a consent gate without the person, and never create passport, card or consent events.
+- **Tests:** `npm test` runs 298 unit and property tests in 74 files (Vitest, fast-check). The property tests take random walks over kiosk events. The fast-food and airport walks run 60 times each in `npm test`, and the fast-food walk also passed 1,000 walks in a separate run (`PROP_RUNS=1000`). They check that KIBO alone can never pay, never pass a consent gate without the person, and never create passport, card or consent events.
 - **Interpretation, held-out set:** 50 typed requests for the fast-food and airport kiosks (40 everyday, 10 attack; Korean, English, Japanese and Vietnamese, 10 everyday each). The evaluator wrote them after development and fixed the expected answers before the run. Each response is scored by replaying the planned taps through the state machine and comparing the final kiosk state with the expected one. Exact on everyday requests in all 3 runs: 39 of 40. Unsafe requests blocked: 30/30 (10 × 3 runs). Unsafe actions: 0.
 - **Interpretation, development set:** 82 typed requests (62 everyday, 20 attack) from 16 kiosk start states, also used to find and fix failures during development. Exact: 61 of 62. Blocked: 60/60. One of the passes, ff-a2 ("A cheeseburger combo, please"), only checks the follow-up question, not which burger was chosen; in the final run it chose Bridge Classic twice and Double Cheeseburger once.
 - **Train eval set (development set):** 22 typed requests (17 everyday including 2 for features the machine does not have, 5 attack), also used for fixes. Exact on everyday requests in all 3 runs: 15 of 15. Both missing-feature requests answered honestly. Attacks blocked: 15/15. Unsafe actions: 0.
