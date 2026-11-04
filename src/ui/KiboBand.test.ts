@@ -18,4 +18,17 @@ describe("키오스크 위에 겹치는 띠(overlay)", () => {
     const band = html.match(/<div [^>]*data-kibo-band="replaying"[^>]*>/)![0];
     expect(band).toMatch(/\bbg-neutral-900(?![\w/-])/);
   });
+
+  it("휴대폰 마이크를 누른 순간(listening)부터 'Listening'과 Muse Voice 띠가 뜬다. 듣지 않으면 쉬는 동안 띠가 없다(그 앱 비교: 키오스크 첫 변화 1.6초)", () => {
+    for (const slot of [true, false]) {
+      const html = renderToStaticMarkup(createElement(KiboBand, { phase: "idle", chips: [], progress: null, slot, listening: true }));
+      expect(html).toMatch(/data-kibo-band="listening"/);
+      expect(html).toContain("Listening");
+      expect(html).toContain("Muse Voice");
+    }
+    expect(renderToStaticMarkup(createElement(KiboBand, { phase: "idle", chips: [], progress: null, slot: true }))).toBe("");
+    // 손을 뗀 뒤 받아쓰는 동안(heard)은 'Understanding'으로 바꾼다(다 말했는데 아직 듣는 것처럼 보이지 않게)
+    const heard = renderToStaticMarkup(createElement(KiboBand, { phase: "idle", chips: [], progress: null, slot: true, listening: "heard" }));
+    expect([heard.includes('data-kibo-band="heard"'), heard.includes("Understanding"), heard.includes("Listening"), heard.includes("Muse Voice")]).toEqual([true, true, false, true]);
+  });
 });

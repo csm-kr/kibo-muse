@@ -116,7 +116,7 @@ body {
   }
 }
 
-/* 띠의 단계 진행 막대: 한 단계 640ms 동안 0 → 100% */
+/* 띠의 단계 진행 막대: 한 단계 480ms(pointer.ts beat) 동안 0 → 100% */
 @keyframes kibo-step-bar {
   from {
     width: 0;
@@ -126,7 +126,7 @@ body {
   }
 }
 .kibo-step-bar {
-  animation: kibo-step-bar 640ms linear both;
+  animation: kibo-step-bar 480ms linear both;
 }
 @media (prefers-reduced-motion: reduce) {
   .kibo-step-bar {

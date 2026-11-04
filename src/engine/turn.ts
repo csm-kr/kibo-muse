@@ -10,7 +10,7 @@
 // - 확인 관문에서 '예'가 아닌 말로 누를 것이 없는 계획이 나오면, 어떻게 확인하는지 고정 문구로 알려 준다.
 // - 확인 관문을 기다릴 때 고정 "예" 목록과 맞는 말은 Spark를 거치지 않고 동의로 이어 간다(Spark는 동의를 만들 수 없다).
 
-import type { LinkGate, LinkMsg } from "@/sync/link";
+import type { Answers, LinkGate, LinkMsg } from "@/sync/link";
 import { isYes } from "./yes";
 
 export type TurnPhase = "idle" | "thinking" | "replaying" | "waiting_gate";
@@ -30,12 +30,16 @@ export interface Done {
   paymentHandoff?: boolean;
   // 결제 넘기기 때 사람이 누를 키오스크 버튼 이름(화면 글자 그대로)
   payButton?: string;
+  // 완료 문구가 물을 때(더 주문?) 휴대폰이 띄울 답 칩 종류
+  answers?: Answers;
 }
 
 // followSpoken: 서버가 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다. 대답에 실어 휴대폰이 그 언어로 바꾸게 한다
 export type Understood<E> = (
   | { kind: "plan"; events: E[]; lang: string; done: Done }
-  | { kind: "clarify"; say: string; lang: string }
+  // events: 되물을 때도 아는 만큼 먼저 누를 버튼(빠진 것을 고르는 화면에서 멈춤). 대답 뒤에 재생하고 완료는 보내지 않는다
+  // answers: 되묻는 말 아래 휴대폰이 띄울 답 칩 종류
+  | { kind: "clarify"; say: string; lang: string; events?: E[]; answers?: Answers }
   | { kind: "reject"; reason: string; lang: string; say?: string }
 ) & { followSpoken?: boolean };
 
@@ -168,6 +172,15 @@ const phrases: Record<"ok" | "none" | "taps" | "same" | "full" | "slow" | "error
 
 // 이유가 정해진 거절의 고정 문구. 없는 이유는 phrases.reject
 const rejectPhrases: Record<string, Record<Lang, string>> = {
+  // 패스트푸드: 주문이 아닌 말(인사·질문)에 Spark 응대 문장이 휴대폰 언어가 아닐 때 쓰는 고정 인사
+  chat: {
+    en: "Hi! I'll tap this kiosk for you. Tell me what you'd like, for example: one cheeseburger meal, for here.",
+    ko: "안녕하세요! 이 키오스크를 대신 눌러 드릴게요. 드실 것을 말씀해 주세요. 예: 치즈버거 세트 하나, 먹고 갈게요.",
+    ja: "こんにちは！このキオスクを代わりに操作します。ご注文をどうぞ。例：チーズバーガーのセットを一つ、店内で。",
+    vi: "Xin chào! Tôi sẽ bấm máy này giúp bạn. Hãy nói món bạn muốn, ví dụ: một phần cheeseburger kèm nước, ăn tại chỗ.",
+    zh: "您好！我来替您操作这台自助机。请说您想点什么，例如：一份芝士汉堡套餐，堂食。",
+    es: "¡Hola! Yo pulso este quiosco por usted. Dígame qué desea, por ejemplo: un menú de hamburguesa con queso, para comer aquí.",
+  },
   // 결제 화면(결제 완료·주문번호 포함)에서 새 주문. {b} = 키오스크의 [처음으로]
   payment_in_progress: {
     en: "The kiosk is at payment, so I can't take a new order yet. To order again, tap [{b}] on the kiosk, then tell me.",
@@ -351,9 +364,9 @@ export function createTurn<E>(initial: TurnDeps<E>) {
     deps.onPhase(p);
   };
   const busy = () => phase === "thinking" || phase === "replaying";
-  const reply = (re: string, lang: Lang, result: "plan" | "clarify" | "reject" | "error" | "busy", say: string, taps?: number, followSpoken?: boolean) => {
+  const reply = (re: string, lang: Lang, result: "plan" | "clarify" | "reject" | "error" | "busy", say: string, taps?: number, followSpoken?: boolean, answers?: Answers) => {
     lastLang = lang;
-    deps.send({ type: "reply", re, say, replyLanguage: lang, result, ...(taps !== undefined && { taps }), ...(followSpoken && { followSpoken }) });
+    deps.send({ type: "reply", re, say, replyLanguage: lang, result, ...(taps !== undefined && { taps }), ...(followSpoken && { followSpoken }), ...(answers && { answers }) });
   };
   const clearGate = () => {
     waitingFor = null;
@@ -375,7 +388,7 @@ export function createTurn<E>(initial: TurnDeps<E>) {
       // 카드마다 새 id. 휴대폰은 확인할 때 이 id를 돌려보낸다
       gatePrefix ||= Math.random().toString(36).slice(2, 8);
       const gate = done.gate ? { ...done.gate, id: `${gatePrefix}-g${++gateSeq}` } : null;
-      deps.send({ type: "done", re, ok: true, say: done.say, replyLanguage: lang, gate, ...(done.paymentHandoff !== undefined && { paymentHandoff: done.paymentHandoff }), ...(done.payButton && { payButton: done.payButton }) });
+      deps.send({ type: "done", re, ok: true, say: done.say, replyLanguage: lang, gate, ...(done.paymentHandoff !== undefined && { paymentHandoff: done.paymentHandoff }), ...(done.payButton && { payButton: done.payButton }), ...(done.answers && { answers: done.answers }) });
       clearGate();
       if (gate && gate.kind !== "done") {
         waitingFor = gate.what;
@@ -424,7 +437,17 @@ export function createTurn<E>(initial: TurnDeps<E>) {
     if (!u) reply(h.id, lang, "error", phrases.error[lang]);
     else {
       lang = langOf(u.lang);
-      if (u.kind === "clarify") reply(h.id, lang, "clarify", u.say, undefined, u.followSpoken);
+      if (u.kind === "clarify") {
+        reply(h.id, lang, "clarify", u.say, undefined, u.followSpoken, u.answers);
+        if (u.events?.length) {
+          set("replaying");
+          try {
+            await deps.play(u.events);
+          } catch (e) {
+            console.error("KIBO replay threw", e);
+          }
+        }
+      }
       // 서버가 이유에 값(예: 발매기 시각)을 넣은 고정 문구를 보냈으면 그것을 쓴다
       else if (u.kind === "reject") reply(h.id, lang, "reject", u.say ?? rejectSay(u.reason, lang), undefined, u.followSpoken);
       else {

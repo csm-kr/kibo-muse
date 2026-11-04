@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { keywordsFor } from "../keywords";
 import { mixedScript } from "../langmix";
-import { clarifySay } from "./clarify";
+import { answerKind, clarifySay, koParticles } from "./clarify";
 import { initialState } from "./machine";
 import { plan, type Missing } from "./planner";
 
@@ -9,6 +9,12 @@ const missing: Missing[] = [{ field: "orderType" }, { field: "size", line: 0 }, 
 const intent = { items: [{ menuId: "double_cheese", mode: "set" as const, side: "fries", qty: 1 }] };
 
 describe("패스트푸드 고정 되묻기 문구", () => {
+  it("답 칩은 묻는 순서의 첫 빠진 칸(매장·포장 → 세트·단품 → 사이즈)으로 정하고, 음료만 빠졌으면 없다(고를 것이 많다)", () => {
+    expect(answerKind(missing)).toBe("orderType");
+    expect(answerKind([{ field: "size", line: 0 }, { field: "mode", line: 0 }])).toBe("mode");
+    expect(answerKind([{ field: "drink", line: 0 }])).toBeUndefined();
+  });
+
   it("담을 품목 이름(메뉴 데이터)과 빠진 칸만 묻는다. 품목 이름이 나와 다른 버거로 바꿔 담는 일이 보인다", () => {
     expect(clarifySay(missing, intent, initialState(), "ko")).toBe("더블 치즈버거 세트 ×1 담을게요. 매장에서 드시나요, 포장하시나요? 사이즈는 M, L 중 무엇으로 할까요? 음료는 무엇으로 할까요?");
     expect(clarifySay(missing, intent, initialState(), "en-US")).toBe("I'll add Double Cheeseburger meal ×1. Eat in or take out? Which size, M or L? Which drink would you like?");
@@ -50,5 +56,12 @@ describe("패스트푸드 고정 되묻기 문구", () => {
       expect(say, l).toMatch(/Spicy Chicken Burger|스파이시 치킨버거/);
       expect(mixedScript(say, l, "", keywordsFor("fastfood")), `${l}: ${say}`).toBe(false);
     }
+  });
+});
+
+describe("Spark 되묻기의 한국어 조사", () => {
+  it("영문 사이즈 글자 뒤 조사를 읽는 소리(엠·엘)에 맞춘다: L으로 → L로, M로 → M으로", () => {
+    expect(koParticles("더블 치즈버거 세트 M으로 할까요 L으로 할까요?")).toBe("더블 치즈버거 세트 M으로 할까요 L로 할까요?");
+    expect(koParticles("M로 드릴까요, L로 드릴까요?")).toBe("M으로 드릴까요, L로 드릴까요?");
   });
 });

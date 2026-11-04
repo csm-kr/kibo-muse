@@ -28,6 +28,8 @@ export async function POST(req: Request) {
   if (overSize("wavBytes", wav.length)) return tooLarge(req, "speech");
   try {
     const r = await transcribe(wav, { languageBias: [...new Set([lang, "English", "Korean"])], keywords });
+    // 실패 원인을 찾으려고 길이만 남긴다(받아쓴 글과 소리는 남기지 않는다). 11/4 시험: 17번 중 7번이 해석까지 가지 못함
+    console.info(`transcribe chars=${r.transcript.trim().length} wavBytes=${wav.length} ms=${r.ms}`);
     return Response.json(r);
   } catch (e) {
     // 예외 원문(상류 응답 일부가 들어 있을 수 있다)은 서버 로그에만 남긴다(300자, base64 지움)

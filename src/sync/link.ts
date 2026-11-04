@@ -4,22 +4,29 @@
 import { RealtimeClient } from "@supabase/realtime-js";
 import type { CartLine, Draft } from "@/kiosks/fastfood/machine";
 
+// 되묻기 답 칩 종류: 매장·포장, 세트·단품, 사이즈, 더 주문?(그게 다예요·더 주문할게요)
+export type Answers = "orderType" | "mode" | "size" | "more";
+// 칩이 글과 함께 보내는 정해진 답. 키오스크 서버는 이 답이 있으면 Spark 없이 앞 의도에 합쳐 바로 계획한다(more = 그게 다예요)
+export type Answer = { field: "orderType"; value: "eat_in" | "take_out" } | { field: "mode"; value: "set" | "single" } | { field: "size"; value: "M" | "L" } | { field: "more" };
+
 export type LinkMsg =
   // 휴대폰 → 키오스크: 사용자가 한 말(전사문). id로 같은 메시지가 두 번 와도 한 번만 처리한다
   // gateId: 말할 때 휴대폰에 떠 있던 관문 카드의 id('예'는 이 카드에만 동의로 쓰인다)
-  | { type: "utterance"; id?: string; text: string; lang: string; gateId?: string }
+  // answer: 되묻기 답 칩을 눌러 보낸 말이면 그 칩의 정해진 답
+  | { type: "utterance"; id?: string; text: string; lang: string; gateId?: string; answer?: Answer }
   // 휴대폰 → 키오스크: 막 연결했으니 지금 상태를 알려 달라
   | { type: "hello" }
-  // 휴대폰 → 키오스크: 마이크를 눌렀다(나란히 비교의 시작 시각)
-  | { type: "listening" }
+  // 휴대폰 → 키오스크: 마이크를 눌렀다(나란히 비교의 시작 시각, 키오스크 'Listening' 띠). end = 말을 보내지 않고 쉬는 상태로 돌아왔다
+  | { type: "listening"; end?: boolean; heard?: boolean }
   // 휴대폰 → 키오스크: 사람만 할 수 있는 확인(위험물 동의, 체크인 확정)을 휴대폰 버튼으로 했다. gateId = 그 카드의 id
   | { type: "ack"; what: string; gateId?: string }
   // 키오스크 → 휴대폰: 말 한 번에 정확히 한 번 오는 대답. re = 그 말의 id. plan이면 고정 문구, clarify면 Spark의 질문
-  | { type: "reply"; re: string; say: string; replyLanguage: string; result: "plan" | "clarify" | "reject" | "error" | "busy"; taps?: number; followSpoken?: boolean; }
+  // answers: 휴대폰이 대답 아래 띄울 답 칩 종류(패스트푸드 되묻기). 칩 글자는 휴대폰이 제 언어로 만든다
+  | { type: "reply"; re: string; say: string; replyLanguage: string; result: "plan" | "clarify" | "reject" | "error" | "busy"; taps?: number; followSpoken?: boolean; answers?: Answers }
   // 키오스크 → 휴대폰: 해석이 오래 걸린다(고정 문구 '아직 생각 중'). 대답(reply)은 그 뒤에 따로 온다
   | { type: "slow"; re: string; say: string; replyLanguage: string }
   // 키오스크 → 휴대폰: 재생이 끝난 뒤의 결과. gate는 사람이 해야 할 다음 일(고정 안내문). 재생이 성공해야 보낸다
-  | { type: "done"; re: string; ok: boolean; say: string; replyLanguage: string; gate: LinkGate | null; paymentHandoff?: boolean; payButton?: string; }
+  | { type: "done"; re: string; ok: boolean; say: string; replyLanguage: string; gate: LinkGate | null; paymentHandoff?: boolean; payButton?: string; answers?: Answers }
   // 키오스크 → 휴대폰: 지금 화면과 조작 진행. kiosk·summary는 공항처럼 장바구니가 없는 키오스크용.
   // gate는 hello에 답할 때만 붙는다(지금 떠 있는 카드, 없으면 null). 다시 연결한 휴대폰이 카드를 잃지 않게
   // lines: 주문 확인·결제 화면의 품목 줄(휴대폰 주문 확인 카드). paid: 사람이 결제를 마친 뒤의 주문번호(시연용 모의 결제)

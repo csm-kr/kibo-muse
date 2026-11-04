@@ -78,6 +78,17 @@ describe("/api/guide", () => {
     expect(json.timing.sparkMs).toEqual(expect.any(Number));
   });
 
+  it("평가 전용 noSam(개발 서버에서만): SAM을 부르지 않고 Spark 박스 조각으로 검증해 박스를 그린다. production에서는 무시한다", async () => {
+    const calls = stub(agree, { text: "동의", buttons: 1 });
+    const { json } = await ask({ ...photo, noSam: true });
+    expect(calls.map((c) => c.url.split("/v1/")[1])).toEqual(["chat/completions", "chat/completions"]);
+    expect(json).toMatchObject({ verified: true, mask: null, box: [208, 227, 272, 254], timing: { samMs: null } });
+    vi.stubEnv("NODE_ENV", "production");
+    const prod = stub(agree, { text: "동의", buttons: 1 });
+    await ask({ ...photo, noSam: true });
+    expect(prod.map((c) => c.url.split("/v1/")[1])).toEqual(["chat/completions", "responses", "chat/completions"]);
+  });
+
   it("윤곽 조각의 글자가 다르면(S2: '2'라고 했는데 '3'을 오림) 윤곽·점·박스를 보내지 않고 고정 문구를 붙인다. 안내 문장은 그대로", async () => {
     stub({ ...agree, target: { ...agree.target, label: "2" }, instruction: "Press the '2' button." }, { text: "3", buttons: 1 });
     const { json, lines } = await ask(photo);

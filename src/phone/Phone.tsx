@@ -4,7 +4,8 @@
 
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { krFont } from "@/kiosks/fastfood/ui/tokens";
-import { openLink, type Link, type LinkGate, type LinkMsg } from "@/sync/link";
+import { openLink, type Answer, type Answers, type Link, type LinkGate, type LinkMsg } from "@/sync/link";
+import { AnswerChips, type ChipPick } from "./AnswerChips";
 import { decodeBlob, PHONE_WAV_RATE, wavAt } from "./audio";
 import { useDocLang } from "./docLang";
 import { GuideCamera } from "./Guide";
@@ -12,9 +13,11 @@ import { AlertIcon, CameraIcon, CheckIcon, KiboMark, MicIcon, SpeakerIcon, TapIc
 import { followLang, pickLang, saveLang, savedLang, type PhoneLangCode } from "./lang";
 import { payStep } from "./pay";
 import { nextOrder, type OrderMemo } from "./receipt";
-import { setSound, soundOn, speak, subscribeSound, unlockSpeech } from "./speak";
-import { bandHidden, linkChip, orderLinesIn, statusLine } from "./status";
+import { unlockAudio } from "./silence";
+import { setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
+import { autoListen, bandHidden, bridgeTimeout, expireAsk, linkChip, orderLinesIn, phoneHint, statusLine, tapBridge } from "./status";
 import { failLine, phoneText } from "./text";
+import { KioskCard } from "./KioskCard";
 import { HOLD_CLASS, useHoldToTalk, type Take } from "./useHoldToTalk";
 import { welcomeExamples } from "./welcome";
 
@@ -51,7 +54,7 @@ const zigzag = { mask: "conic-gradient(from -45deg at bottom, #0000, #000 1deg 8
 
 // kind: ask = 되묻기(주황 띠, 사람 차례), error = 못 들었거나 실패(빨간 띠)
 // switched: 이 대답을 받으며 말한 언어를 따라 휴대폰 언어를 바꿨다(대답 위에 한 줄과 되돌리기)
-type Turn = { who: "you" | "kibo"; text: string; kind?: "ask" | "error"; switched?: { from: PhoneLangCode; to: PhoneLangCode } };
+type Turn = { who: "you" | "kibo"; text: string; kind?: "ask" | "error"; switched?: { from: PhoneLangCode; to: PhoneLangCode }; answers?: Answers };
 type Status = Extract<LinkMsg, { type: "status" }>;
 
 // embedded: 나란히 비교 화면(/compare) 안에 휴대폰 모양으로 넣는다
@@ -90,10 +93,22 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   const linkRef = useRef<Link | null>(null);
   // 마지막으로 받은 관문 카드. 말하는 동안 카드는 숨기지만, 그때 한 '예'가 이 카드에 대한 말이라는 것은 id로 함께 보낸다
   const cardRef = useRef<LinkGate | null>(null);
+  // 마지막으로 받은 키오스크 화면(첫 화면으로 돌아간 순간을 알아보려고)
+  const screenRef = useRef<string | null>(null);
   // 마이크 아래 한 줄 안내(너무 짧게 누름, 마이크 막힘)
   const [notice, setNotice] = useState<string | null>(null);
   // 화면 읽기: 두 번 탭으로 녹음을 시작하면 한 번 알린다(녹음 중에만 둔다)
   const [toggleNote, setToggleNote] = useState<string | null>(null);
+  // 이어 듣기: 탭으로 한 번 말을 시작하면, 대답을 다 읽은 뒤 누르지 않아도 다시 듣는다. 못 알아들음이 이어진 횟수
+  const [convo, setConvo] = useState(false);
+  const [fails, setFails] = useState(0);
+  // 지금 시작하는 녹음이 이어 듣기인가(사람의 누름이 아님)
+  const autoRef = useRef(false);
+  // 대답이 'KIBO가 누른다'였고 키오스크의 조작 중 상태가 아직 오지 않은 동안(tapBridge)
+  const [willTap, setWillTap] = useState(false);
+  useEffect(() => {
+    return bridgeTimeout(willTap, () => setWillTap(false));
+  }, [willTap]);
   // 키오스크와의 길: 지금 연결됐는가(모르면 null), 한 번이라도 연결됐는가
   const [conn, setConn] = useState<{ live: boolean | null; was: boolean }>({ live: null, was: false });
   const endRef = useRef<HTMLDivElement>(null);
@@ -161,7 +176,13 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     const link = openLink(room);
     linkRef.current = link;
     const off = link.subscribe((m) => {
+      setWillTap((w) => tapBridge(w, m));
       if (m.type === "status") {
+        // 되물은 뒤 키오스크가 첫 화면으로 돌아갔으면(시간 초과) 남은 물음을 지우고 한 번 알린다
+        const prev = screenRef.current;
+        const resetLine = phoneText(langRef.current.tts).kioskReset;
+        screenRef.current = m.screen;
+        setTurns((t) => expireAsk(t, prev, m.screen, resetLine));
         setStatus(m);
         if (m.kioskId === "fastfood") setOrder((o) => nextOrder(o, m, new Date()));
         // hello에 대한 답에는 지금 떠 있는 카드가 붙어 온다(끊긴 동안 놓친 카드)
@@ -193,7 +214,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
           langRef.current = langs.find((x) => x.tts.startsWith(to))!;
           setLang(langRef.current);
         }
-        if (m.say) setTurns((t) => [...t, { who: "kibo", text: m.say, kind: m.result === "clarify" ? "ask" : m.result === "error" ? "error" : undefined, ...(to && { switched: { from, to } }) }]);
+        if (m.say) setTurns((t) => [...t, { who: "kibo", text: m.say, kind: m.result === "clarify" ? "ask" : m.result === "error" ? "error" : undefined, ...(to && { switched: { from, to } }), ...(m.answers && { answers: m.answers }) }]);
         if (m.result !== "busy") {
           setHandoff(null);
           setGate(null);
@@ -202,7 +223,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
         speak(m.say, m.replyLanguage);
       }
       if (m.type === "done") {
-        if (m.say) setTurns((t) => [...t, { who: "kibo", text: m.say }]);
+        if (m.say) setTurns((t) => [...t, { who: "kibo", text: m.say, ...(m.answers && { answers: m.answers }) }]);
         setHandoff(m.paymentHandoff ? (m.payButton ?? "") : null);
         setGate(m.gate);
         cardRef.current = m.gate;
@@ -223,17 +244,28 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     };
   }, [room, roomProp]);
 
-  function send(text: string) {
+  // 답 칩: 키오스크로 보내거나, 보낼 일이 없으면(더 주문할게요) 내 말과 KIBO 고정 턴을 바로 붙이고 읽어 준다
+  function pickChip(c: ChipPick) {
+    // 이어 듣기 중에 답 칩을 누르면 듣던 것은 보내지 않고 멈춘다
+    cancel();
+    if ("send" in c) return send(c.send, c.answer);
+    setTurns((t) => [...t, { who: "you", text: c.local }, { who: "kibo", text: c.reply }]);
+    speak(c.reply, lang.tts);
+  }
+
+  // answer: 되묻기 답 칩의 정해진 답(키오스크가 Spark 없이 바로 계획한다)
+  function send(text: string, answer?: Answer) {
     if (!text.trim() || guideOnly) return;
     // 지난 오류 안내가 남아 되묻기·조작 중·결제 안내를 덮지 않게
     setNotice(null);
+    setWillTap(false);
     setTurns((t) => [...t, { who: "you", text }]);
     // 키오스크와 이어져 있을 때만 대답을 기다린다
     if (status) setThinking(true);
     // 새로 말하면 떠 있던 관문 카드는 낡는다(답이 바뀔 수 있다). 새 카드가 오면 다시 뜬다
     setGate(null);
     const card = cardRef.current;
-    linkRef.current?.send({ type: "utterance", id: crypto.randomUUID(), text, lang: lang.bias, ...(card?.kind === "ack" && card.id && { gateId: card.id }) });
+    linkRef.current?.send({ type: "utterance", id: crypto.randomUUID(), text, lang: lang.bias, ...(card?.kind === "ack" && card.id && { gateId: card.id }), ...(answer && { answer }) });
   }
 
   // 뗀 뒤 녹음본을 받아쓰기로 보낸다
@@ -248,10 +280,14 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
       .catch(() => ({}) as { transcript?: string; say?: string });
     // 안내 모드에서는 말한 것이 사진에 대한 질문이 된다
     if (body.transcript && guideOnly) setTyped(body.transcript);
-    else if (body.transcript) send(body.transcript);
+    else if (body.transcript) {
+      setFails(0);
+      send(body.transcript);
+    }
     // 한도·크기 초과·받아쓰기 실패는 서버가 휴대폰 언어로 만든 고정 문구(say)를 보낸다. 없으면(빈 받아쓰기, 400) 휴대폰 문구.
     // 글을 읽기 어려운 사람도 알 수 있게 대답처럼 읽어 준다
     else {
+      setFails((f) => f + 1);
       const say = failLine(tx, navigator.onLine, body.say ?? tx.retry);
       setTurns((t) => [...t, { who: "kibo", text: say, kind: "error" }]);
       speak(say, lang.tts);
@@ -267,25 +303,62 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     return () => io.disconnect();
   }, [embedded]);
 
-  const { phase, bind } = useHoldToTalk({
+  const hearingRef = useRef(false);
+  const { phase, bind, listen, cancel } = useHoldToTalk({
     onPress: () => {
-      unlockSpeech();
+      const auto = autoRef.current;
+      autoRef.current = false;
       setNotice(null);
       setToggleNote(null);
+      setWillTap(false);
+      // 이어 듣기는 사람의 누름이 아니다: 소리 잠금은 이미 풀렸고, 되묻기 답 칩은 그대로 둔다(말 대신 눌러도 된다)
+      if (auto) return;
+      unlockSpeech();
+      // 말 끝을 재는 오디오 처리기를 누르는 동안 깨운다(iOS). 이어 듣기에서도 이것을 쓴다
+      unlockAudio();
+      setFails(0);
       // 말하기 시작하면 관문 카드를 숨긴다. 말하는 동안 옛 카드를 누르지 않게
       setGate(null);
+      // 되묻기 답 칩도 거둔다(말로 답하기로 했다)
+      setTurns((t) => (t.at(-1)?.answers ? t.map((x) => ({ ...x, answers: undefined })) : t));
     },
-    onRecording: () => linkRef.current?.send({ type: "listening" }),
+    onRecording: () => {
+      hearingRef.current = true;
+      linkRef.current?.send({ type: "listening" });
+    },
     onTake,
     onTooShort: () => setNotice(tx.tooShort),
-    onBlocked: () => setNotice(tx.micBlocked),
-    onFailed: () => setNotice(tx.retry),
+    onBlocked: () => {
+      setConvo(false);
+      setNotice(tx.micBlocked);
+    },
+    onFailed: () => {
+      setFails((f) => f + 1);
+      setNotice(tx.retry);
+    },
     onAllowRetry: () => setNotice(tx.allowRetry),
     onTooLong: () => setNotice(tx.tooLong),
-    onToggleOn: () => setToggleNote(tx.toggleOn),
+    onToggleOn: () => {
+      setToggleNote(tx.toggleOn);
+      if (!guideOnly) setConvo(true);
+    },
+    // 말소리를 8초 동안 못 들었다: 이어 듣기를 끝내고 다시 누르기를 기다린다
+    onNoSpeech: () => {
+      setConvo(false);
+      setNotice(tx.noSpeech);
+    },
   });
+  // 말을 보내지 않고 쉬는 상태로 돌아오면(빈 받아쓰기·실패) 키오스크의 'Listening' 띠를 끈다. 말을 보냈으면 키오스크가 이미 껐다
+  useEffect(() => {
+    // 손을 떼고 받아쓰는 동안은 키오스크 띠를 'Understanding'으로 바꾼다
+    if (phase === "sending" && hearingRef.current) linkRef.current?.send({ type: "listening", heard: true });
+    if (phase !== "idle" || !hearingRef.current) return;
+    hearingRef.current = false;
+    linkRef.current?.send({ type: "listening", end: true });
+  }, [phase]);
 
   function confirmGate(g: LinkGate) {
+    cancel();
     setTurns((t) => [...t, { who: "you", text: `✔ ${g.button}` }]);
     setGate(null);
     linkRef.current?.send({ type: "ack", what: g.what, gateId: g.id });
@@ -299,6 +372,40 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   const receipt = order.receipt && (orderCard === "paid" ? order.receipt.no === status?.paid : !orderCard) ? order.receipt : null;
   const receiptLines = (receipt && orderLinesIn(receipt, lang.tts)) ?? [];
   const waiting = !guideOnly && (phase === "sending" || thinking);
+  // 보낸 뒤 3초가 지나도 대답이 없으면 안내 줄을 '주문을 이해하는 중이에요 · 보통 5–10초'로 바꾼다(소리·알림은 더하지 않는다)
+  const [longWait, setLongWait] = useState(false);
+  useEffect(() => {
+    const stop = bridgeTimeout(waiting, () => setLongWait(true), 3000);
+    return () => {
+      stop?.();
+      setLongWait(false);
+    };
+  }, [waiting]);
+  // 이어 듣기: 결제 안내·영수증이 뜨면(주문 끝) 끝낸다. 화면을 숨기면(잠금·앱 전환) 끝낸다
+  useEffect(() => {
+    if (handoff !== null || receipt) setConvo(false);
+  }, [handoff, receipt]);
+  useEffect(() => {
+    const off = () => document.visibilityState === "hidden" && setConvo(false);
+    document.addEventListener("visibilitychange", off);
+    return () => document.removeEventListener("visibilitychange", off);
+  }, []);
+  // 대답을 다 읽고 키오스크가 다 누른 뒤 다시 듣는다. 읽는 중이면 끝날 때까지 기다린다(자기 목소리를 듣지 않게)
+  const relisten = autoListen({ convo, idle: phase === "idle", waiting, operating: !!operating || willTap, handoff: handoff !== null, receipt: !!receipt, gate: !!gate, fails });
+  useEffect(() => {
+    if (!relisten) return;
+    let t = setTimeout(function tick() {
+      if (speechBusy()) {
+        t = setTimeout(tick, 250);
+        return;
+      }
+      // 마이크는 listen() 안에서 바로 onPress를 부른다. 시작하지 못했어도 다음 사람 누름이 이어 듣기로 보이지 않게 되돌린다
+      autoRef.current = true;
+      listen();
+      autoRef.current = false;
+    }, 600);
+    return () => clearTimeout(t);
+  }, [relisten, listen]);
   const last = turns.at(-1);
   const asking = !waiting && !operating && last?.who === "kibo" && last.kind === "ask";
   // 언어 격자는 대화가 없고 키오스크가 첫 화면일 때만 펼친다. 그 밖에는 머리의 언어 버튼으로 연다
@@ -306,8 +413,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   const chip = linkChip(!!status, conn.live, conn.was);
   const showLangs = langOpen ?? (turns.length === 0 && !receipt && (!status || status.screen === "idle"));
   const empty = turns.length === 0 && !gate && !orderCard && !receipt && handoff === null && !waiting;
-  const hint =
-    phase === "recording" ? tx.listening : waiting ? tx.thinking : (notice ?? (operating ? tx.operating : orderCard === "paid" ? tx.pickup : orderCard === "paying" ? tx.paying : asking ? tx.answer : tx.hold));
+  const hint = phoneHint(tx, { recording: phase === "recording", toggled: toggleNote !== null, waiting, longWait: waiting && longWait, notice, operating: !!operating || (willTap && chip === "kiosk"), asking, orderCard });
   const won = (n: number) => `₩${n.toLocaleString("en-US")}`;
   const pay = (button?: string) => {
     // 키오스크가 결제 방법 화면이면 [결제하기] 대신 "결제 방법을 고르고 카드를 넣어 주세요"
@@ -389,6 +495,9 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
         </button>
       </header>
 
+      {/* 실시간 키오스크 카드: 짝지은 휴대폰에만. 지금 화면과 담은 것(누르면 펼침). KIBO가 누를 때도 사람이 만질 때도 status로 바뀐다 */}
+      {status && !guideOnly && <KioskCard status={status} language={lang.tts} />}
+
       {showLangs && (
         <div className="grid shrink-0 grid-cols-3 gap-2 px-4 pb-3 max-[300px]:grid-cols-2">
           {langs.map((l) => (
@@ -411,7 +520,8 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
 
       {/* 키오스크가 첫 화면이고 비어 있으면 띠를 그리지 않는다("첫 화면"만 남는 띠) */}
       {status && !guideOnly && !bandHidden(status) && (
-        <div className={`mx-4 shrink-0 rounded-2xl bg-[var(--k-surface)] p-3 ${embedded ? "text-[22px] leading-snug" : "text-base"}`}>
+        // KIBO가 누르지 않을 때 보이는 정보(화면 이름·요약)는 위 키오스크 카드가 보인다. 띠는 화면 읽기용(role=status)으로만 남긴다
+        <div className={operating ? `mx-4 shrink-0 rounded-2xl bg-[var(--k-surface)] p-3 ${embedded ? "text-[22px] leading-snug" : "text-base"}` : "sr-only"}>
           {/* 화면 읽기에는 띠를 탭마다 읽히지 않는다(14번 누르면 27번 읽혀 대답·'결제는 직접'이 묻혔다). 누르기 시작('14번 누릅니다')과 끝난 화면만 한 번씩 */}
           <p className="sr-only" role="status">
             {operating ? tx.tapStart(status.steps ?? 0) : `${line?.label ?? ""}${!orderCard && line?.summary ? ` · ${line.summary}` : ""}`}
@@ -443,13 +553,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
               {/* 조작 중에도 담는 품목 이름을 보인다(다른 버거로 바뀌면 사람이 바로 알아채게) */}
               {line?.summary && <div className={`mt-1.5 text-[var(--k-muted)] ${embedded ? "" : "text-sm"}`}>{line.summary}</div>}
             </>
-          ) : (
-            <div>
-              <b>{line?.label}</b>
-              {/* 주문 카드·영수증이 떠 있으면 같은 품목·합계를 위에 다시 쓰지 않는다 */}
-              {!orderCard && line?.summary && <span className="text-[var(--k-muted)]"> · {line.summary}</span>}
-            </div>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -519,11 +623,17 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
                   {t.text}
                 </span>
               </div>
+              {/* 되묻기 답 칩은 마지막 대답에만. 새 말·대답이 오면(마지막이 아니면) 사라진다 */}
+              {t.answers && i === turns.length - 1 && <AnswerChips kind={t.answers} language={lang.tts} onPick={pickChip} />}
             </Fragment>
           ),
         )}
         {/* 뗀 뒤 받아쓰기 전에는 내 말풍선을 '…'로 먼저 띄우고, 대답을 기다리는 동안 KIBO 쪽에 청록 점 3개 */}
-        {!guideOnly && phase === "sending" && <div className="ml-auto w-fit rounded-[20px] bg-[var(--k-teal)] px-4 py-3 text-lg text-[var(--k-ink)]">…</div>}
+        {!guideOnly && phase === "sending" && (
+          <div className="ml-auto w-fit rounded-[20px] bg-[var(--k-teal)] px-4 py-3 text-lg text-[var(--k-ink)]" aria-hidden>
+            …
+          </div>
+        )}
         {waiting && (
           <div className="flex w-fit gap-1.5 rounded-[20px] bg-[var(--k-surface)] px-4 py-4" data-thinking>
             {[0, 1, 2].map((d) => (
@@ -602,7 +712,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
             type="button"
             {...bind}
             data-mic={phase}
-            aria-label={phase === "recording" ? tx.listening : phase === "sending" ? tx.sending : tx.hold}
+            aria-label={phase === "recording" ? (toggleNote ? tx.toggleOn : tx.listening) : phase === "sending" ? tx.sending : tx.hold}
             className={`relative flex h-28 w-28 items-center justify-center rounded-full shadow-lg [@media(max-height:600px)]:h-20 [@media(max-height:600px)]:w-20 [@media(max-height:400px)]:h-16! [@media(max-height:400px)]:w-16! forced-colors:border-2 ${HOLD_CLASS} ${
               phase === "recording"
                 ? "scale-105 bg-[var(--k-teal)] text-[var(--k-ink)]"
@@ -615,7 +725,19 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
           </button>
         </div>
         <div className={`text-center text-base ${phase === "recording" || asking ? "font-bold" : notice ? "font-bold text-[#FCA5A5]" : "text-[var(--k-muted)]"}`} data-phone-hint aria-live={phase === "recording" ? undefined : "polite"}>
-          {hint}
+          {/* 기다리는 동안은 화면 읽기에 '생각하고 있어요'만 한 번 알린다. 보이는 두 글은 미리 그려 두고 3초 뒤에는 class만 바꾼다(글자가 바뀌지 않아 알림이 늘지 않는다) */}
+          {waiting ? (
+            <>
+              {[tx.thinking, tx.waitLong].map((s) => (
+                <span key={s} aria-hidden className={s === hint ? undefined : "hidden"}>
+                  {s}
+                </span>
+              ))}
+              <span className="sr-only">{tx.thinking}</span>
+            </>
+          ) : (
+            hint
+          )}
         </div>
         {/* 녹음 중에는 위 안내 줄을 알리지 않는다(화면 읽기 음성이 녹음에 섞이지 않게). 두 번 탭으로 시작했을 때만 한 번 */}
         <p className="sr-only" role="status">

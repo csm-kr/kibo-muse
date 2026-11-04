@@ -1,0 +1,438 @@
+{
+ "summary": {
+  "n": 10,
+  "kinds": {
+   "unsure_save": 3,
+   "hit": 5,
+   "wrong": 1,
+   "unsure_ok": 1
+  },
+  "wrong_of_drawn": "1/6",
+  "hit_rate": 0.5,
+  "unsure_rate": 0.4,
+  "pending_wrong": 4,
+  "wall_p50": 17153,
+  "wall_p95": 23551,
+  "voice_p50": 17153,
+  "voice_p95": 23551,
+  "pending_p50": 10940,
+  "calls": {
+   "spark": 20,
+   "sam": 10
+  },
+  "r429": [],
+  "flaky": []
+ },
+ "rows": [
+  {
+   "id": "g01",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 21687,
+   "voiceMs": 21687,
+   "pendingMs": 14939,
+   "timing": {
+    "sparkMs": 14047,
+    "samMs": 2312,
+    "checkMs": 4432,
+    "totalMs": 20812
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "주문",
+   "want": "주문 ORDER",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "왼쪽 키오스크 화면 오른쪽 아래 [주문] 버튼을 누르세요.",
+   "unsure": "정확한 위치는 확실하지 않아요. 화면에서 [주문]를 찾아 누르세요.",
+   "sparkBox": [
+    606,
+    1112,
+    744,
+    1324
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "g02",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 11211,
+   "voiceMs": 11211,
+   "pendingMs": 8272,
+   "timing": {
+    "sparkMs": 7245,
+    "samMs": 1195,
+    "checkMs": 1738,
+    "totalMs": 10196
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "START ORDERING",
+   "want": "START ORDERING",
+   "read": "START ORDERING",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "Nhấn nút [START ORDERING] màu đỏ ở giữa màn hình để bắt đầu gọi món.",
+   "unsure": null,
+   "sparkBox": [
+    422,
+    917,
+    866,
+    1038
+   ],
+   "drawn": [
+    435,
+    950,
+    870,
+    1038
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.905,
+   "error": null
+  },
+  {
+   "id": "g03",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 14965,
+   "voiceMs": 14965,
+   "pendingMs": 9932,
+   "timing": {
+    "sparkMs": 9069,
+    "samMs": 1787,
+    "checkMs": 3239,
+    "totalMs": 14115
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "お持ち帰り",
+   "want": "お持ち帰り",
+   "read": "お持ち帰り\nボタン",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "화면 중앙 오른쪽 [お持ち帰り] 버튼을 누르세요.",
+   "unsure": null,
+   "sparkBox": [
+    1010,
+    1693,
+    1355,
+    2024
+   ],
+   "drawn": [
+    976,
+    1659,
+    1349,
+    1958
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.558,
+   "error": null
+  },
+  {
+   "id": "g04",
+   "rep": 0,
+   "http": 200,
+   "kind": "wrong",
+   "wallMs": 23551,
+   "voiceMs": 23551,
+   "pendingMs": 15793,
+   "timing": {
+    "sparkMs": 14731,
+    "samMs": 942,
+    "checkMs": 6824,
+    "totalMs": 22508
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "교통카드 충전",
+   "want": "교통카드 충전 (정기권 충전)",
+   "read": "교통카드 충전\nT머니 충전",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "画面中央の右側にある [교통카드 충전] ボタンを押してください。",
+   "unsure": null,
+   "sparkBox": [
+    975,
+    480,
+    1076,
+    578
+   ],
+   "drawn": [
+    944,
+    480,
+    1077,
+    573
+   ],
+   "mask": true,
+   "pending_wrong": true,
+   "iou": 0.404,
+   "error": null
+  },
+  {
+   "id": "g05",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 14416,
+   "voiceMs": 14415,
+   "pendingMs": 10940,
+   "timing": {
+    "sparkMs": 9925,
+    "samMs": 1274,
+    "checkMs": 2199,
+    "totalMs": 13413
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "関西空港 970",
+   "want": "関西空港 970",
+   "read": "関西空港\n970",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "Nhấn nút [関西空港 970] ở phía dưới giữa màn hình, trong khu vực 空港線.",
+   "unsure": null,
+   "sparkBox": [
+    796,
+    846,
+    960,
+    942
+   ],
+   "drawn": [
+    807,
+    843,
+    946,
+    948
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.766,
+   "error": null
+  },
+  {
+   "id": "g06",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_ok",
+   "wallMs": 18557,
+   "voiceMs": 18556,
+   "pendingMs": 7604,
+   "timing": {
+    "sparkMs": 6595,
+    "samMs": 958,
+    "checkMs": 9989,
+    "totalMs": 17564
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "きっぷを買う",
+   "want": "きっぷを買う",
+   "read": "きっぷ を買",
+   "buttons": 7,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "Press the [きっぷを買う] button on the left side of the center screen.",
+   "unsure": "I'm not sure of the exact spot. Find [きっぷを買う] on the screen and tap it.",
+   "sparkBox": [
+    626,
+    426,
+    868,
+    582
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": false,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "g07",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 17682,
+   "voiceMs": 17682,
+   "pendingMs": 13858,
+   "timing": {
+    "sparkMs": 12765,
+    "samMs": 537,
+    "checkMs": 3275,
+    "totalMs": 16600
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "가족관계등록부",
+   "want": "가족관계등록부",
+   "read": "가족관계등록부",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "Nhấn nút [가족관계등록부] ở khu vực giữa màn hình cảm ứng.",
+   "unsure": null,
+   "sparkBox": [
+    634,
+    1792,
+    826,
+    1882
+   ],
+   "drawn": [
+    686,
+    1786,
+    796,
+    1866
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.887,
+   "error": null
+  },
+  {
+   "id": "g08",
+   "rep": 0,
+   "http": 200,
+   "kind": "hit",
+   "wallMs": 11683,
+   "voiceMs": 11683,
+   "pendingMs": 9149,
+   "timing": {
+    "sparkMs": 8141,
+    "samMs": 1345,
+    "checkMs": 1186,
+    "totalMs": 10688
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "スタート",
+   "want": "スタート",
+   "read": "スタート",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "To borrow books, press the [スタート] button on the upper left of the left self-checkout screen.",
+   "unsure": null,
+   "sparkBox": [
+    188,
+    270,
+    322,
+    327
+   ],
+   "drawn": [
+    188,
+    273,
+    332,
+    326
+   ],
+   "mask": true,
+   "pending_wrong": false,
+   "iou": 0.917,
+   "error": null
+  },
+  {
+   "id": "g09",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 17153,
+   "voiceMs": 17153,
+   "pendingMs": 12626,
+   "timing": {
+    "sparkMs": 11643,
+    "samMs": 852,
+    "checkMs": 3677,
+    "totalMs": 16181
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "< TILBAKE",
+   "want": "TILBAKE",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "화면 왼쪽 아래에 있는 [< TILBAKE] 버튼을 누르세요.",
+   "unsure": "정확한 위치는 확실하지 않아요. 화면에서 [< TILBAKE]를 찾아 누르세요.",
+   "sparkBox": [
+    888,
+    948,
+    994,
+    1012
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  },
+  {
+   "id": "g10",
+   "rep": 0,
+   "http": 200,
+   "kind": "unsure_save",
+   "wallMs": 12366,
+   "voiceMs": 12365,
+   "pendingMs": 9565,
+   "timing": {
+    "sparkMs": 8556,
+    "samMs": 662,
+    "checkMs": 2139,
+    "totalMs": 11369
+   },
+   "calls": {
+    "spark": 2,
+    "sam": 1
+   },
+   "label": "DRAGONAIR",
+   "want": "DRAGONAIR 港龍航空",
+   "read": "",
+   "buttons": 1,
+   "codeChanged": false,
+   "fp": "25b49e40ee",
+   "instruction": "画面右側中央の [DRAGONAIR] ボタンを押してください。",
+   "unsure": "正確な位置はわかりません。画面で［DRAGONAIR］を探して押してください。",
+   "sparkBox": [
+    656,
+    1188,
+    1012,
+    1320
+   ],
+   "drawn": null,
+   "mask": false,
+   "pending_wrong": true,
+   "iou": null,
+   "error": null
+  }
+ ]
+}

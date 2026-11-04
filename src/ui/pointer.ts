@@ -34,7 +34,7 @@ export function targetSelector(target: string, value?: string) {
 }
 
 // 한 단계의 시각표(ms, 그 단계의 강조가 시작된 때부터). 둘째 단계부터는 라운드2 모션 명세 그대로:
-// 0 이동 240 · 180 테두리 120 · 300 누름 220(330 물결) · 520 탭(화면 바뀜). 탭 뒤 GAP만큼 쉬고 다음 단계.
+// 0 이동 180 · 135 테두리 90 · 225 누름 165(248 물결) · 390 탭(화면 바뀜). 탭 뒤 GAP만큼 쉬고 다음 단계.
 // 첫 단계는 계획이 도착한 뒤 사람이 매 턴 기다리는 고정 비용이라 줄인다. 점이 버튼 가까이(NEAR)에서 나타나 짧게 움직이고,
 // 테두리 → 누름 → 탭 순서는 그대로 보인다
 export interface Beat {
@@ -47,9 +47,10 @@ export interface Beat {
   tap: number;
 }
 const FIRST: Beat = { move: 90, ringAt: 30, ring: 80, pressAt: 80, press: 80, rippleAt: 90, tap: 160 };
-const NEXT: Beat = { move: 240, ringAt: 180, ring: 120, pressAt: 300, press: 220, rippleAt: 330, tap: 520 };
+// 11/4 사용자 "너무 오래 걸려": 둘째 단계부터 0.75배(640 → 480ms). 이동 → 테두리 → 누름 → 탭 순서는 그대로 보인다
+const NEXT: Beat = { move: 180, ringAt: 135, ring: 90, pressAt: 225, press: 165, rippleAt: 248, tap: 390 };
 export const beat = (first: boolean) => (first ? FIRST : NEXT);
-export const GAP = 120;
+export const GAP = 90;
 // 첫 단계에서 점이 나타나는 자리: 누를 자리에서 오른쪽(휴대폰 쪽)으로 이만큼(키오스크 안쪽 px)
 export const NEAR = 56;
 

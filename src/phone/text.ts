@@ -1,5 +1,6 @@
 // 휴대폰 화면의 고정 문구(휴대폰의 6개 언어). 키오스크 화면 글자가 아니라 사용자가 읽는 글이다
 import { langOf, type Lang } from "@/engine/turn";
+import type { Answers } from "@/sync/link";
 
 interface PhoneText {
   hold: string;
@@ -9,6 +10,12 @@ interface PhoneText {
   // 말한 언어를 따라 휴대폰 언어를 바꿨다는 한 줄(바뀐 언어로)과, 되돌리기 버튼의 이름(원래 언어로. 보이는 글자는 '↩ 언어 이름')
   switched: string;
   switchBack: string;
+  // 머리줄 아래 실시간 키오스크 카드의 머리말
+  kioskNow: string;
+  // 되묻기 답 칩. 보이는 글자 그대로 키오스크에 보낸다(휴대폰 언어. Spark가 이해한다)
+  answers: Record<Answers, string[]>;
+  // [더 주문할게요]를 눌렀을 때 휴대폰이 바로 붙이는 KIBO 고정 턴(키오스크로 보내지 않는다)
+  moreAsk: string;
   sending: string;
   tooShort: string;
   micBlocked: string;
@@ -28,8 +35,13 @@ interface PhoneText {
   allowRetry: string;
   tooLong: string;
   reconnecting: string;
+  // 보낸 뒤 3초가 지나도 대답이 없을 때 안내 줄
+  waitLong: string;
+  // 되물은 뒤 키오스크가 시간 초과로 첫 화면에 돌아갔을 때 한 번
+  kioskReset: string;
   // 화면 읽기: 두 번 탭으로 녹음을 시작했을 때 한 번, KIBO가 누르기 시작할 때 한 번(진행 띠는 읽히지 않는다), 말풍선의 말한 사람(나), 대화 칸 이름, 언어 단추 이름('언어: 한국어')
   toggleOn: string;
+  noSpeech: string;
   tapStart: (steps: number) => string;
   me: string;
   chat: string;
@@ -86,11 +98,14 @@ interface PhoneText {
 
 const text: Record<Lang, PhoneText> = {
   en: {
-    hold: "Hold to talk, release to send",
+    hold: "Hold and talk, or tap, talk, tap again",
     listening: "Listening… release to send",
     talk: "Talk",
     switched: "Switched to English",
     switchBack: "Back to English",
+    kioskNow: "Kiosk now",
+    answers: { orderType: ["For here", "To go"], mode: ["Meal", "Single"], size: ["Size M", "Size L"], more: ["That's all", "I want to order more"] },
+    moreAsk: "Sure. Tell me what else you'd like.",
     sending: "Sending…",
     tooShort: "Hold the button while you speak",
     micBlocked: "The microphone is blocked. You can type instead.",
@@ -109,7 +124,10 @@ const text: Record<Lang, PhoneText> = {
     allowRetry: "If you allowed the microphone, press and hold again to talk",
     tooLong: "That was over 55 seconds, so I sent what you said so far",
     reconnecting: "Reconnecting…",
-    toggleOn: "Listening. Double-tap again to send",
+    waitLong: "Understanding what you said · usually 5–10 s",
+    kioskReset: "The kiosk went back to the start. Please say your order again.",
+    toggleOn: "Listening. I'll send it when you stop talking",
+    noSpeech: "I didn't hear anything, so I stopped listening. Tap to speak again",
     tapStart: (n) => `KIBO will tap ${n} times`,
     me: "Me:",
     chat: "Conversation",
@@ -154,11 +172,14 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "Kiosk screen photo",
   },
   ko: {
-    hold: "누른 채로 말하고, 다 말하면 떼세요",
+    hold: "누른 채 말하거나, 탭하고 말한 뒤 다시 탭하세요",
     listening: "듣고 있어요… 떼면 보내요",
     talk: "말하기",
     switched: "한국어로 바꿨어요",
     switchBack: "한국어로 되돌리기",
+    kioskNow: "키오스크 지금",
+    answers: { orderType: ["먹고 갈게요", "포장할게요"], mode: ["세트", "단품"], size: ["M 사이즈", "L 사이즈"], more: ["그게 다예요", "더 주문할게요"] },
+    moreAsk: "네, 더 드실 메뉴를 말씀해 주세요.",
     sending: "보내는 중…",
     tooShort: "누른 채로 말해 주세요",
     micBlocked: "마이크를 쓸 수 없어요. 글로 써 주세요.",
@@ -177,7 +198,10 @@ const text: Record<Lang, PhoneText> = {
     allowRetry: "마이크를 허용했으면 다시 눌러 말해 주세요",
     tooLong: "55초가 넘어서 여기까지 보냈어요",
     reconnecting: "다시 연결 중…",
-    toggleOn: "듣고 있어요. 다시 두 번 탭하면 보내요",
+    waitLong: "말씀을 이해하는 중이에요 · 보통 5–10초",
+    kioskReset: "키오스크가 처음으로 돌아갔어요. 다시 말씀해 주세요.",
+    toggleOn: "듣고 있어요. 말이 끝나면 저절로 보내요",
+    noSpeech: "말씀이 없어서 듣기를 멈췄어요. 다시 누르고 말해 주세요",
     tapStart: (n) => `KIBO가 ${n}번 누릅니다`,
     me: "나:",
     chat: "대화",
@@ -222,11 +246,14 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "키오스크 화면 사진",
   },
   ja: {
-    hold: "押したまま話して、離すと送信",
+    hold: "押したまま話すか、タップして話し、もう一度タップ",
     listening: "聞いています… 離すと送信",
     talk: "話す",
     switched: "日本語に切り替えました",
     switchBack: "日本語に戻す",
+    kioskNow: "キオスクの今",
+    answers: { orderType: ["店内で", "持ち帰りで"], mode: ["セット", "単品"], size: ["Mサイズ", "Lサイズ"], more: ["以上です", "もっと注文します"] },
+    moreAsk: "はい、追加のご注文をおっしゃってください。",
     sending: "送信中…",
     tooShort: "押したまま話してください",
     micBlocked: "マイクが使えません。文字で入力してください。",
@@ -245,7 +272,10 @@ const text: Record<Lang, PhoneText> = {
     allowRetry: "マイクを許可したら、もう一度押して話してください",
     tooLong: "55秒を超えたので、ここまでを送りました",
     reconnecting: "再接続しています…",
-    toggleOn: "聞いています。もう一度ダブルタップすると送ります",
+    waitLong: "お話の内容を理解しています · 通常5〜10秒",
+    kioskReset: "キオスクが最初の画面に戻りました。もう一度お話しください。",
+    toggleOn: "聞いています。話し終わると自動で送ります",
+    noSpeech: "声が聞こえなかったので止めました。もう一度押して話してください",
     tapStart: (n) => `KIBOが${n}回押します`,
     me: "わたし:",
     chat: "会話",
@@ -290,11 +320,14 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "キオスク画面の写真",
   },
   vi: {
-    hold: "Giữ để nói, thả ra để gửi",
+    hold: "Giữ để nói, hoặc chạm, nói rồi chạm lại",
     listening: "Đang nghe… thả ra để gửi",
     talk: "Nói",
     switched: "Đã chuyển sang Tiếng Việt",
     switchBack: "Quay lại Tiếng Việt",
+    kioskNow: "Kiosk hiện tại",
+    answers: { orderType: ["Ăn tại chỗ", "Mang đi"], mode: ["Combo", "Món lẻ"], size: ["Cỡ M", "Cỡ L"], more: ["Vậy thôi", "Tôi muốn gọi thêm"] },
+    moreAsk: "Vâng, bạn muốn gọi thêm món gì?",
     sending: "Đang gửi…",
     tooShort: "Hãy giữ nút trong khi nói",
     micBlocked: "Không dùng được micrô. Bạn có thể gõ chữ.",
@@ -313,7 +346,10 @@ const text: Record<Lang, PhoneText> = {
     allowRetry: "Nếu đã cho phép micrô, hãy nhấn giữ và nói lại",
     tooLong: "Đã quá 55 giây nên tôi gửi phần bạn đã nói",
     reconnecting: "Đang kết nối lại…",
-    toggleOn: "Đang nghe. Chạm hai lần nữa để gửi",
+    waitLong: "Đang hiểu lời bạn nói · thường 5–10 giây",
+    kioskReset: "Máy đã quay về màn hình đầu. Vui lòng nói lại.",
+    toggleOn: "Đang nghe. Nói xong sẽ tự gửi",
+    noSpeech: "Không nghe thấy gì nên đã dừng. Hãy chạm và nói lại",
     tapStart: (n) => `KIBO sẽ bấm ${n} lần`,
     me: "Tôi:",
     chat: "Cuộc trò chuyện",
@@ -358,11 +394,14 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "Ảnh màn hình kiosk",
   },
   zh: {
-    hold: "按住说话，松开发送",
+    hold: "按住说话，或点一下说完再点一下",
     listening: "正在听… 松开发送",
     talk: "说话",
     switched: "已切换为中文",
     switchBack: "改回中文",
+    kioskNow: "自助机当前",
+    answers: { orderType: ["堂食", "外带"], mode: ["套餐", "单点"], size: ["M号", "L号"], more: ["就这些", "我还要点"] },
+    moreAsk: "好的，请说您还要点什么。",
     sending: "正在发送…",
     tooShort: "请按住按钮说话",
     micBlocked: "无法使用麦克风。可以改为输入文字。",
@@ -381,7 +420,10 @@ const text: Record<Lang, PhoneText> = {
     allowRetry: "如果已允许使用麦克风，请再按住说话",
     tooLong: "已超过55秒，已发送到这里为止的内容",
     reconnecting: "正在重新连接…",
-    toggleOn: "正在听。再次双击即可发送",
+    waitLong: "正在理解您说的话 · 通常需要5–10秒",
+    kioskReset: "自助机已回到首页。请再说一遍。",
+    toggleOn: "正在听。说完会自动发送",
+    noSpeech: "没有听到声音，已停止。请再点一下说话",
     tapStart: (n) => `KIBO 将点击 ${n} 次`,
     me: "我：",
     chat: "对话",
@@ -426,11 +468,14 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "自助机画面照片",
   },
   es: {
-    hold: "Mantén pulsado para hablar, suelta para enviar",
+    hold: "Mantén pulsado y habla, o toca, habla y toca otra vez",
     listening: "Escuchando… suelta para enviar",
     talk: "Hablar",
     switched: "Cambiado a Español",
     switchBack: "Volver a Español",
+    kioskNow: "Quiosco ahora",
+    answers: { orderType: ["Para comer aquí", "Para llevar"], mode: ["Menú", "Solo"], size: ["Tamaño M", "Tamaño L"], more: ["Eso es todo", "Quiero pedir más"] },
+    moreAsk: "Claro. Dígame qué más quiere.",
     sending: "Enviando…",
     tooShort: "Mantén pulsado el botón mientras hablas",
     micBlocked: "El micrófono está bloqueado. Puedes escribir.",
@@ -449,7 +494,10 @@ const text: Record<Lang, PhoneText> = {
     allowRetry: "Si permitiste el micrófono, mantén pulsado otra vez para hablar",
     tooLong: "Pasaron 55 segundos, así que envié lo que dijiste hasta ahora",
     reconnecting: "Reconectando…",
-    toggleOn: "Escuchando. Toca dos veces otra vez para enviar",
+    waitLong: "Entendiendo lo que dijiste · suele tardar 5–10 s",
+    kioskReset: "El quiosco volvió al inicio. Vuelve a decir tu pedido.",
+    toggleOn: "Escuchando. Lo envío cuando termine de hablar",
+    noSpeech: "No oí nada, así que dejé de escuchar. Toque para hablar otra vez",
     tapStart: (n) => `KIBO va a pulsar ${n} veces`,
     me: "Yo:",
     chat: "Conversación",

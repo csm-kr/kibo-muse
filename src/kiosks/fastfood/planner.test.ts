@@ -47,6 +47,8 @@ describe("KIBO 화면 경로 계획 — 패스트푸드", () => {
         { field: "size", line: 0 },
         { field: "drink", line: 0 },
       ],
+      // 아는 만큼 먼저 누른다: 매장·포장을 모르니 [Order here]만 눌러 그 화면에서 멈춘다
+      events: [{ by: "kibo", target: "start" }],
     });
   });
 
@@ -105,8 +107,8 @@ describe("대화 — 진행 중 상품, 되묻기 다음 턴, 재료, 수량", (
     const twice = plan(stuck, { current: { size: "L", drink: "cola" }, items: [{ menuId: "double_cheese", mode: "set", size: "L", side: "fries", drink: "cola", qty: 1 }], checkout: true });
     expect(cartOf(twice)).toEqual([["double_cheese", "set", "L", "fries", "cola", ""]]);
     // 새 상품만 말해도 진행 중인 상품의 빠진 값을 먼저 묻는다
-    expect(plan(stuck, { current: { size: "L" } })).toEqual({ kind: "clarify", missing: [{ field: "drink", line: "current" }] });
-    expect(plan(stuck, { items: [{ menuId: "apple_pie" }] })).toEqual({ kind: "clarify", missing: [{ field: "size", line: "current" }, { field: "drink", line: "current" }] });
+    expect(plan(stuck, { current: { size: "L" } })).toEqual({ kind: "clarify", missing: [{ field: "drink", line: "current" }], events: [{ by: "kibo", target: "size", value: "L" }, { by: "kibo", target: "side", value: "fries" }] });
+    expect(plan(stuck, { items: [{ menuId: "apple_pie" }] })).toEqual({ kind: "clarify", missing: [{ field: "size", line: "current" }, { field: "drink", line: "current" }], events: [] });
     expect(cartOf(plan(stuck, { dropCurrent: true, items: [{ menuId: "apple_pie" }], checkout: true }))).toEqual([["apple_pie", "single", null, null, null, ""]]);
     // 담기 직전 화면에서 "이걸로 주문할게요" → 담고 주문 확인으로. 이미 고른 값과 다르게 말하면 그 상품을 처음부터 다시 담는다
     const atConfirm = touch([["size", "L"], ["side", "fries"], ["drink", "zero_cola"]], stuck);
@@ -146,6 +148,64 @@ describe("대화 — 진행 중 상품, 되묻기 다음 턴, 재료, 수량", (
     expect(step(custom, { by: "touch", target: "toggle_ingredient", value: "chicken" })).toEqual({ ok: false, error: "ingredient_required" });
     expect(plan(initialState(), { orderType: "eat_in", items: [{ menuId: "apple_pie", qty: 11 }] })).toEqual({ kind: "reject", reason: "bad_qty", line: 0 });
     expect(plan(initialState(), { orderType: "eat_in", items: [{ menuId: "apple_pie", qty: 0 }] })).toEqual({ kind: "reject", reason: "bad_qty", line: 0 });
+  });
+});
+
+describe("아는 만큼 먼저 누르기 — 되물을 때도 빠진 것을 고르는 화면까지 누르고 멈춘다", () => {
+  const SAFE = ["start", "order_type", "added_ok", "upsell_no_thanks", "add_more", "category", "item", "set_choice", "size", "side", "drink"];
+  const lead = (start: KioskState, intent: FastfoodIntent) => {
+    const r = plan(start, intent);
+    if (r.kind !== "clarify") throw new Error(r.kind);
+    // 담기·주문 확인·결제·취소 같은 버튼은 되물을 때 누르지 않는다
+    expect(r.events.filter((e) => !SAFE.includes(e.target))).toEqual([]);
+    return { r, state: replayByKibo(start, r.events).state };
+  };
+  const cart = (r: ReturnType<typeof plan>) => (r.kind === "plan" ? r.final.cart.map((l) => [l.menuId, l.mode, l.size, l.side, l.drink, l.qty]) : r);
+
+  it("예 1) '더블 치즈버거 세트, 먹고 갈게요': 사이즈 화면에서 멈추고, 다음 대답은 거기서 이어 같은 상품을 한 번만 담는다", () => {
+    const said: FastfoodIntent = { orderType: "eat_in", items: [{ menuId: "double_cheese", mode: "set", qty: 1 }] };
+    const t1 = lead(initialState(), said);
+    expect(t1.state.screen).toBe("set_size");
+    expect(t1.r.events.slice(0, 2).map((e) => e.target)).toEqual(["start", "order_type"]);
+    // 다음 턴 "L": Spark가 상품을 다시 적어도(실측) 진행 중 상품으로 이어 간다. 음료가 아직 없어 음료 화면에서 멈춘다
+    const p2 = mergeIntent(said, { items: [{ menuId: "double_cheese", mode: "set", size: "L", qty: 1 }] });
+    const t2 = lead(t1.state, p2);
+    expect(t2.r.events).toEqual([{ by: "kibo", target: "size", value: "L" }, { by: "kibo", target: "side", value: "fries" }]);
+    expect(t2.state.screen).toBe("set_drink");
+    expect(cart(plan(t2.state, mergeIntent(p2, { current: { drink: "cola" } })))).toEqual([["double_cheese", "set", "L", "fries", "cola", 1]]);
+    // 다음 턴에 사이즈·음료를 한꺼번에 말해도(진행 중 상품으로) 한 번만 담는다
+    expect(cart(plan(t1.state, mergeIntent(said, { current: { size: "L", drink: "cola" } })))).toEqual([["double_cheese", "set", "L", "fries", "cola", 1]]);
+  });
+
+  it("예 2) 상품은 있고 매장·포장이 없으면 [Order here]만 눌러 매장·포장 화면에서 멈춘다", () => {
+    const said: FastfoodIntent = { items: [{ menuId: "bulgogi", mode: "set", size: "M", drink: "cola", qty: 1 }] };
+    const t1 = lead(initialState(), said);
+    expect(t1.r.events).toEqual([{ by: "kibo", target: "start" }]);
+    expect(t1.state.screen).toBe("order_type");
+    expect(cart(plan(t1.state, mergeIntent(said, { orderType: "take_out" })))).toEqual([["bulgogi", "set", "M", "fries", "cola", 1]]);
+  });
+
+  it("관문 앞에서는 누르지 않는다: 주문 확인에서 상품을 더 말하면 빠진 것을 고르는 화면까지만 가고 담기·결제는 누르지 않는다. 사람이 고르던 상품을 버려야 하거나 다른 상품을 물으면 아무것도 누르지 않는다", () => {
+    const done = plan(initialState(), { orderType: "eat_in", items: [{ menuId: "apple_pie", qty: 1 }], checkout: true });
+    if (done.kind !== "plan") throw new Error(done.kind);
+    expect(done.final.screen).toBe("review");
+    const t = lead(done.final, { items: [{ menuId: "bulgogi", mode: "set", qty: 1 }], checkout: true });
+    expect(t.state.screen).toBe("set_size");
+    expect(t.state.cart).toHaveLength(1);
+    // 사람이 고르다 멈춘 상품(사이즈 화면)과 다른 상품의 빠진 값만 물으면, 진행 중 상품을 두고 아무것도 누르지 않는다
+    const stuck = replayByKibo(initialState(), [
+      { by: "kibo", target: "start" },
+      { by: "kibo", target: "order_type", value: "eat_in" },
+      { by: "kibo", target: "category", value: "burgers" },
+      { by: "kibo", target: "item", value: "double_cheese" },
+      { by: "kibo", target: "set_choice", value: "set" },
+      { by: "kibo", target: "size", value: "L" },
+      { by: "kibo", target: "side", value: "fries" },
+      { by: "kibo", target: "drink", value: "cola" },
+    ]).state;
+    expect(lead(stuck, { items: [{ menuId: "bulgogi", qty: 1 }] }).r.events).toEqual([]);
+    // 고른 값과 다르게 말해 처음부터 다시 담아야 하면(취소가 필요) 되물을 때는 누르지 않는다
+    expect(lead(stuck, { current: { size: "M" }, items: [{ menuId: "bulgogi", qty: 1 }] }).r.events).toEqual([]);
   });
 });
 

@@ -295,7 +295,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     const off = link.subscribe((m) => {
       if (m.type === "utterance" || m.type === "ack") onPhone(m);
       if (m.type === "hello") setHello((n) => n + 1);
-      if (m.type === "listening" || m.type === "utterance") {
+      if ((m.type === "listening" && !m.end) || m.type === "utterance") {
         const now = Date.now();
         setRun((r) => trackRun(r, { type: "listening" }, now));
       }

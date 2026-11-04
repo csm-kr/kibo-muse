@@ -48,7 +48,7 @@ export function HumanBtn({ className = "", children, onClick, disabled }: { clas
 export function Photo({ src, srcSet, sizes, className = "", imgClass = "", imgStyle, size = [600, 600], priority = false }: { src: string; srcSet?: string; sizes?: string; className?: string; imgClass?: string; imgStyle?: CSSProperties; size?: [number, number]; priority?: boolean }) {
   return (
     <span className={`block overflow-hidden bg-(--bb-photo) ${className}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- 이미 600px webp라 변환이 필요 없고, 미리 불러온 같은 주소를 써야 640ms 단계 안에 그려진다 */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- 이미 600px webp라 변환이 필요 없고, 미리 불러온 같은 주소를 써야 480ms 단계 안에 그려진다 */}
       <img src={src} srcSet={srcSet} sizes={sizes} alt="" width={size[0]} height={size[1]} decoding="sync" fetchPriority={priority ? "high" : undefined} draggable={false} className={`h-full w-full object-cover ${imgClass}`} style={imgStyle} />
     </span>
   );

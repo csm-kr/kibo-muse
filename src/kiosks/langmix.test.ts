@@ -47,6 +47,8 @@ describe("대답 언어: 말한 언어가 휴대폰 언어와 분명히 다르�
     expect(replyLang("ko", "English", "eat in", ff).followSpoken).toBe(false);
     expect(replyLang("ko", "English", "OK", ff).followSpoken).toBe(false);
     expect(replyLang("ko", "English", "Start over please, I want to change it", ff).followSpoken).toBe(true);
+    // 말한 언어만의 문자가 있으면(영어 휴대폰에 "안녕하세요") 한 단어여도 분명하다(11/4 실기기)
+    expect(replyLang("en", "Korean", "안녕하세요", ff)).toEqual({ lang: "ko", followSpoken: true });
   });
   it("휴대폰 언어 고유 문자: ja는 가나, zh는 가나 없는 한자, vi는 베트남어 성조·특수 문자. 있으면 바꾸지 않는다", () => {
     expect(replyLang("ja", "Chinese", "ダブルチーズバーガーのセットを一つください", ff).followSpoken).toBe(false);

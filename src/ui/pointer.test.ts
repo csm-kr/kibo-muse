@@ -44,10 +44,10 @@ describe("KIBO 포인터 자리", () => {
     expect(targetSelector("seat", '36"H')).toBe('[data-target="seat"][data-value="36\\"H"]');
   });
 
-  it("재생 시각표: 첫 탭은 계획이 도착한 뒤 200ms 안에 키오스크에 들어가고, 둘째 탭부터 간격(640ms)은 그대로다", () => {
+  it("재생 시각표: 첫 탭은 계획이 도착한 뒤 200ms 안에 키오스크에 들어가고, 둘째 탭부터 간격은 480ms(11/4 속도: 14탭 주문 약 9초 → 6.8초)", () => {
     const t = tapTimes(4);
     expect(t[0]).toBeLessThanOrEqual(200);
-    expect(t.slice(1).map((x, i) => x - t[i])).toEqual([640, 640, 640]);
+    expect(t.slice(1).map((x, i) => x - t[i])).toEqual([480, 480, 480]);
   });
 
   it("첫 단계도 점이 움직이고, 테두리가 누름보다 먼저 보이며, 누름이 끝나는 때가 탭 시각이다", () => {

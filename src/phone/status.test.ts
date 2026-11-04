@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { statusSummary } from "@/kiosks/fastfood/ui/labels";
-import { bandHidden, linkChip, orderLinesIn, statusLine } from "./status";
+import { autoListen, bandHidden, bridgeTimeout, expireAsk, kioskCard, linkChip, orderLinesIn, phoneHint, statusLine, tapBridge } from "./status";
+import { phoneText } from "./text";
 
 const ff = { type: "status" as const, busy: false, kioskId: "fastfood" };
 
@@ -81,5 +82,84 @@ describe("휴대폰 상태 줄", () => {
 
   it("머리줄 연결 칩: 한 번 연결된 뒤 끊기면 '다시 연결 중'(키오스크 이름 대신), 처음 연결 전에는 '연결 전'", () => {
     expect([linkChip(true, true, true), linkChip(true, false, true), linkChip(false, false, false), linkChip(false, true, true), linkChip(true, null, false)]).toEqual(["kiosk", "reconnecting", "none", "none", "kiosk"]);
+  });
+
+  it("마이크 아래 안내 줄: 두 번 탭으로 시작한 녹음은 '다시 두 번 탭하면 보내요', 결제가 끝난 뒤라도 KIBO가 되물으면 '대답하세요'가 앞선다", () => {
+    const ko = phoneText("ko");
+    const base = { recording: false, toggled: false, waiting: false, longWait: false, notice: null, operating: false, asking: false, orderCard: null };
+    // 보낸 뒤 3초가 지나도 대답이 없으면 '말씀을 이해하는 중이에요 · 보통 5–10초'
+    expect(phoneHint(ko, { ...base, waiting: true })).toBe(ko.thinking);
+    expect(phoneHint(ko, { ...base, waiting: true, longWait: true })).toBe(ko.waitLong);
+    expect(phoneHint(ko, { ...base, recording: true })).toBe(ko.listening);
+    expect(phoneHint(ko, { ...base, recording: true, toggled: true })).toBe(ko.toggleOn);
+    expect(phoneHint(ko, { ...base, orderCard: "paid" })).toBe(ko.pickup);
+    expect(phoneHint(ko, { ...base, orderCard: "paid", asking: true })).toBe(ko.answer);
+  });
+
+  it("한 번 누르면 이어 듣기: 대답을 다 읽고 키오스크가 다 누른 뒤 저절로 다시 듣는다. 결제 안내·영수증·관문 카드가 떴거나, 못 알아들음이 2번 이어지거나, 이어 듣기가 꺼졌으면 듣지 않는다", () => {
+    const ready = { convo: true, idle: true, waiting: false, operating: false, handoff: false, receipt: false, gate: false, fails: 0 };
+    expect(autoListen(ready)).toBe(true);
+    expect(autoListen({ ...ready, fails: 1 })).toBe(true);
+    for (const k of ["waiting", "operating", "handoff", "receipt", "gate"] as const) expect([k, autoListen({ ...ready, [k]: true })]).toEqual([k, false]);
+    expect(autoListen({ ...ready, convo: false })).toBe(false);
+    expect(autoListen({ ...ready, idle: false })).toBe(false);
+    expect(autoListen({ ...ready, fails: 2 })).toBe(false);
+  });
+
+  it("대답(reply)이 'KIBO가 누른다'면 키오스크의 조작 중 상태가 오기 전부터 조작 중으로 본다(안내 줄이 0.1초 안에 두 번 바뀌지 않게). 조작 상태·완료·다른 대답이 오면 끝", () => {
+    const plan = { type: "reply" as const, re: "1", say: "", replyLanguage: "ko", result: "plan" as const, taps: 14 };
+    expect(tapBridge(false, plan)).toBe(true);
+    expect(tapBridge(false, { ...plan, taps: 0 })).toBe(false);
+    const st = { ...ff, screen: "dine_choice", items: 0, total: 0 };
+    expect(tapBridge(true, { ...st, busy: true, steps: 14, step: 1 })).toBe(false);
+    expect(tapBridge(true, st)).toBe(true);
+    expect(tapBridge(true, { type: "done", re: "1", ok: true, say: "", replyLanguage: "ko", gate: null })).toBe(false);
+    expect(tapBridge(true, { ...plan, result: "clarify" })).toBe(false);
+  });
+
+  it("대답 뒤 4초 안에 키오스크의 조작 중 상태가 오지 않으면 다리를 끊는다. 그 전에 상태가 와서 다리가 꺼지면 타이머도 치운다", () => {
+    vi.useFakeTimers();
+    try {
+      const off = vi.fn();
+      bridgeTimeout(true, off);
+      vi.advanceTimersByTime(3999);
+      expect(off).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(off).toHaveBeenCalledTimes(1);
+      const early = vi.fn();
+      bridgeTimeout(true, early)?.();
+      vi.advanceTimersByTime(5000);
+      expect(early).not.toHaveBeenCalled();
+      expect(bridgeTimeout(false, early)).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("휴대폰 실시간 키오스크 카드", () => {
+  it("키오스크가 보낸 status(화면·장바구니 원자료·합계)로 지금 화면 이름(휴대폰 언어)과 담은 줄(이름·수량·값)을 만든다. 메뉴 이름은 ko면 한국어, 그 밖은 영어", () => {
+    const cart = [{ menuId: "double_cheese", mode: "set" as const, size: "L" as const, side: "fries", drink: "zero_cola", remove: [], add: [], qty: 1, unitPrice: 8300 }];
+    const s = { ...ff, screen: "set_size", items: 1, total: 8300, cart, kioskLang: "en" as const };
+    const ko = kioskCard(s, "ko");
+    expect(ko.label).toBe("세트 크기 고르기");
+    expect(ko.lines).toEqual([{ name: "더블 치즈버거 L 세트", qty: 1, price: 8300 }]);
+    expect(ko.total).toBe(8300);
+    const vi = kioskCard(s, "vi");
+    expect(vi.label).toBe("Cỡ combo");
+    expect(vi.lines[0].name).toBe("Double Cheeseburger L Meal");
+  });
+
+  it("되물은 뒤 키오스크가 첫 화면으로 돌아가면(시간 초과) 남은 물음을 지우고 '처음으로 돌아갔어요'를 한 번 보인다. 직전에 물음이 없었거나 원래 첫 화면이면 그대로", () => {
+    const ask = [{ who: "you" as const, text: "치즈버거 세트" }, { who: "kibo" as const, text: "사이즈는요?", kind: "ask" as const }];
+    expect(expireAsk(ask, "set_size", "idle", "돌아갔어요")).toEqual([ask[0], { who: "kibo", text: "사이즈는요?" }, { who: "kibo", text: "돌아갔어요" }]);
+    expect(expireAsk(ask, "set_size", "set_drink", "돌아갔어요")).toBe(ask);
+    expect(expireAsk(ask, "idle", "idle", "돌아갔어요")).toBe(ask);
+    expect(expireAsk(ask, null, "idle", "돌아갔어요")).toBe(ask);
+    const answered = [...ask, { who: "you" as const, text: "L" }];
+    expect(expireAsk(answered, "set_size", "idle", "돌아갔어요")).toBe(answered);
+    // 완료 턴의 답 칩(더 주문?)도 물음이다. 안내 줄이 마지막이 되어 칩도 사라진다
+    const more = [{ who: "kibo" as const, text: "더 주문하실 게 있나요?", answers: "more" }];
+    expect(expireAsk(more, "menu", "idle", "돌아갔어요").at(-1)).toEqual({ who: "kibo", text: "돌아갔어요" });
   });
 });

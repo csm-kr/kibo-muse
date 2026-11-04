@@ -4,7 +4,8 @@
 import { langOf, type Lang } from "@/engine/turn";
 import type { Draft, KioskState } from "./machine";
 import { findItem } from "./menu";
-import type { FastfoodIntent, IntentLine, Missing } from "./planner";
+import type { Answer } from "@/sync/link";
+import { plan, type FastfoodIntent, type IntentLine, type Missing } from "./planner";
 
 type Field = Missing["field"];
 type Line = Pick<IntentLine, "menuId" | "mode" | "qty">;
@@ -49,6 +50,37 @@ const text: Record<Lang, { item: (name: string, mode: Line["mode"], qty: number)
 };
 
 const ORDER: Field[] = ["orderType", "mode", "size", "drink"];
+
+// Spark 한국어 되묻기에서 영문 사이즈 글자 뒤 조사를 읽는 소리에 맞춘다(엘로, 엠으로). 11/4 회귀: "M으로 할까요 L으로 할까요?"
+export const koParticles = (s: string) => s.replace(/L으로/g, "L로").replace(/M로/g, "M으로");
+
+// 휴대폰 답 칩 종류: 되묻는 순서의 첫 빠진 칸. 음료는 고를 것이 많아 칩을 두지 않는다
+export const answerKind = (missing: Missing[]) => {
+  const f = ORDER.find((x) => missing.some((m) => m.field === x));
+  return f === "drink" ? undefined : f;
+};
+
+// 칩 답(Spark 없음)을 의도 조각으로 바꾼다. mergeIntent(pending, 조각)이 다음 계획의 의도다.
+// 지금 키오스크 상태에서 그 칸이 아직 빠져 있을 때만 만든다. 아니면(그새 사람이 골랐다 등) null → Spark 길.
+// '그게 다예요'는 메뉴 화면에 담은 것이 있고 고르는 중인 상품이 없을 때만, 주문 확인까지(checkout. 결제 부탁은 넣지 않는다)
+export function answerPatch(a: Answer, state: KioskState, pending: FastfoodIntent | undefined): FastfoodIntent | null {
+  if (a.field === "more") return state.screen === "menu" && state.cart.length > 0 && !state.draft ? { checkout: true } : null;
+  // 키오스크가 매장·포장 화면이면(인사에 [Order here]를 누름) 앞 의도가 없어도 그 답 하나로 계획한다
+  if (a.field === "orderType" && state.screen === "order_type") return { orderType: a.value };
+  if (!pending) return null;
+  const p = plan(state, pending);
+  const m = p.kind === "clarify" ? p.missing.find((x) => x.field === a.field) : undefined;
+  if (!m) return null;
+  if (m.field === "orderType") return { orderType: a.value as FastfoodIntent["orderType"] };
+  const patch = { [a.field]: a.value };
+  if (m.line === "current") return { current: { ...pending.current, ...patch } };
+  // 계획기의 줄 번호는 고르다 멈춘 상품과 합친 의도 줄을 뺀 목록 기준이다(clarifySay와 같은 판정)
+  const items = pending.items ?? [];
+  const d = pending.dropCurrent ? null : state.draft;
+  const k = d ? items.findIndex((i) => i.menuId === d.menuId && compatible(draftLine(d, pending.current), i)) : -1;
+  const at = k >= 0 && m.line >= k ? m.line + 1 : m.line;
+  return { items: items.map((l, i) => (i === at ? { ...l, ...patch } : l)) };
+}
 
 // 계획기(planner.ts의 currentLine·compatible)와 같은 판정. 고르다 멈춘 상품은 의도 속 같은 메뉴와 정한 값이 서로 다르지 않을 때만 합친다
 const KEYS = ["mode", "size", "side", "drink"] as const;

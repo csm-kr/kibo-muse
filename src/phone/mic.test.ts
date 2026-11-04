@@ -24,7 +24,13 @@ function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrac
   };
   const streams: { tracks: { readyState: string; stop(): void }[] }[] = [];
   const recs: (RecorderLike & { stops: number })[] = [];
+  const watches: { end: () => void; none: () => void; on: boolean }[] = [];
   const deps: MicDeps = {
+    watch: (_s, end, none) => {
+      const w = { end, none, on: true };
+      watches.push(w);
+      return () => void (w.on = false);
+    },
     now: () => t,
     later: (fn, ms) => {
       const x = { at: t + ms, fn };
@@ -78,9 +84,10 @@ function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrac
     onAllowRetry: () => log.push("allowRetry"),
     onTooLong: () => log.push("tooLong"),
     onToggleOn: () => log.push("toggleOn"),
+    onNoSpeech: () => log.push("noSpeech"),
   });
   const live = () => streams.flatMap((s) => s.tracks).filter((x) => x.readyState === "live").length;
-  return { mic, tick, log, phases, streams, recs, live, phase: () => phases.at(-1) ?? "idle" };
+  return { mic, tick, log, phases, streams, recs, watches, live, phase: () => phases.at(-1) ?? "idle" };
 }
 
 describe("누르고 말하기 녹음기(mic)", () => {
@@ -146,7 +153,7 @@ describe("누르고 말하기 녹음기(mic)", () => {
     expect([r.log, r.phase(), r.live()]).toEqual([["recording", "take:10"], "idle", 0]);
   });
 
-  it("권한 창을 기다리는 사이에 손을 떼면 '허용했으면 다시 눌러'를, 마이크가 금방 열린 짧은 누름이면 '누른 채로'를 띄운다", async () => {
+  it("권한 창을 기다리는 사이에 손을 떼면 '허용했으면 다시 눌러'를 띄운다. 짧은 탭은 '누른 채로' 오류 대신 계속 듣고(탭 모드), 손을 떼거나 버튼 밖으로 나가도 보내지 않으며 다시 누르면 보낸다", async () => {
     const p = rig({ openMs: 3000 });
     void p.mic.down();
     await p.tick(600);
@@ -157,12 +164,25 @@ describe("누르고 말하기 녹음기(mic)", () => {
     await p.tick(2500);
     expect([p.log, p.phase(), p.live(), p.streams.length]).toEqual([["allowRetry"], "idle", 0, 1]);
     expect(PROMPT_MS).toBeLessThanOrEqual(1000);
+    // 마이크가 열리기 전에 뗀 짧은 탭
     const q = rig({ openMs: 300 });
     void q.mic.down();
     await q.tick(200);
     await q.mic.up();
     await q.tick(200);
-    expect([q.log, q.phase(), q.live()]).toEqual([["tooShort"], "idle", 0]);
+    await q.mic.up(); // 손가락이 버튼을 떠날 때 오는 pointerleave
+    expect([q.log, q.phase(), q.live()]).toEqual([["recording", "toggleOn"], "recording", 1]);
+    await q.tick(2000);
+    void q.mic.down(); // 다시 누름 = 보냄
+    await q.mic.up(); // 그 누름의 손 뗌은 무시
+    await q.tick(TAIL_MS + 10);
+    expect([q.log, q.phase(), q.live()]).toEqual([["recording", "toggleOn", "take:10"], "idle", 0]);
+    // 마이크가 열린 뒤의 짧은 누름도 같다
+    const s = rig();
+    void s.mic.down();
+    await s.tick(120);
+    await s.mic.up();
+    expect([s.log, s.phase()]).toEqual([["recording", "toggleOn"], "recording"]);
     const d = rig({ deny: true });
     void d.mic.down();
     await d.tick(100);
@@ -183,6 +203,40 @@ describe("누르고 말하기 녹음기(mic)", () => {
     click({ detail: 0 });
     await r.tick(TAIL_MS + 10);
     expect([r.log, r.phase(), r.live()]).toEqual([["recording", "toggleOn", "take:10"], "idle", 0]);
+  });
+
+  it("탭 모드에서는 말이 끝나 조용해지면(watch) 다시 누르지 않아도 보낸다. 길게 누르기에는 쓰지 않는다", async () => {
+    const r = rig();
+    void r.mic.down();
+    await r.tick(120);
+    await r.mic.up(); // 짧은 탭 → 탭 모드
+    expect(r.watches.map((w) => w.on)).toEqual([true]);
+    r.watches[0].end();
+    await r.tick(TAIL_MS + 10);
+    expect([r.log, r.phase(), r.live(), r.watches[0].on]).toEqual([["recording", "toggleOn", "take:10"], "idle", 0, false]);
+    // 화면 읽기 두 번 탭으로 시작한 탭 모드도 같다
+    assistClick(r.mic.toggle)({ detail: 0 });
+    await r.tick(100);
+    expect(r.watches.map((w) => w.on)).toEqual([false, true]);
+    // 길게 누르기: 잠깐 쉬어도 보내지 않는다(손을 뗄 때 보낸다)
+    const h = rig();
+    void h.mic.down();
+    await h.tick(1500);
+    expect(h.watches).toEqual([]);
+  });
+
+  it("탭 모드에서 말소리를 못 들으면(watch none) 보내지 않고 마이크를 끄고 알린다. cancel()도 보내지 않고 쉬는 상태로 돌아간다(답 칩을 누름)", async () => {
+    const r = rig();
+    r.mic.toggle();
+    await r.tick(100);
+    r.watches[0].none();
+    await r.tick(TAIL_MS + 10);
+    expect([r.log, r.phase(), r.live(), r.watches[0].on]).toEqual([["recording", "toggleOn", "noSpeech"], "idle", 0, false]);
+    r.mic.toggle();
+    await r.tick(100);
+    r.mic.cancel();
+    await r.tick(TAIL_MS + 10);
+    expect([r.log.slice(3), r.phase(), r.live(), r.watches[1].on]).toEqual([["recording", "toggleOn"], "idle", 0, false]);
   });
 
   it("55초가 되면 저절로 떼고 알린다(서버 한도 약 62초). 그 뒤 손을 떼도 두 번 보내지 않는다", async () => {

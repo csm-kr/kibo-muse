@@ -130,6 +130,27 @@ Held-out set (set-H, 50 items × 3 runs, hedged):
 
 Spark 1.3 was slower than usual that evening (single p50 5.6 s against 2.2 s in the runs above), so latencies are compared only within the same time window. The two answers of a pair are correlated (r = 0.58), so the gain is smaller than a model with independent requests predicts. Sending two requests did not slow each one down. On the 20 recorded sentences, alternating one request and one pair, the pair's average was 0.95× the single request (geometric mean). The first answer of the pair beat the single request in 15 of 20 (p50 4.0 s against 4.7 s).
 
+## Change after evaluation: pressing what is already known (fast food)
+
+On Nov 4, 2026, at the user's request, the fast-food planner, route and turn engine changed. Before, KIBO pressed nothing while it asked a question, so the kiosk looked frozen during the conversation. Now, when it has to ask (clarify), KIBO first presses as far as the information already given allows, stops on the screen where the missing choice is made, and asks.
+
+- "Double cheeseburger meal, eat in" (no size): Order here → Eat in → menu → Double Cheeseburger → Meal, then it stops on the size screen. The next answer ("L") continues from there, and the item is added once.
+- An order without eat-in or take-out: KIBO presses Order here and stops on the eat-in / take-out screen.
+- A greeting or a question on the first screen: KIBO presses Order here once.
+- While asking, KIBO presses only value-less navigation (Order here, OK after adding, No thanks, Add more) and choices whose value is known (order type, category, item, meal or single, size, side, drink). It never presses add to cart, order details, pay, cancel or customize.
+- KIBO enters only the first item with missing information. It does not add complete items, so the next turn cannot add them twice. It does not touch an item that the person left in progress, unless the question is about that item.
+
+Replay of the saved Spark outputs through the new code (Spark 0; 468 saved sentences: 213 fast food, 255 airport and train, whose code path did not change):
+
+| Check | Result |
+|---|---|
+| Fast-food plans that completed before, from the same state | 174, changed 0 |
+| Clarify turns that now press first | 12 of 12 (stop screen: eat-in / take-out 6, meal or single 3, size 3; 1–2 taps) |
+| Gate buttons pressed (add to cart, order details, pay, cancel) | 0 |
+| Items whose kiosk state differs afterwards | 12 item-runs (4 items × 3 runs); final carts identical, duplicate items 0 |
+
+The scores in the tables above were measured before this change and were not re-run. The held-out items hff-05 and hff-19 expected `noEvents` on their clarify turn. With the new behavior those turns press 2 buttons, so on Nov 4 their per-turn expectation changed: instead of `noEvents`, the clarify turn must stop on the screen where the missing choice is made (`set_choice` for hff-05, `set_size` for hff-19) with the cart unchanged (`cartUnchanged`). The final expected cart is the same as before. In gold mode the held-out set passes 50 of 50 after the change; the development set fails the same 5 items as before (ff-m1, ff-x1, ff-x2, ap-x1, whose gold intent cannot express "not supported", and ap-g2).
+
 ## 3. Guide mode (photo → button)
 
 - `guide/cases.json`: 20 cases with the source URL, the expected button box (`gtBox`, plus `alt` when the same button appears twice), the question, its language, the expected image size and the button label.
@@ -175,6 +196,81 @@ A drawn outline counts at its center: inside the expected box (or `alt`) is righ
 | Wrong outlines | 1 of 22: A4, the adversarial photo with the fake "pay by QR" sticker |
 
 One run per case on the final build above, with no cases picked out afterwards. "Not sure" means nothing was drawn (unsure_ok 1, unsure_save 5). **This photo set was also used to set the verification rules**, so it is not a held-out measure either.
+
+### Unseen real photos (held out)
+
+On Nov 4, 2026, ten real camera photos that were never used during development were run once against production (14:09–14:12 KST, `--gap 13`, 20 Spark and 10 SAM calls, no 429).
+- **Photos:** all from Wikimedia Commons under CC0 or CC BY / CC BY-SA. Each file's page, author and license are in `guide/cases-unseen.json`. The photos themselves are not in this repository.
+- **Kiosks:** a highway rest-stop food kiosk, a fast-food kiosk, a Japanese meal-ticket machine, a Korean subway ticket machine, two Japanese rail ticket machines, a Korean civil-document kiosk, a library self-checkout and two airport check-in kiosks. The screens are in Korean, Japanese, English and Norwegian.
+- **Questions:** in ko, en, ja and vi. In 9 of the 10, the question's language differs from the screen's.
+- **Frozen before the run:** the question, the expected button and its box were fixed first. The cases file's sha256 starts with `6c58ec0c`; nothing was changed after the results came in. The boxes were marked by one reviewer.
+
+```bash
+python3 -I eval/guide/run3.py eval/results/guide-unseen.json --cases cases-unseen.json --images <photo folder> --base https://kibo-muse.vercel.app --gap 13
+```
+
+| Result | Value |
+|---|---|
+| Unseen real photos (g01–g10) | 10: 5 right · 1 wrong · 4 not sure |
+| Button name given to the user | 10 of 10 |
+| Response time (photo sent → instruction) | p50 17.2 s, p95 23.6 s (n=10) |
+
+- **The wrong outline (g04, Korean subway ticket machine):** the outline covers the correct tile ("교통카드 충전") and runs on into the empty screen to its right. No other button is inside it. Its center is 5.5 px past the tile's right edge, so the pre-set rule counts it as wrong (IoU 0.40). Verification read the right label in the crop and passed it; it does not check where the label sits inside the outline.
+- **The 4 "not sure":** in each, the user still gets the button's name ("find and press [주문 ORDER]"), but no outline.
+  - In 3 (unsure_save), Spark's first box was off the button and verification refused it.
+  - In 1 (unsure_ok), the box was right, but it also covered physical buttons beside the screen. Verification counted 7 buttons and refused it.
+- Compared with the 12 development photos (8 right · 0 wrong), this is lower. With n=10 and one run, the gap is a warning, not a measured drop.
+
+Results are in `results/guide-unseen.json`.
+
+### What SAM 3.1 adds: Spark's box vs the SAM outline
+
+Spark decides which button to show. SAM 3.1 changes how closely the drawn outline fits that button. This check covers the 21 cases where an outline was drawn (15 development, 6 unseen). For each, Spark's first box and the SAM outline's bounding box were compared with the expected button box. No new model calls were made; the numbers come from the two result files above.
+
+| | Spark box alone | SAM outline |
+|---|---|---|
+| Center on the expected button | 20 of 21 | 20 of 21 (same cases) |
+| Mean IoU with the button, development photos (n=15) | 0.62 | 0.77 |
+| Mean IoU with the button, unseen photos (n=6) | 0.53 | 0.74 |
+
+- The SAM outline fit better in 17 of 21 cases and worse in 4: three by 0.03 or less, and tr04 by 0.11.
+- Example, g07 (civil-document kiosk, tightly packed buttons):
+  - Spark's box also covered parts of the two neighboring buttons (IoU 0.45).
+  - The SAM outline covered only the target button (0.89).
+- SAM never changed which button was chosen. Right or wrong is decided by Spark.
+  - On the unseen photos, 5 cases ended without a right outline.
+  - In 4 of them (g01, g04, g09, g10), Spark's first box was off the button.
+  - In g06, the box was on the button, but it was so wide that verification refused it.
+- SAM took 0.5–2.3 s per photo on the unseen run (0.9–3.3 s on the development run). The whole request took 11–24 s.
+
+### What SAM 3.1 adds (paired test)
+
+The comparison above reuses runs where SAM was always on. To decide whether SAM earns its place, we also ran guide mode with and without it on the same photos, and fixed the pass criteria before running (Nov 4, 2026, 16:37 KST).
+
+- **Setup:** 32 photos (22 development + 10 unseen) × 2 runs × 2 arms = 128 requests, Nov 4, 16:40–17:10 KST, run in the order with SAM, without, without, with. "Without SAM" sends the same request with `noSam: true`. The server then checks and draws Spark's own box. This switch works only outside production (`NODE_ENV !== "production"`), so these runs used a local dev server with the same code.
+- **Runner:** `python3 -I eval/guide/run3.py <out.json> --cases <cases file> --images <photo folder> --base http://localhost:3100 [--nosam]`.
+- **Second annotator:** a second annotator drew the expected boxes again, without seeing the first set. Agreement with the first set: mean IoU 0.94, minimum 0.69, none below 0.5. Every number below holds under both sets of boxes. Where they differ, the second set is in brackets.
+
+| | With SAM | Without SAM (Spark's box) |
+|---|---|---|
+| Right outline drawn | 29 of 64 | 29 of 64 |
+| Wrong outline drawn | 2 | 1 |
+| Nothing drawn (not sure, or not found) | 33 | 34 |
+| Share of the drawn area on the button, pairs where both drew (n=20) | 0.88 [0.91] | 0.74 [0.76] |
+| Whole request time, p50 / p95 | 13.8 s / 19.3 s | 12.5 s / 18.1 s |
+
+Criteria fixed before running (SAM stays as a claimed accuracy gain only if all three pass):
+
+| | Criterion | Result | |
+|---|---|---|---|
+| (a) | Wrong outlines with SAM ≤ without | 2 vs 1 | FAIL |
+| (b) | Mean gain in the share on the button ≥ 0.15, paired bootstrap 95% CI above 0 | +0.141, CI +0.060 to +0.224 [+0.1498, CI +0.066 to +0.241]; Wilcoxon p = 0.008 [0.006] | FAIL |
+| (c) | Added time, p50 ≤ 2 s | +1.3 s | PASS |
+
+- Right outlines: in 10 pairs only the run with SAM was right, and in 10 only the run without (McNemar p = 1.0).
+- What we concluded: SAM does not change which button is shown or how often it is right. It makes the drawing fit the button more tightly, at a cost of about 1.3 s. We describe it as a display improvement, not an accuracy gain.
+- Checked after the fact, not used for the decision: within the same request (n=31 drawn outlines), 0.86 of the SAM outline's area was on the button, against 0.67 for Spark's box (+0.19, 95% CI +0.14 to +0.24).
+- The three wrong outlines (two with SAM, one without) all started from a Spark box whose center was off the button.
 
 ## Not measured here
 

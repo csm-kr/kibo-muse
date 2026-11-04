@@ -1,0 +1,236 @@
+[
+ {
+  "id": "g01",
+  "source": "https://commons.wikimedia.org/wiki/File:2020-03-27_12.02.17_%EA%B2%BD%EA%B8%B0%EA%B4%91%EC%A3%BC%ED%9C%B4%EA%B2%8C%EC%86%8C_%EA%B4%91%EC%A3%BC%EB%B0%A9%ED%96%A5.jpg",
+  "license": "CC0",
+  "author": "Choi Kwang-mo",
+  "kiosk": "휴게소 음식 주문 키오스크(한국어 화면, 2대 나란히)",
+  "file": "g01.jpg",
+  "lang": "ko",
+  "task": "뼈해장국 하나 먹고 싶은데 어디부터 눌러요?",
+  "gtBox": [
+   635,
+   1005,
+   773,
+   1142
+  ],
+  "size": [
+   1920,
+   2560
+  ],
+  "label": "주문 ORDER",
+  "alt": [
+   [
+    1359,
+    1009,
+    1498,
+    1145
+   ]
+  ]
+ },
+ {
+  "id": "g02",
+  "source": "https://commons.wikimedia.org/wiki/File:Food_order_machine,_KFC,_1207_N_Ashley_Street,_Valdosta.jpg",
+  "license": "CC BY 4.0",
+  "author": "Mjrmtg",
+  "kiosk": "패스트푸드 주문 키오스크(미국, 영어 화면)",
+  "file": "g02.jpg",
+  "lang": "vi",
+  "task": "Tôi muốn bắt đầu gọi món. Bấm vào đâu?",
+  "gtBox": [
+   436,
+   955,
+   869,
+   1035
+  ],
+  "size": [
+   1536,
+   2048
+  ],
+  "label": "START ORDERING"
+ },
+ {
+  "id": "g03",
+  "source": "https://commons.wikimedia.org/wiki/File:Matsuya_Roppongi_order_food_machine_2018.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Wpcpey",
+  "kiosk": "규동 식권 발매기(일본어 화면)",
+  "file": "g03.jpg",
+  "lang": "ko",
+  "task": "포장해서 가져가고 싶어요. 어디 눌러요?",
+  "gtBox": [
+   945,
+   1652,
+   1205,
+   1958
+  ],
+  "size": [
+   1920,
+   3674
+  ],
+  "label": "お持ち帰り"
+ },
+ {
+  "id": "g04",
+  "source": "https://commons.wikimedia.org/wiki/File:Ticket_Vending_and_Card_Reload_Machine_-_Seoul_Metropolitan_Subway_20240713.jpg",
+  "license": "CC BY 4.0",
+  "author": "LandAndTree",
+  "kiosk": "수도권 전철 1회용 발매·교통카드 충전기(한국어 화면, 2대)",
+  "file": "g04.jpg",
+  "lang": "ja",
+  "task": "交通カードにチャージしたいです。どれを押せばいいですか？",
+  "gtBox": [
+   944,
+   489,
+   1005,
+   571
+  ],
+  "size": [
+   1920,
+   1440
+  ],
+  "label": "교통카드 충전 (정기권 충전)",
+  "alt": [
+   [
+    1660,
+    505,
+    1712,
+    577
+   ]
+  ]
+ },
+ {
+  "id": "g05",
+  "source": "https://commons.wikimedia.org/wiki/File:%E5%8D%97%E6%B5%B7%E4%BB%8A%E5%AE%AE%E6%88%8E%E9%A7%85%E5%88%B8%E5%A3%B2%E6%A9%9F%E5%88%87%E7%AC%A6%E8%B3%BC%E5%85%A5%E7%94%BB%E9%9D%A2.jpg",
+  "license": "CC0",
+  "author": "NatsuTV",
+  "kiosk": "사철 승차권 발매기 화면 근접(일본어 화면)",
+  "file": "g05.jpg",
+  "lang": "vi",
+  "task": "Tôi muốn mua vé đi sân bay Kansai. Bấm nút nào?",
+  "gtBox": [
+   810,
+   849,
+   937,
+   937
+  ],
+  "size": [
+   1920,
+   1080
+  ],
+  "label": "関西空港 970",
+  "alt": [
+   [
+    814,
+    586,
+    941,
+    674
+   ]
+  ]
+ },
+ {
+  "id": "g06",
+  "source": "https://commons.wikimedia.org/wiki/File:%E9%98%AA%E6%80%A5%E9%9D%92%E8%89%B2%E5%88%B8%E5%A3%B2%E6%A9%9F.jpg",
+  "license": "CC0",
+  "author": "小田急4000系ファン",
+  "kiosk": "사철 승차권 발매기(일본어 화면)",
+  "file": "g06.jpg",
+  "lang": "en",
+  "task": "I want to buy a train ticket. Which button do I press?",
+  "gtBox": [
+   737,
+   416,
+   916,
+   569
+  ],
+  "size": [
+   1920,
+   1080
+  ],
+  "label": "きっぷを買う"
+ },
+ {
+  "id": "g07",
+  "source": "https://commons.wikimedia.org/wiki/File:%EC%A3%BC%EC%95%883%EB%8F%99%ED%96%89%EC%A0%95%EB%B3%B5%EC%A7%80%EC%84%BC%ED%84%B0_%EB%AC%B4%EC%9D%B8%EB%AF%BC%EC%9B%90%EB%B0%9C%EA%B8%89%EA%B8%B0_2024.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Narubaru7",
+  "kiosk": "무인민원발급기(한국어 화면, 비스듬함·반사)",
+  "file": "g07.jpg",
+  "lang": "vi",
+  "task": "Tôi cần giấy chứng nhận quan hệ gia đình. Bấm nút nào?",
+  "gtBox": [
+   689,
+   1782,
+   801,
+   1866
+  ],
+  "size": [
+   1920,
+   2560
+  ],
+  "label": "가족관계등록부"
+ },
+ {
+  "id": "g08",
+  "source": "https://commons.wikimedia.org/wiki/File:Azumino_Public_Toyoshina_Library_self_lending_machine_ac.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Asturio Cantabrio",
+  "kiosk": "도서관 자동 대출기 + 검색 단말(일본어 화면 2개)",
+  "file": "g08.jpg",
+  "lang": "en",
+  "task": "I want to borrow these books. What do I press?",
+  "gtBox": [
+   189,
+   275,
+   329,
+   325
+  ],
+  "size": [
+   1920,
+   1277
+  ],
+  "label": "スタート"
+ },
+ {
+  "id": "g09",
+  "source": "https://commons.wikimedia.org/wiki/File:Bergen_Lufthavn,_Flesland_(Bergen_Airport,_BGO)_Terminal_3_avgangshall_departure_hall_NORWAY_2017-10-26_b_self-service_check-in_machine_choose_seat.jpg",
+  "license": "CC BY-SA 4.0",
+  "author": "Wolfmann",
+  "kiosk": "공항 셀프 체크인 좌석 선택(노르웨이어 화면, 비스듬함·손가락)",
+  "file": "g09.jpg",
+  "lang": "ko",
+  "task": "이전 화면으로 돌아가려면 뭘 눌러요?",
+  "gtBox": [
+   1004,
+   909,
+   1079,
+   990
+  ],
+  "size": [
+   1920,
+   2560
+  ],
+  "label": "TILBAKE"
+ },
+ {
+  "id": "g10",
+  "source": "https://commons.wikimedia.org/wiki/File:Self_Check-In_Kiosks_at_the_Hong_Kong_International_Airport.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "Mk2010",
+  "kiosk": "공항 셀프 체크인 항공사 선택(영어·중국어 화면)",
+  "file": "g10.jpg",
+  "lang": "ja",
+  "task": "ドラゴン航空に乗ります。どれを押せばいいですか？",
+  "gtBox": [
+   817,
+   1149,
+   1040,
+   1236
+  ],
+  "size": [
+   1920,
+   2560
+  ],
+  "label": "DRAGONAIR 港龍航空"
+ }
+]

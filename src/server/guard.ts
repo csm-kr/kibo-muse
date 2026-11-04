@@ -28,13 +28,13 @@ export function tokenBucket(perMinute: number, windowMs = 60_000, maxKeys = 10_0
 }
 
 // 영상 녹화·사용자 시험은 한 사람이 분당 몇 번 말하거나 찍는 정도라 이 한도에 닿지 않는다
-export const RATE = { interpret: 20, transcribe: 20, guide: 6 } as const;
+export const RATE = { interpret: 20, transcribe: 20, guide: 6, speak: 40 } as const;
 // wavBytes: 16kHz 모노 16비트 = 초당 32KB → 약 60초. imageChars: data URL base64 약 1.5MB. utteranceChars: 전사문
 export const MAX = { wavBytes: 2_000_000, imageChars: 2_000_000, utteranceChars: 500 } as const;
 export const overSize = (kind: keyof typeof MAX, n: number) => n > MAX[kind];
 
 export type GuardKind = keyof typeof RATE;
-const buckets: Record<GuardKind, Bucket> = { interpret: tokenBucket(RATE.interpret), transcribe: tokenBucket(RATE.transcribe), guide: tokenBucket(RATE.guide) };
+const buckets: Record<GuardKind, Bucket> = { interpret: tokenBucket(RATE.interpret), transcribe: tokenBucket(RATE.transcribe), guide: tokenBucket(RATE.guide), speak: tokenBucket(RATE.speak) };
 
 const limitOn = () => process.env.NODE_ENV === "production" || process.env.KIBO_RATE_LIMIT === "on";
 const clientKey = (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || "local";

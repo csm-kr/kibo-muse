@@ -18,7 +18,9 @@ export async function POST(req: Request) {
   if (Number(req.headers.get("content-length") ?? 0) > MAX.imageChars + 10_000) return tooLarge(req, "photo");
   const limited = rateLimited("guide", req);
   if (limited) return limited;
-  const { image, width, height, question, language } = (await req.json()) as { image?: string; width?: number; height?: number; question?: string; language?: string };
+  const { image, width, height, question, language, noSam } = (await req.json()) as { image?: string; width?: number; height?: number; question?: string; language?: string; noSam?: boolean };
+  // 평가 전용(eval/README "What SAM 3.1 adds"): SAM 없이 Spark 박스로 검증·표시한 경우와 짝지어 비교한다. production에서는 무시한다
+  const skipSam = noSam === true && process.env.NODE_ENV !== "production";
   if (typeof image === "string" && overSize("imageChars", image.length)) return tooLarge(req, "photo");
   if (typeof image !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(image) || !okSize(width) || !okSize(height))
     return Response.json({ error: "image must be a resized data:image URL with its width and height" }, { status: 400 });
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
       c.enqueue(line({ ...base, point, box, timing: { sparkMs } }));
       let mask = null;
       let samMs: number | null = null;
-      if (box[2] - box[0] >= 2 && box[3] - box[1] >= 2) {
+      if (!skipSam && box[2] - box[0] >= 2 && box[3] - box[1] >= 2) {
         try {
           const r = await samMask(image, box, width, height);
           samMs = r.ms;

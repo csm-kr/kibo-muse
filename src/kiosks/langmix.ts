@@ -46,5 +46,6 @@ export function replyLang(phone: string | null, spoken: string, utterance: strin
   if (s === p) return { lang: p, followSpoken: false };
   let text = utterance.normalize("NFC");
   for (const n of [...proper].sort((a, b) => b.length - a.length)) if (n) text = text.replace(new RegExp(escapeRe(n), "gi"), " ");
-  return !native[p]?.(text) && words(text) >= MIN_WORDS ? { lang: s, followSpoken: true } : { lang: p, followSpoken: false };
+  // 말한 언어만의 문자가 있으면(영어 휴대폰에 "안녕하세요") 짧아도 분명하다. 고유 문자가 없으면 세 단어 이상이어야 한다
+  return !native[p]?.(text) && (native[s]?.(text) || words(text) >= MIN_WORDS) ? { lang: s, followSpoken: true } : { lang: p, followSpoken: false };
 }

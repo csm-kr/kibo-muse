@@ -64,6 +64,28 @@ describe("KIBO 한 턴", () => {
     ]);
   });
 
+  it("되묻기 답 칩 종류(answers)를 되묻는 대답과 완료(더 주문?)에 실어 휴대폰에 보낸다", async () => {
+    const h = harness();
+    h.turn.hear({ id: "u1", text: "치즈버거 세트", lang: "Korean" });
+    h.asks[0].resolve({ kind: "clarify", say: "사이즈는요?", lang: "ko", answers: "size" });
+    await flush();
+    h.turn.hear({ id: "u2", text: "L", lang: "Korean" });
+    h.asks[1].resolve({ kind: "plan", events: ["a"], lang: "ko", done: { say: "더 주문하실 게 있나요?", gate: null, answers: "more" } });
+    await flush();
+    expect(h.replies()[0]).toMatchObject({ result: "clarify", answers: "size" });
+    expect(h.sent.find((m) => m.type === "done")).toMatchObject({ say: "더 주문하실 게 있나요?", answers: "more" });
+  });
+
+  it("되물을 때도 아는 만큼 먼저 누른다: 되묻는 대답을 먼저 보내고 그 버튼들을 재생한다. 완료(done)는 보내지 않는다", async () => {
+    const h = harness();
+    h.turn.hear({ id: "u1", text: "더블 치즈버거 세트, 먹고 갈게요", lang: "Korean" });
+    h.asks[0].resolve({ kind: "clarify", say: "사이즈는요?", lang: "ko", events: ["start", "order_type"] });
+    await flush();
+    expect(h.sent).toEqual([{ type: "reply", re: "u1", say: "사이즈는요?", replyLanguage: "ko", result: "clarify" }]);
+    expect(h.played).toEqual([["start", "order_type"]]);
+    expect(h.phases).toEqual(["thinking", "replaying", "idle"]);
+  });
+
   it("바쁠 때: 같은 메시지 id는 버리고, 같은 말은 '하던 대로' 답, 다른 말은 하나만 기다렸다 처리, 그 이상은 '다시 말해 달라' 답. 말마다 대답은 정확히 하나", async () => {
     const h = harness();
     h.turn.hear({ id: "u1", text: "더블 치즈버거 세트", lang: "Korean" });

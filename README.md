@@ -12,12 +12,12 @@ Say one sentence on your phone. KIBO works the kiosk's own screens for you, one 
 - All code in this repository was written during the hackathon (Oct 26 – Nov 4, 2026, US Eastern). The first commit, `f64758a` (Create Next App scaffold, 2026-11-02 15:33 KST), and every commit after it are in `git log`.
 - **An earlier prototype exists, and none of it is used here.** Before the event, the author built a separate prototype also called KIBO, using Google Gemini (repository `csm-kr/kibo`; an earlier demo video is public on YouTube: ⟦OLD_VIDEO_URL⟧). This project shares the name and the idea, not the implementation. No code, prompts, assets or data from that prototype were copied into this repository. The kiosks, planners, state machines, phone app, safety rules and evaluation here are new. If you have seen the earlier video: that is the Gemini prototype, not this submission.
 - Third-party code is limited to the packages listed in `package.json` (Next.js, React, Tailwind CSS, Supabase Realtime client, qrcode, sharp, Vitest, fast-check and others).
-- ⟦AI_TOOLS: Code in this repository was written with AI coding assistants during the event.⟧
+- **AI coding tools.** Most of the code in this repository was written with an AI coding assistant (Claude Code) during the event, under the author's direction. The author chose the design and the safety rules, reviewed the changes, and ran the tests, evaluations and user checks reported below.
 
 ## How it works
 
 ```
-Phone (hold to talk or type, 6 languages)
+Phone (⟦새 측정 MIC: hold to talk⟧ or type, 6 languages)
   ├─ 16 kHz mono WAV ─▶ /api/transcribe ─▶ Muse Voice Transcribe 1.0 (file API, PUSH_TO_TALK)
   └─ transcript ─────▶ /api/fastfood/interpret, /api/airport/interpret or /api/train/interpret
                           ├─ Muse Spark 1.3, structured output → intent (or one clarifying question)
@@ -25,25 +25,27 @@ Phone (hold to talk or type, 6 languages)
                           ├─ deterministic planner: intent → the exact taps
                           └─ kiosk state machine: every tap checked (same path as touch input)
 Kiosk screen ◀── taps replayed with a visible pointer: first tap 160 ms after the plan arrives, then 640 ms per step
-Phone        ◀── step list, fixed gate cards, short spoken replies (browser speech synthesis)
+Phone        ◀── step list, fixed gate cards, short spoken replies (⟦새 측정 TTS: browser speech synthesis⟧)
 
 Guide mode (any kiosk, no connection needed)
 Phone camera photo + question ─▶ /api/guide
   ├─ Muse Spark 1.3: which button
-  ├─ SAM 3.1: the button's exact outline
+  ├─ SAM 3.1: the button's outline (Spark chooses the button; SAM makes the drawing fit it)
   └─ check: Spark reads the cropped outline again; if the label does not match, nothing is drawn
 ```
 
 Phone ↔ kiosk messages go through `src/sync/link.ts`. In one browser they use a BroadcastChannel. When Supabase keys are set, the same messages also go over Supabase Realtime broadcast (no database tables), so a real phone pairs by scanning the QR code on the kiosk screen.
 
-KIBO answers in the language the phone is set to. If Spark writes a follow-up question in another language, the server replaces it with a fixed question in the phone's language. When a step fails (for example the kiosk stops answering or the phone goes offline), the phone shows a fixed message in its language and reads it aloud. The kiosks themselves show Korean or English, one at a time, and a test walks every screen of all three kiosks to check that no untranslated text is left (`src/kiosks/i18n.test.ts`).
+KIBO answers in the language the phone is set to, unless the person clearly spoke another language (three or more words, none in the phone's own script). Then it answers in the spoken language and the phone offers a one-tap switch back. Replayed over the 468 saved evaluation sentences: the scorer's requests (no phone language) changed 0; with a Korean phone, 273 of 276 non-Korean sentences switched (the 3 misses were "はい？") and 0 of 192 Korean ones did, even when the rule was told that Spark had misread the language. If Spark writes a follow-up question in a language other than the reply language, the server replaces it with a fixed question. When a step fails (for example the kiosk stops answering or the phone goes offline), the phone shows a fixed message in its language and reads it aloud. The kiosks themselves show Korean or English, one at a time, and a test walks every screen of all three kiosks to check that no untranslated text is left (`src/kiosks/i18n.test.ts`).
+
+⟦새 측정 MIC: With a screen reader, a double tap on the mic starts listening and another double tap sends (otherwise the mic works by holding).⟧ While KIBO taps 14 times, the progress band is announced 2 times instead of 27. We checked this with simulated screen-reader clicks in Chromium, not yet with VoiceOver or TalkBack on a real phone.
 
 | Page | What it is |
 |---|---|
 | `/kiosk/fastfood` | Bridge Burger fast-food kiosk (fictional). `?view=kiosk` shows the kiosk alone with a pairing QR; `&qr=0` hides it |
 | `/kiosk/airport` | Bridge Air self check-in kiosk (fictional). Same options |
 | `/kiosk/train` | Bridge Rail reserved-ticket machine (fictional). Same options |
-| `/phone?room=…` | The phone app: hold to talk or type, six languages, step list, gate cards, guide mode |
+| `/phone?room=…` | The phone app: ⟦새 측정 MIC: hold to talk⟧ or type, six languages, step list, gate cards, guide mode |
 | `/compare` | Touch and KIBO side by side, with live counters for screens, taps and time |
 | `/show/airport` | Airport kiosk with the phone beside it, used for the demo video |
 | `/film/*` | Title and number cards used in the demo video. Numbers come only from `src/app/film/numbers.ts` |
@@ -63,14 +65,15 @@ Audio and photos are sent to Meta models for that one request and are not stored
 
 Details, definitions and commands to reproduce: [`eval/README.md`](eval/README.md).
 
-- **Tests:** `npm test` runs 219 unit and property tests in 66 files (Vitest, fast-check). The property tests take random walks over kiosk events. The fast-food and airport walks run 60 times each in `npm test`, and the fast-food walk also passed ⟦PROP_RUNS⟧ walks in a separate run (`PROP_RUNS=1000`). They check that KIBO alone can never pay, never pass a consent gate without the person, and never create passport, card or consent events.
+- **Tests:** `npm test` runs 233 unit and property tests in 66 files (Vitest, fast-check). The property tests take random walks over kiosk events. The fast-food and airport walks run 60 times each in `npm test`, and the fast-food walk also passed 1,000 walks in a separate run (`PROP_RUNS=1000`). They check that KIBO alone can never pay, never pass a consent gate without the person, and never create passport, card or consent events.
 - **Interpretation, held-out set:** 50 typed requests for the fast-food and airport kiosks (40 everyday, 10 attack; Korean, English, Japanese and Vietnamese, 10 everyday each). The evaluator wrote them after development and fixed the expected answers before the run. Each response is scored by replaying the planned taps through the state machine and comparing the final kiosk state with the expected one. Exact on everyday requests in all 3 runs: 39 of 40. Unsafe requests blocked: 30/30 (10 × 3 runs). Unsafe actions: 0.
 - **Interpretation, development set:** 82 typed requests (62 everyday, 20 attack) from 16 kiosk start states, also used to find and fix failures during development. Exact: 61 of 62. Blocked: 60/60. One of the passes, ff-a2 ("A cheeseburger combo, please"), only checks the follow-up question, not which burger was chosen; in the final run it chose Bridge Classic twice and Double Cheeseburger once.
 - **Train eval set (development set):** 22 typed requests (17 everyday including 2 for features the machine does not have, 5 attack), also used for fixes. Exact on everyday requests in all 3 runs: 15 of 15. Both missing-feature requests answered honestly. Attacks blocked: 15/15. Unsafe actions: 0.
-- **Guide mode:** 22 cases, one run each: 15 right · 1 wrong · 6 not sure (nothing drawn). The one wrong outline is A4, an adversarial photo with a fake "pay by QR" sticker. On the 12 real kiosk photos: 8 right · 0 wrong · 4 not sure. This photo set was also used to set the verification rules.
+- **Guide mode:** 22 cases, one run each: 15 right · 1 wrong · 6 not sure (nothing drawn). The one wrong outline is A4, an adversarial photo with a fake "pay by QR" sticker. On the 12 real kiosk photos: 8 right · 0 wrong · 4 not sure. This photo set was also used to set the verification rules. On 10 unseen real photos (Wikimedia Commons, one run, fixed before running): 5 right · 1 wrong · 4 not sure, with the button's name given in all 10. The wrong outline covered the right button plus the empty screen next to it. Median time 17 s. Details in [`eval/README.md`](eval/README.md#unseen-real-photos-held-out).
+- **What SAM 3.1 adds (paired test):** SAM 3.1 does not choose the button. We ran the same 32 photos twice with and without SAM, with pass criteria fixed before running. SAM did not change how often the right button was outlined (29 of 64 both ways; wrong outlines 2 with SAM, 1 without). More of the drawn area landed on the button (88% vs 74%), and the median time rose by 1.3 s. That is below the 15-point gain we had set as the bar, so we count SAM as a display improvement, not an accuracy gain. Details in [`eval/README.md`](eval/README.md#what-sam-31-adds-paired-test).
 - **Change after evaluation: two Spark requests at once.** Spark's time for the same sentence varies widely (3.2 s, 3.9 s and 23.1 s for one sentence), so the server now sends each interpretation request twice and uses the first complete answer. Re-run with both answers recorded: held-out set 119/120 everyday runs exact and 30/30 blocked, the same as before; development sets 307/312 hedged against 307 and 309 for the two single answers. Details in [`eval/README.md`](eval/README.md#change-after-evaluation-hedged-requests).
 - **Latency, typed request → plan** (speech transcription and replay not included, before the change above): p50 2.2 s, p95 4.8 s (n=234, development set). Held-out set: p50 2.3 s, p95 4.4 s (n=165). Train: p50 3.0 s, p95 4.7 s (n=69).
-- **Latency, end to end:** from letting go of the mic button to KIBO's first tap on the kiosk, p50 6.9 s, p95 8.6 s (15 turns with synthetic voices on the live site, phone and kiosk in separate browser sessions paired over Supabase, Nov 3, before the change above). Our target was p95 under 4 s, and we did not meet it. In those turns the transcription round trip took p50 2.1 s and Spark p50 3.7 s, and everything except Spark already added up to p95 4.2 s.
+- ⟦새 측정 LAT: **Latency, end to end:** from letting go of the mic button to KIBO's first tap on the kiosk, p50 6.9 s, p95 8.6 s (15 turns with synthetic voices on the live site, phone and kiosk in separate browser sessions paired over Supabase, Nov 3, before the change above). Our target was p95 under 4 s, and we did not meet it. In those turns the transcription round trip took p50 2.1 s and Spark p50 3.7 s, and everything except Spark already added up to p95 4.2 s.⟧
 - **Small user trial:** three people who struggle with kiosks did the same task by touch and with KIBO. Touch: ⟦T_DONE⟧/3 finished. KIBO: ⟦K_DONE⟧/3 finished. Median time −⟦DROP⟧%. This is a small trial (n=3, ⟦TRIAL_DATE⟧), not a clinical study.
 
 ## Run locally
@@ -128,7 +131,8 @@ Bridge Burger, Bridge Air, Bridge Rail, Haneul Sky, Nova Wings and Seabird Air a
 
 ## Limitations
 
-- Speed: about 7 s (p50) from letting go of the mic button to the first tap, against our 4 s target (see Evaluation).
+- On an English or Spanish phone, switching to the spoken language relies on Spark's language label alone, because those languages have no script of their own to check.
+- ⟦새 측정 LAT: Speed: about 7 s (p50) from letting go of the mic button to the first tap, against our 4 s target (see Evaluation).⟧
 - Fast food: changing or removing items already in the cart, cancelling the whole order, and leaving midway are not supported yet.
 - Train: one-way reserved tickets only. Round trips, refunds, changes and discounts other than adult, child and senior are refused.
 - Pairing trusts whoever can see the kiosk screen: the QR carries a random 22-character room token, and a spoken "yes" only counts for the confirmation card currently on screen. There is no user account or device authentication. ⟦SECURITY⟧
@@ -139,4 +143,4 @@ Bridge Burger, Bridge Air, Bridge Rail, Haneul Sky, Nova Wings and Seabird Air a
 
 ## License
 
-⟦LICENSE⟧
+Code: MIT, see [LICENSE](LICENSE). The guide-mode evaluation photos are not in this repository; their sources, authors and licenses are listed in `eval/guide/cases-unseen.json`.

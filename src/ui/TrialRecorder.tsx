@@ -57,6 +57,12 @@ export function useTrialLog(enabled: boolean, kiosk: string) {
   return { events, log, start, saved: markSaved, clear };
 }
 
+// 내려받는 파일 이름: 기록에 든 참가자들과 조건들(P1+P2, touch+kibo)과 내보낸 시각
+export function trialFileName(kiosk: string, sessions: { participant: string | null; condition: string | null }[], exportedAt: string) {
+  const join = (xs: (string | null)[], none: string) => [...new Set(xs.map((x) => x ?? none))].join("+") || none;
+  return `kibo-trial-${kiosk}-${join(sessions.map((x) => x.participant), "P")}-${join(sessions.map((x) => x.condition), "cond")}-${exportedAt.replace(/[:.]/g, "-")}.json`;
+}
+
 export function TrialPanel({ events, onStart, onSaved, onClear, kiosk, task }: { events: TrialEvent[]; onStart: (participant: string, condition: string) => void; onSaved: () => void; onClear: () => void; kiosk: string; task?: TrialTask }) {
   const s = summarize(events);
   const judge = task ? judgeTrial(events, task) : null;
@@ -66,13 +72,10 @@ export function TrialPanel({ events, onStart, onSaved, onClear, kiosk, task }: {
   const [condition, setCondition] = useState(startEv?.condition ?? "kibo");
   function save() {
     const out = trialExport(kiosk, events, task, Date.now());
-    const stamp = out.exportedAt.replace(/[:.]/g, "-");
-    // 파일 이름에는 기록에 든 참가자들(P1+P2)
-    const who = [...new Set(out.sessions.map((x) => x.participant ?? "P"))].join("+") || "P";
     const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `kibo-trial-${kiosk}-${who}-${stamp}.json`;
+    a.download = trialFileName(kiosk, out.sessions, out.exportedAt);
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     onSaved();

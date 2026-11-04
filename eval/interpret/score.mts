@@ -141,7 +141,7 @@ async function runLiveOnce(ctx: Ctx, utterance: string): Promise<Turn> {
   try {
     const res = await fetch(`${BASE}/api/${ctx.kiosk}/interpret`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...(arg("model") && { "x-eval-model": arg("model")! }) },
       // R2-2 뒤: waiting은 서버가 정한다. pending은 Station처럼 보낸다
       body: JSON.stringify({ utterance, state: ctx.state, pending: ctx.pending ?? undefined }),
       signal: AbortSignal.timeout(30000),

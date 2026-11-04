@@ -7,7 +7,7 @@ import { idlePhase, type IdlePhase } from "@/engine/idle";
 import { newRun, trackRun, type RunBy, type RunStats } from "@/engine/run";
 import { langOf, type Understood } from "@/engine/turn";
 import { useKiboTurn } from "@/engine/useKiboTurn";
-import { openLink, type Link, type LinkMsg } from "@/sync/link";
+import { openLink, type Answer, type Link, type LinkMsg } from "@/sync/link";
 import { useRoom } from "@/sync/room";
 import { limitedReject } from "@/ui/limited";
 import { PairBadge, useQrFlag } from "@/ui/PairBadge";
@@ -19,7 +19,8 @@ import { beat, GAP } from "@/ui/pointer";
 import { useView } from "@/ui/useView";
 import { useSamples } from "../../samples";
 import { initialState, step, type CartLine, type KioskEvent, type KioskState, type Screen, type Target } from "../machine";
-import type { FastfoodIntent } from "../planner";
+import { answerKind } from "../clarify";
+import type { FastfoodIntent, Missing } from "../planner";
 import { FastfoodKiosk, type Highlight } from "./Kiosk";
 import { intentChips, lineName, orderLines, screenLabel, statusSummary } from "./labels";
 import { t } from "./strings";
@@ -33,7 +34,7 @@ interface InterpretResponse {
   followSpoken?: boolean;
   unknownItems: string[];
   intent: FastfoodIntent;
-  plan: { kind: "plan"; events: KioskEvent[]; paymentHandoff: boolean; assumed: unknown[]; dropped: unknown[]; endScreen: string } | { kind: "clarify"; missing: unknown[] } | { kind: "reject"; reason: string };
+  plan: { kind: "plan"; events: KioskEvent[]; paymentHandoff: boolean; assumed: unknown[]; dropped: unknown[]; endScreen: string } | { kind: "clarify"; missing: Missing[]; events?: KioskEvent[] } | { kind: "reject"; reason: string };
   timing: { sparkMs: number; totalMs: number };
   error?: string;
 }
@@ -81,6 +82,15 @@ const doneSay = {
     zh: "还要点别的吗？没有的话，请说“就这些”。",
     es: "¿Algo más? Si no, diga «Eso es todo».",
   },
+  // 메뉴 화면에서 끝났는데 장바구니가 비었을 때(예: "먹고 갈게요"만 말함). 더 주문할지 묻지 않고 무엇을 말할지 예를 든다
+  ask: {
+    en: "What would you like? For example: one Double Cheeseburger meal.",
+    ko: "드실 메뉴를 말씀해 주세요. 예: 더블 치즈버거 세트 하나",
+    ja: "ご注文をお話しください。例：ダブルチーズバーガーのセットを一つ。",
+    vi: "Bạn muốn gọi món gì? Ví dụ: một phần combo Double Cheeseburger.",
+    zh: "请说出您想点的餐。例如：一份双层芝士汉堡套餐。",
+    es: "¿Qué desea pedir? Por ejemplo: un menú de Double Cheeseburger.",
+  },
   // 그 버거에 없거나 뺄 수 없는 재료를 빼 달라고 했을 때
   dropped: {
     en: "Some ingredients you asked to remove aren't in that burger or can't be removed, so I left them.",
@@ -91,6 +101,12 @@ const doneSay = {
     es: "Algunos ingredientes no están en esa hamburguesa o no se pueden quitar, así que los dejé.",
   },
 };
+
+// 계획을 다 누른 뒤 휴대폰에 할 말. hasItems: 이번 계획까지 장바구니에 담긴 것이 있는가
+export function planDoneSay(p: { endScreen: string; dropped: number; hasItems: boolean }, l: ReturnType<typeof langOf>, payButton: string) {
+  const end = p.endScreen === "review" ? doneSay.pay[l](payButton) : p.hasItems ? doneSay.more[l] : doneSay.ask[l];
+  return [p.dropped ? doneSay.dropped[l] : "", end].filter(Boolean).join(" ");
+}
 
 const samples = [
   // 결정적 장면 발화. 마지막 "그게 다예요"까지 말해야 주문 확인(Ready to pay)에서 끝난다
@@ -178,6 +194,13 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
   const helloSeenRef = useRef(0);
   const lastActRef = useRef(0);
   const [idle, setIdle] = useState<IdlePhase>({ kind: "active" });
+  // 휴대폰 마이크가 듣는 중: 누른 순간부터 키오스크에 'Listening' 띠(그 앱 비교: 첫 변화 1.6초). 말이 오거나 end가 오면, 늦어도 60초 뒤에 끈다
+  const [listening, setListening] = useState<boolean | "heard">(false);
+  useEffect(() => {
+    if (!listening) return;
+    const id = setTimeout(() => setListening(false), 60_000);
+    return () => clearTimeout(id);
+  }, [listening]);
   // 개발 콘솔에서 보낸 말이면 키오스크가 대답을 읽고, 휴대폰에서 온 말이면 휴대폰이 읽는다
   const localRef = useRef(false);
   const playingRef = useRef(false);
@@ -240,13 +263,17 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
 
   // 휴대폰이 말과 함께 보낸 언어. 한도(429) 문구를 그 언어로 받는다
   const sayLangRef = useRef("");
+  // 휴대폰 답 칩이 글과 함께 보낸 정해진 답. 같은 글의 턴에만 한 번 쓴다(서버가 Spark 없이 계획)
+  const chipRef = useRef<{ text: string; answer: Answer } | null>(null);
   async function understand(utterance: string, signal: AbortSignal): Promise<Understood<KioskEvent>> {
     setChips([]);
+    const chip = chipRef.current;
+    chipRef.current = null;
     // 휴대폰 말에만 그 언어(?lang)를 붙인다. 서버는 그 언어로 답한다. 키오스크에서 친 말은 붙이지 않아 Spark가 고른 언어로 답한다
     const res = await fetch(`/api/fastfood/interpret${sayLangRef.current ? `?lang=${encodeURIComponent(sayLangRef.current)}` : ""}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ utterance, state: stateRef.current, pending: pendingRef.current ?? undefined }),
+      body: JSON.stringify({ utterance, state: stateRef.current, pending: pendingRef.current ?? undefined, answer: chip?.text === utterance ? chip.answer : undefined }),
       signal,
     });
     const limited = await limitedReject(res, sayLangRef.current);
@@ -261,12 +288,14 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     pendingRef.current = p.kind === "clarify" ? body.intent : null;
     setReplyLang(lang);
     setChips(p.kind === "reject" ? [] : intentChips(body.intent, p.kind === "plan" ? (p.endScreen as Screen) : null, stateRef.current.lang));
-    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang, followSpoken: body.followSpoken };
+    // 되물을 때도 아는 만큼 먼저 누른다(빠진 것을 고르는 화면에서 멈춤)
+    if (p.kind === "clarify") return { kind: "clarify", say: body.say, lang, followSpoken: body.followSpoken, events: p.events ?? [], answers: answerKind(p.missing ?? []) };
     if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang, say: body.say, followSpoken: body.followSpoken };
     const l = langOf(lang);
     const payButton = t.pay[stateRef.current.lang];
-    const say = [p.dropped.length ? doneSay.dropped[l] : "", p.endScreen === "review" ? doneSay.pay[l](payButton) : doneSay.more[l]].filter(Boolean).join(" ");
-    return { kind: "plan", events: p.events, lang, followSpoken: body.followSpoken, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton } };
+    const hasItems = stateRef.current.cart.length > 0 || p.events.some((e) => e.target === "add_to_cart");
+    const say = planDoneSay({ endScreen: p.endScreen, dropped: p.dropped.length, hasItems }, l, payButton);
+    return { kind: "plan", events: p.events, lang, followSpoken: body.followSpoken, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton, ...(p.endScreen !== "review" && hasItems && { answers: "more" as const }) } };
   }
 
   function send(m: LinkMsg) {
@@ -330,7 +359,8 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     // 키오스크 앞에서 친 말은 지금 카드에 대한 말이다(휴대폰 말은 카드 id를 붙여 온다)
     turn.hear({ text: utterance, lang: "auto", gateId: turn.gateId() ?? undefined });
   }
-  const onPhoneUtterance = useEffectEvent((m: { id?: string; text: string; lang: string; gateId?: string }) => {
+  const onPhoneUtterance = useEffectEvent((m: { id?: string; text: string; lang: string; gateId?: string; answer?: Answer }) => {
+    chipRef.current = m.answer ? { text: m.text, answer: m.answer } : null;
     localRef.current = false;
     // 말 원문은 남기지 않는다. 턴이 있었다는 사실만
     log({ kind: "turn", by: "phone", screen: stateRef.current.screen });
@@ -351,11 +381,17 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     // (다시) 연결되면 지금 상태를 다시 보낸다
     const offJoin = link.onJoin(() => setHello((n) => n + 1));
     const off = link.subscribe((m) => {
-      if (m.type === "utterance") onPhoneUtterance(m);
+      if (m.type === "utterance") {
+        setListening(false);
+        onPhoneUtterance(m);
+      }
       if (m.type === "hello") setHello((n) => n + 1);
-      if (m.type === "listening") onListening();
+      if (m.type === "listening") {
+        setListening(m.end ? false : m.heard ? "heard" : true);
+        if (!m.end && !m.heard) onListening();
+      }
       // 글로 보낸 경우에도 해석 시간이 빠지지 않게 받은 순간부터 잰다(마이크로 이미 시작했으면 그대로)
-      if (m.type === "listening" || m.type === "utterance") {
+      if ((m.type === "listening" && !m.end) || m.type === "utterance") {
         const now = Date.now();
         setRun((r) => trackRun(r, { type: "listening" }, now));
       }
@@ -383,7 +419,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     linkRef.current?.send({ type: "status", screen: state.screen, label, busy, items, total, kioskId: "fastfood", summary, cart: state.cart, draft: state.draft, kioskLang: state.lang, ...(progress && { step: progress.i, steps: progress.n }), ...(answering && { gate: turn.card() }), ...((state.screen === "review" || state.screen === "payment") && { lines: orderLines(state.cart, state.lang) }), ...(paidNo !== null && { paid: paidNo }) });
   }, [state, busy, progress, hello, replyLang, turn, paidNo]);
 
-  const banner = <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} />;
+  const banner = <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} listening={listening} />;
 
   const timeoutPopup =
     idle.kind === "warning" ? (
@@ -440,7 +476,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
         {/* 띠 칸은 KIBO가 일하지 않는 대기 화면에서 비어 있다. KIBO 연결 QR은 그 칸 오른쪽 아래, 키오스크 틀 바로 위에 붙인
             스티커처럼 둔다(키오스크 화면 내용을 가리지 않는다). ?qr=0이면 숨긴다 */}
         <div className="relative h-[150px]" style={{ width: 540 * scale }}>
-          <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} slot />
+          <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} listening={listening} slot />
           {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute right-0 bottom-0" />}
         </div>
         {kiosk}
@@ -472,7 +508,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
           {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute -top-1 right-0 max-xl:hidden @max-[320px]:hidden" />}
           {phase === "thinking" || phase === "replaying" ? (
             <div className="h-full w-full">
-              <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} slot />
+              <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} listening={listening} slot />
             </div>
           ) : (
             <h2 className="pb-1 text-[32px] font-bold">{title}</h2>

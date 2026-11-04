@@ -52,6 +52,13 @@ export const orderLinesIn = (src: { lines?: Line[]; cart?: CartLine[] }, languag
 // 키오스크 요약(statusSummary 꼴: [품목 이름 · ]개수 · 합계)에서 품목 이름만 꺼낸다
 const kioskName = (summary?: string) => summary?.split(" · ").slice(0, -2).join(" · ") || undefined;
 
+// 휴대폰 실시간 키오스크 카드: 지금 화면 이름·요약(휴대폰 언어)과 담은 줄(이름·수량·값). 메뉴 이름은 ko 휴대폰이면 한국어, 그 밖은 영어(메뉴 이름이 en·ko뿐)
+export function kioskCard(s: Status, language: string) {
+  const { label, summary } = statusLine(s, language);
+  const lines = (s.cart ?? []).map((l) => ({ name: lineName(l, menuLang(language)), qty: l.qty, price: l.qty * l.unitPrice }));
+  return { label, summary, lines, total: s.total };
+}
+
 export function statusLine(s: Status, language: string): { label: string; summary: string } {
   const tx = phoneText(language);
   // 단계 이름이 버튼을 부르면({b}) 키오스크 화면 글자 그대로 쓴다(번역한 버튼 이름은 키오스크에 없다)
@@ -74,3 +81,42 @@ export const bandHidden = (s: Status) => s.screen === "idle" && !s.busy && s.ite
 // live: 길이 지금 연결됐는가(모르면 null), wasLive: 이 화면에서 한 번이라도 연결됐는가
 export const linkChip = (hasStatus: boolean, live: boolean | null, wasLive: boolean): "kiosk" | "reconnecting" | "none" =>
   wasLive && live === false ? "reconnecting" : hasStatus ? "kiosk" : "none";
+
+// 마이크 아래 안내 줄. 녹음 중(두 번 탭으로 시작했으면 '다시 두 번 탭하면 보내요') → 기다리는 중 → 오류 안내 → 조작 중 → 되묻기 → 결제 끝·결제 중 → 기본.
+// 되묻기는 결제가 끝난 뒤의 '번호가 불리면 받으세요'보다 앞선다(다음 턴에 KIBO가 물어도 옛 안내가 남지 않게)
+export function phoneHint(
+  tx: ReturnType<typeof phoneText>,
+  s: { recording: boolean; toggled: boolean; waiting: boolean; longWait: boolean; notice: string | null; operating: boolean; asking: boolean; orderCard: string | null | undefined },
+) {
+  if (s.recording) return s.toggled ? tx.toggleOn : tx.listening;
+  // 보낸 뒤 3초가 지나도 대답이 없으면(longWait) 얼마나 걸리는지 알린다
+  if (s.waiting) return s.longWait ? tx.waitLong : tx.thinking;
+  return s.notice ?? (s.operating ? tx.operating : s.asking ? tx.answer : s.orderCard === "paid" ? tx.pickup : s.orderCard === "paying" ? tx.paying : tx.hold);
+}
+
+// 한 번 누르면 이어 듣기(11/4 사용자: "한 번 누르고 다시 안 눌러도 되게"). 대답을 다 읽고 키오스크가 다 누른 뒤 저절로 다시 듣는다.
+// 결제 안내·영수증(주문 끝)·관문 카드(사람이 눌러 확인)가 떴거나, 못 알아들음이 2번 이어졌으면 멈추고 다시 누르기를 기다린다
+// KIBO가 다 읽었는지는 휴대폰이 마이크를 열기 직전에 따로 본다(speechBusy)
+export const autoListen = (s: { convo: boolean; idle: boolean; waiting: boolean; operating: boolean; handoff: boolean; receipt: boolean; gate: boolean; fails: number }) =>
+  s.convo && s.idle && !s.waiting && !s.operating && !s.handoff && !s.receipt && !s.gate && s.fails < 2;
+
+// 대답이 'KIBO가 n번 누른다'면, 키오스크의 조작 중 상태(status busy)가 오기 전 잠깐도 조작 중으로 본다.
+// 대답 → 조작 상태 사이에 안내 줄이 '누른 채로 말하고…'로 갔다가 0.1초 안에 '누르고 있어요'로 바뀌어 대답 알림과 겹쳤다
+export const tapBridge = (on: boolean, m: LinkMsg) =>
+  m.type === "reply" ? m.result === "plan" && (m.taps ?? 0) > 0 : m.type === "done" || (m.type === "status" && m.busy) ? false : on;
+
+// 다리의 시간 상한. 대답 뒤 4초 안에 키오스크의 조작 중 상태가 오지 않으면(누르기를 시작하지 못함) 다리를 끊고 평소 안내로 돌아간다
+export function bridgeTimeout(on: boolean, off: () => void, ms = 4000) {
+  if (!on) return;
+  const t = setTimeout(off, ms);
+  return () => clearTimeout(t);
+}
+
+// 되물은 뒤(마지막 말이 물음) 키오스크가 첫 화면으로 돌아가면(시간 초과 등) 그 물음은 낡았다.
+// 물음 표시(질문 카드·'눌러서 대답하세요')를 지우고 '처음으로 돌아갔어요'를 한 번 붙인다. 아니면 그대로 돌려준다
+// 답 칩이 붙은 완료 턴(더 주문?)도 물음으로 본다. 안내 줄이 마지막이 되어 칩도 사라진다
+export function expireAsk<T extends { who: string; text: string; kind?: string; answers?: string }>(turns: T[], prevScreen: string | null, screen: string, text: string): T[] {
+  const last = turns.at(-1);
+  if (screen !== "idle" || prevScreen === null || prevScreen === "idle" || last?.who !== "kibo" || (last.kind !== "ask" && !last.answers)) return turns;
+  return [...turns.slice(0, -1), { ...last, kind: undefined }, { who: "kibo", text } as T];
+}

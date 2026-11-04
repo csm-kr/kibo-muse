@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { planSay } from "@/engine/turn";
-import { initialState } from "@/kiosks/fastfood/machine";
+import { planSay, rejectSay } from "@/engine/turn";
+import { initialState, step, type KioskEvent, type KioskState } from "@/kiosks/fastfood/machine";
+import { plan, type FastfoodIntent } from "@/kiosks/fastfood/planner";
 import { POST } from "./route";
 
 // Spark 응답을 흉내 낸다. 요청 본문은 sent에 남긴다
@@ -23,6 +24,32 @@ afterEach(() => {
 });
 
 describe("/api/fastfood/interpret", () => {
+  it("주문이 아닌 말(인사·메뉴 질문)은 일반 거절이 아니라 Spark 응대 문장으로 답한다. 첫 화면이면 [Order here]만 먼저 눌러 매장·포장 화면을 띄운다(아는 만큼 먼저 누르기). 휴대폰 언어와 다른 문장이면 고정 인사로 바꾼다(11/4 실기기 '안녕하세요')", async () => {
+    fakeSpark({ ...base, unsupported: "none", say: "제일 싼 버거는 불고기버거 4,800원입니다." });
+    const chat = await call("제일 싼 버거가 뭐예요?", "?lang=Korean");
+    // 매장·포장 화면을 띄웠으니 휴대폰에 [먹고 갈게요][포장할게요] 칩이 붙게 그 칸을 빠진 것으로 보낸다
+    expect(chat.plan).toEqual({ kind: "clarify", missing: [{ field: "orderType" }], events: [{ by: "kibo", target: "start" }] });
+    expect(chat.say).toBe("제일 싼 버거는 불고기버거 4,800원입니다.");
+    // 첫 화면이 아니면 누르지 않는다
+    const menu = { ...initialState(), screen: "order_type" };
+    const r2 = await (await POST(new Request("http://x/api/fastfood/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "제일 싼 버거가 뭐예요?", state: menu }) }))).json();
+    expect(r2.plan.kind).toBe("reject");
+    expect(r2.say).toBe("제일 싼 버거는 불고기버거 4,800원입니다.");
+    fakeSpark({ ...base, unsupported: "none", replyLanguage: "en", say: "Hi! What would you like?" });
+    expect((await call("안녕하세요", "?lang=Korean")).say).toBe(rejectSay("chat", "ko"));
+  });
+
+  it("평가 전용 x-eval-model 헤더(개발 서버에서만)로 Spark 판본을 바꿔 같은 평가 세트를 비교한다. production에서는 무시한다", async () => {
+    const req = () => new Request("http://x/api/fastfood/interpret", { method: "POST", headers: { "x-eval-model": "muse-spark-1.1" }, body: JSON.stringify({ utterance: "콜라 하나", state: initialState() }) });
+    const sent = fakeSpark({ ...base, unsupported: "none" });
+    await POST(req());
+    expect((sent.body as unknown as { model: string }).model).toBe("muse-spark-1.1");
+    vi.stubEnv("NODE_ENV", "production");
+    const prod = fakeSpark({ ...base, unsupported: "none" });
+    await POST(req());
+    expect((prod.body as unknown as { model: string }).model).not.toBe("muse-spark-1.1");
+  });
+
   it("담긴 줄 바꾸기·빼기·주문 취소(unsupported)는 계획하지 않고 거절한다. Spark가 했다고 말해도 그 말은 쓰지 않고 고정 문구로 덮는다", async () => {
     const sent = fakeSpark({ ...base, unsupported: "remove_cart_item" });
     const body = await call("담은 버거에서 피클 빼 주세요");
@@ -110,5 +137,39 @@ describe("/api/fastfood/interpret", () => {
     expect(vi.say).toContain("[처음으로]");
     expect(vi.say).not.toContain("[Hủy]");
     expect((await post("en", "?lang=ko")).say).toContain("[Start over]");
+  });
+
+  it("휴대폰 답 칩(answer)은 Spark를 부르지 않고 앞 의도에 답을 합쳐 바로 계획한다. 사이즈 칩 두 턴에 한 번만 담고, '그게 다예요'는 주문 확인까지. 상태가 바뀌어 맞지 않으면 Spark 길", async () => {
+    let sparkCalls = 0;
+    vi.stubEnv("MODEL_API_KEY", "test");
+    vi.stubGlobal("fetch", async () => {
+      sparkCalls++;
+      return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ ...base, unsupported: "none" }) } }] }), { status: 200 });
+    });
+    const post = async (state: KioskState, answer: object, pending?: FastfoodIntent) =>
+      (await POST(new Request("http://x/api/fastfood/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "칩", state, pending, answer }) }))).json();
+    const run = (s: KioskState, events: KioskEvent[]) => events.reduce((x, e) => (step(x, e) as { state: KioskState }).state, s);
+    // 첫 턴(되묻기): 사이즈만 빠짐. 아는 만큼 먼저 누른 뒤 사이즈 화면에서 멈춘다
+    const pending: FastfoodIntent = { orderType: "eat_in", items: [{ menuId: "double_cheese", mode: "set", drink: "zero_cola", qty: 1 }] };
+    const first = plan(initialState(), pending);
+    if (first.kind !== "clarify") throw new Error(first.kind);
+    const s1 = run(initialState(), first.events);
+    const size = await post(s1, { field: "size", value: "L" }, pending);
+    expect(sparkCalls).toBe(0);
+    expect(size.plan.kind).toBe("plan");
+    const s2 = run(s1, size.plan.events);
+    expect(s2.cart.map((l) => [l.menuId, l.size, l.qty])).toEqual([["double_cheese", "L", 1]]);
+    // 더 주문? → [그게 다예요]: 주문 확인 화면까지만(결제 넘기기 없음)
+    expect(s2.screen).toBe("menu");
+    const done = await post(s2, { field: "more" });
+    expect(sparkCalls).toBe(0);
+    expect(done.plan).toMatchObject({ kind: "plan", endScreen: "review", paymentHandoff: false });
+    // 인사에 [Order here]를 눌러 매장·포장 화면이면 앞 의도 없이도 그 칩 하나로 계획한다
+    const eatIn = await post(run(initialState(), [{ by: "kibo", target: "start" }]), { field: "orderType", value: "eat_in" });
+    expect(sparkCalls).toBe(0);
+    expect(eatIn.plan).toMatchObject({ kind: "plan", events: [{ target: "order_type", value: "eat_in" }], endScreen: "menu" });
+    // 사람이 그새 사이즈를 골랐다(사이즈 화면이 아님) → Spark 길
+    await post(run(s1, [{ by: "touch", target: "size", value: "M" }]), { field: "size", value: "L" }, pending);
+    expect(sparkCalls).toBeGreaterThan(0);
   });
 });
