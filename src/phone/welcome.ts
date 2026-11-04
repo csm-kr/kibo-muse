@@ -30,3 +30,35 @@ const examples: Record<string, Record<Lang, [string, string]>> = {
 };
 
 export const welcomeExamples = (kioskId: string | undefined, language: string) => (examples[kioskId ?? "fastfood"] ?? examples.fastfood)[langOf(language)];
+
+// 첫 인사(11/5 사용자: "처음 탭했을 때 키오스크 종류에 맞춰 인사해야 연결된 것도 알고, 궁금하면 물어보라고 하면 하기 편하다").
+// 처음 쓰는 사람·어르신·외국인을 생각해 짧은 문장 넷: 인사, 무엇과 연결됐는지(쉬운 말), 무엇을 말하면 되는지 하나, 궁금하면 물어보라.
+// 공항은 공용 기계라 항공사 이름을 넣지 않는다. 연결되면 화면에 글로, 처음 탭할 때 소리로 한 번
+const greetings: Record<string, Record<Lang, string>> = {
+  fastfood: {
+    en: "Hello! You're connected to the Bridge Burger kiosk. Just tell me what you'd like to eat. If you have any questions, just ask.",
+    ko: "안녕하세요. 브리지 버거 주문기와 연결됐어요. 드시고 싶은 걸 편하게 말씀해 주세요. 궁금한 사항이 있으면 물어보세요.",
+    ja: "こんにちは。ブリッジバーガーの注文機につながりました。食べたいものを気軽に話してください。分からないことがあれば聞いてください。",
+    vi: "Xin chào! Điện thoại đã kết nối với máy gọi món Bridge Burger. Bạn muốn ăn gì cứ nói với tôi. Có thắc mắc gì thì cứ hỏi tôi nhé.",
+    zh: "您好！已连接到 Bridge Burger 点餐机。想吃什么，直接告诉我就行。有任何问题，都可以问我。",
+    es: "¡Hola! Está conectado al quiosco de Bridge Burger. Dígame qué le gustaría comer. Si tiene alguna pregunta, pregúnteme.",
+  },
+  airport: {
+    en: "Hello! You're connected to the airport check-in kiosk. Tell me your airline and how many of you are flying. If you have any questions, just ask.",
+    ko: "안녕하세요. 공항 체크인 기계와 연결됐어요. 타실 항공사와 몇 분이 가시는지 말씀해 주세요. 궁금한 사항이 있으면 물어보세요.",
+    ja: "こんにちは。空港のチェックイン機につながりました。航空会社と、何人で乗るかを話してください。分からないことがあれば聞いてください。",
+    vi: "Xin chào! Điện thoại đã kết nối với máy làm thủ tục ở sân bay. Hãy cho tôi biết hãng bay và số người đi. Có thắc mắc gì thì cứ hỏi tôi nhé.",
+    zh: "您好！已连接到机场自助值机机。请告诉我航空公司和几位乘机。有任何问题，都可以问我。",
+    es: "¡Hola! Está conectado al quiosco de facturación del aeropuerto. Dígame su aerolínea y cuántas personas viajan. Si tiene alguna pregunta, pregúnteme.",
+  },
+  train: {
+    en: "Hello! You're connected to the train ticket machine. Tell me where and when you'd like to go. If you have any questions, just ask.",
+    ko: "안녕하세요. 기차표 발매기와 연결됐어요. 어디로, 언제 가시는지 말씀해 주세요. 궁금한 사항이 있으면 물어보세요.",
+    ja: "こんにちは。きっぷの券売機につながりました。どこへ、いつ行くかを話してください。分からないことがあれば聞いてください。",
+    vi: "Xin chào! Điện thoại đã kết nối với máy bán vé tàu. Hãy cho tôi biết bạn muốn đi đâu và khi nào. Có thắc mắc gì thì cứ hỏi tôi nhé.",
+    zh: "您好！已连接到火车售票机。请告诉我您想去哪里、什么时候出发。有任何问题，都可以问我。",
+    es: "¡Hola! Está conectado a la máquina de billetes de tren. Dígame adónde y cuándo quiere ir. Si tiene alguna pregunta, pregúnteme.",
+  },
+};
+
+export const greeting = (kioskId: string | undefined, language: string) => (greetings[kioskId ?? "fastfood"] ?? greetings.fastfood)[langOf(language)];

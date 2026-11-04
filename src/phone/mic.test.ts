@@ -6,7 +6,7 @@ import { TAIL_MS } from "./ptt";
 const flush = async () => {
   for (let i = 0; i < 30; i++) await Promise.resolve();
 };
-function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrack?: boolean; silentStop?: boolean } = {}) {
+function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrack?: boolean; silentStop?: boolean; talking?: () => boolean } = {}) {
   let t = 0;
   let timers: { at: number; fn: () => void }[] = [];
   const tick = async (ms: number) => {
@@ -77,7 +77,7 @@ function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrac
   const mic = createMic(deps, {
     onPhase: (p) => phases.push(p),
     onRecording: () => log.push("recording"),
-    onTake: (x) => void log.push(`take:${x.blob.size}${x.skipMs ? `@${x.skipMs}` : ""}`),
+    onTake: (x) => void log.push(`take:${x.blob.size}${x.keepLastMs !== undefined ? `@${x.keepLastMs}` : ""}`),
     onTooShort: () => log.push("tooShort"),
     onBlocked: () => log.push("blocked"),
     onFailed: () => log.push("failed"),
@@ -85,6 +85,8 @@ function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrac
     onTooLong: () => log.push("tooLong"),
     onToggleOn: () => log.push("toggleOn"),
     onNoSpeech: () => log.push("noSpeech"),
+    talking: o.talking,
+    onBarge: () => log.push("barge"),
   });
   const live = () => streams.flatMap((s) => s.tracks).filter((x) => x.readyState === "live").length;
   return { mic, tick, log, phases, streams, recs, watches, live, phase: () => phases.at(-1) ?? "idle" };
@@ -225,7 +227,7 @@ describe("누르고 말하기 녹음기(mic)", () => {
     expect(h.watches).toEqual([]);
   });
 
-  it("끼어들기: watch가 keep(앞 몇 ms부터 남길지)을 알리면 녹음본에 그 앞을 버릴 길이(skipMs, 녹음 시작부터)를 붙인다", async () => {
+  it("끼어들기: watch가 keep(지금부터 몇 ms 앞부터 남길지)을 알리면 녹음본에 끝에서부터 남길 길이(keepLastMs)를 붙인다. 마이크가 늦게 소리를 내기 시작해도 끝은 시계와 맞는다", async () => {
     const r = rig();
     void r.mic.down();
     await r.tick(120); // 50ms에 녹음 시작
@@ -234,7 +236,26 @@ describe("누르고 말하기 녹음기(mic)", () => {
     r.watches[0].keep(700);
     r.watches[0].end();
     await r.tick(TAIL_MS + 10);
-    expect(r.log).toEqual(["recording", "toggleOn", "take:10@1250"]);
+    // 2000ms에 keep(700) → 1300ms부터. 보내기는 2000ms + 꼬리 TAIL_MS에 끝난다
+    expect(r.log).toEqual(["recording", "toggleOn", `take:10@${2000 + TAIL_MS - 1300}`]);
+  });
+
+  it("KIBO가 말하는 중에 탭 모드 듣기를 다시 누르면 보내지 않는다: KIBO를 멈추고(끼어들기) 그때부터 들은 것만 남긴다", async () => {
+    let talking = false;
+    const r = rig({ talking: () => talking });
+    void r.mic.down();
+    await r.tick(120);
+    await r.mic.up();
+    await r.tick(880);
+    talking = true;
+    void r.mic.down(); // 1000ms
+    await r.tick(10);
+    expect([r.log, r.phase()]).toEqual([["recording", "toggleOn", "barge"], "recording"]);
+    talking = false;
+    await r.tick(990);
+    r.watches[0].end(); // 2000ms
+    await r.tick(TAIL_MS + 10);
+    expect(r.log.at(-1)).toBe(`take:10@${2000 + TAIL_MS - 1000}`);
   });
 
   it("탭 모드에서 말소리를 못 들으면(watch none) 보내지 않고 마이크를 끄고 알린다. cancel()도 보내지 않고 쉬는 상태로 돌아간다(답 칩을 누름)", async () => {

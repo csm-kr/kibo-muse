@@ -9,8 +9,8 @@ import { watchSilence } from "./silence";
 
 export type { Take } from "./mic";
 
-// talking: KIBO가 말하는 중인가(이어 듣기에서 끼어들기를 잰다), onBarge: 사람이 끼어들었다(KIBO를 멈춘다)
-export type HoldToTalk = Omit<MicEvents, "onPhase"> & { talking?: () => boolean; onBarge?: () => void };
+// talking: KIBO가 말하는 중인가(탭 모드에서 끼어들기를 잰다), onBarge: 사람이 끼어들었다(KIBO를 멈춘다)
+export type HoldToTalk = Omit<MicEvents, "onPhase">;
 
 // 길게 누를 때 메뉴·글자 선택·스크롤이 끼어들지 않게
 export const HOLD_CLASS = "touch-none select-none [-webkit-touch-callout:none]";
@@ -52,6 +52,8 @@ export function useHoldToTalk(o: HoldToTalk) {
         onTooLong: () => evRef.current.onTooLong?.(),
         onToggleOn: () => evRef.current.onToggleOn?.(),
         onNoSpeech: () => evRef.current.onNoSpeech?.(),
+        talking: () => evRef.current.talking?.() ?? false,
+        onBarge: () => evRef.current.onBarge?.(),
       },
     );
     micRef.current = mic;

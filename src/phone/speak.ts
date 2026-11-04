@@ -251,6 +251,8 @@ let seq = 0;
 let queued = 0;
 // 읽는 중인가. 이어 듣기는 KIBO가 다 읽은 뒤에 마이크를 연다(자기 목소리를 듣지 않게)
 export const speechBusy = () => queued > 0 || playing !== null || !!window.speechSynthesis?.speaking || !!window.speechSynthesis?.pending;
+// 소리가 실제로 나는 중인가(목소리를 기다리는 동안은 아니다). 끼어들기는 이때만 메아리를 잰다: 기다리는 동안 재면 조용함을 메아리로 잡아 기준이 낮아진다
+export const speechAudible = () => playing !== null || !!window.speechSynthesis?.speaking;
 // 끼어들기: 사람이 말을 시작하면 읽던 것(Gemini·기기 목소리·짧은 대답)을 멈추고, 목소리를 기다리던 읽기와 완료 안내도 버린다
 export function hush() {
   seq++;

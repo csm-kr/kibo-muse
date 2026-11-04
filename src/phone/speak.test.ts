@@ -82,6 +82,19 @@ describe("읽는 중인지(이어 듣기를 미루는 데 쓴다)", () => {
     expect(said[0].rate).toBe(1.15);
   });
 
+  it("소리가 실제로 나는 동안만 들린다(speechAudible). 목소리를 기다리는 동안은 아니다: 끼어들기는 이때 메아리 크기를 재지 않는다", async () => {
+    vi.resetModules();
+    const synth = { speaking: false, pending: false, getVoices: () => [{ lang: "ko-KR", name: "K", localService: true }], speak: () => void (synth.speaking = true), cancel() {}, addEventListener() {}, removeEventListener() {} };
+    vi.stubGlobal("window", { speechSynthesis: synth });
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem() {} });
+    vi.stubGlobal("SpeechSynthesisUtterance", class { rate = 1; constructor(public text: string) {} });
+    const { speak, speechBusy, speechAudible } = await import("./speak");
+    const done = speak("네", "ko");
+    expect([speechBusy(), speechAudible()]).toEqual([true, false]);
+    await done;
+    expect(speechAudible()).toBe(true);
+  });
+
   it("끼어들기(hush): 읽던 것을 멈추고, 앞 대답을 기다리던 완료 안내(after)도 버린다", async () => {
     vi.resetModules();
     const said: string[] = [];

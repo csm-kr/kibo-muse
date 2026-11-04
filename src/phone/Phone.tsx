@@ -15,12 +15,12 @@ import { payStep } from "./pay";
 import { nextOrder, type OrderMemo } from "./receipt";
 import { unlockAudio } from "./silence";
 import { ackKind } from "./ackKind";
-import { ack, hush, preloadAck, setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
+import { ack, hush, preloadAck, setSound, soundOn, speak, speechAudible, subscribeSound, unlockSpeech } from "./speak";
 import { autoListen, bandHidden, bridgeTimeout, expireAsk, linkChip, orderLinesIn, phoneHint, statusLine, tapBridge } from "./status";
 import { failLine, phoneText } from "./text";
 import { KioskCard } from "./KioskCard";
 import { HOLD_CLASS, useHoldToTalk, type Take } from "./useHoldToTalk";
-import { welcomeExamples } from "./welcome";
+import { greeting, welcomeExamples } from "./welcome";
 
 // guide·pair: room 없이 연 휴대폰(어느 키오스크와도 연결 안 됨)은 안내 모드만 쓴다
 const langs = [
@@ -271,11 +271,14 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   }
 
   // 뗀 뒤 녹음본을 받아쓰기로 보낸다
-  async function onTake({ blob, skipMs }: Take) {
+  async function onTake({ blob, keepLastMs }: Take) {
+    // 사람 말을 다 들었다: 아직 나오는 중이거나 늦게 나올 인사·읽기는 멈춘다(보내는 동안 인사가 나오고 짧은 대답이 막히지 않게)
+    hush();
     // 소리가 거의 담기지 않은 녹음은 풀 수 없다. 다시 누르게 한다
     const decoded = await decodeBlob(blob).catch(() => null);
     if (!decoded) return setNotice(tx.tooShort);
-    const wav = await wavAt(decoded, PHONE_WAV_RATE, skipMs);
+    // 끼어들기: 녹음본 끝에서 keepLastMs만 남긴다(그 앞은 KIBO 목소리)
+    const wav = await wavAt(decoded, PHONE_WAV_RATE, keepLastMs === undefined ? 0 : Math.max(0, decoded.duration * 1000 - keepLastMs));
     // 네트워크가 끊기면 응답이 없다. 오류 코드 대신 다시 말해 달라는 고정 문구를 보인다
     const body = await fetch(`/api/transcribe?lang=${encodeURIComponent(lang.bias)}&kiosk=${status?.kioskId ?? "fastfood"}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav as BodyInit })
       .then((res) => res.json() as Promise<{ transcript?: string; say?: string }>)
@@ -308,6 +311,10 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   }, [embedded]);
 
   const hearingRef = useRef(false);
+  // 첫 인사: 짝지은 키오스크마다 한 번, 사람이 처음 탭해서 듣기 시작할 때(탭 모드) 소리로 읽는다. 인사하는 동안에도 듣고 있어 끊고 말해도 된다.
+  // 길게 누르기(누른 채 말하기)에는 읽지 않는다: 그때는 끼어들기를 재지 않아 인사가 녹음에 섞인다
+  const greetedRef = useRef<string | null>(null);
+  const greetNextRef = useRef(false);
   const { phase, bind, listen, cancel } = useHoldToTalk({
     onPress: () => {
       const auto = autoRef.current;
@@ -319,6 +326,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
       if (auto) return;
       // 사람이 마이크를 누르면 KIBO가 읽던 것을 멈춘다(끼어들기)
       hush();
+      greetNextRef.current = !guideOnly && !!status?.kioskId && greetedRef.current !== status.kioskId && turns.length === 0;
       unlockSpeech();
       // 말 끝을 재는 오디오 처리기를 누르는 동안 깨운다(iOS). 이어 듣기에서도 이것을 쓴다
       unlockAudio();
@@ -335,7 +343,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     },
     onTake,
     // 이어 듣기는 KIBO가 말하는 중에도 연다. 사람이 말을 시작하면 KIBO를 멈춘다(silence.ts 끼어들기)
-    talking: speechBusy,
+    talking: speechAudible,
     onBarge: hush,
     onTooShort: () => setNotice(tx.tooShort),
     onBlocked: () => {
@@ -351,6 +359,13 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     onToggleOn: () => {
       setToggleNote(tx.toggleOn);
       if (!guideOnly) setConvo(true);
+      if (greetNextRef.current && status?.kioskId) {
+        greetNextRef.current = false;
+        greetedRef.current = status.kioskId;
+        const hello = greeting(status.kioskId, lang.tts);
+        // 손을 뗀 뒤 소리 잠금(iOS)이 풀리고 나서 읽는다
+        setTimeout(() => void speak(hello, lang.tts), 250);
+      }
     },
     // 말소리를 8초 동안 못 들었다: 이어 듣기를 끝내고 다시 누르기를 기다린다
     onNoSpeech: () => {
@@ -571,7 +586,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
         {empty && (
           <div>
             <p className="text-[28px] leading-tight font-extrabold">{tx.hello}</p>
-            <p className="mt-2 text-lg text-[var(--k-muted)]">{guideOnly ? tx.guideHello : tx.helloSub}</p>
+            <p className="mt-2 text-lg text-[var(--k-muted)]">{guideOnly ? tx.guideHello : status?.kioskId ? greeting(status.kioskId, lang.tts) : tx.helloSub}</p>
             {guideOnly ? (
               // 안내 모드: 사진 찍기와 KIBO 키오스크 QR로 잇기, 두 갈래를 그림과 함께
               <ul className="mt-6 space-y-4 text-lg leading-snug">

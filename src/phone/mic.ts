@@ -45,12 +45,13 @@ export interface MicDeps {
 }
 
 // 녹음 한 번. startDelayMs = 누른 순간부터 녹음이 실제로 시작될 때까지, durationMs = 녹음 길이(뗀 뒤 꼬리 포함),
-// skipMs = 녹음 앞에서 버릴 길이(끼어들기 전 KIBO 목소리. 없으면 0)
+// keepLastMs = 끼어들기에서 녹음본 끝에서부터 남길 길이(그 앞은 KIBO 목소리 메아리. 없으면 다 남긴다).
+// 끝을 기준으로 잰다: 마이크가 열리고 소리를 내기 시작하기까지 걸리는 시간은 기기마다 달라 녹음 시작 시각은 녹음본과 어긋난다
 export interface Take {
   blob: Blob;
   startDelayMs: number;
   durationMs: number;
-  skipMs: number;
+  keepLastMs?: number;
 }
 
 export interface MicEvents {
@@ -73,6 +74,9 @@ export interface MicEvents {
   onToggleOn?(): void;
   // 탭 모드에서 말소리를 끝내 못 들어 보내지 않고 멈췄다
   onNoSpeech?(): void;
+  // KIBO가 말하는 중인가 / 사람이 끼어들었다(KIBO를 멈춘다)
+  talking?(): boolean;
+  onBarge?(): void;
 }
 
 // 화면 읽기의 두 번 탭·키보드로 생긴 click은 detail이 0이다. 이것만 '탭으로 시작, 다시 탭하면 보내기'로 쓴다.
@@ -156,8 +160,14 @@ export function createMic(d: MicDeps, ev: MicEvents) {
   }
 
   async function down(toggle = false) {
-    // 탭 모드로 듣는 중에 다시 누르면 보낸다(그 누름의 손 뗌은 up()이 무시한다)
-    if (phase === "recording" && press?.toggle) return up(true);
+    // 탭 모드로 듣는 중에 다시 누르면 보낸다(그 누름의 손 뗌은 up()이 무시한다).
+    // KIBO가 말하는 중이면 보내지 않는다: 누름도 끼어들기다. KIBO를 멈추고 지금부터 들은 것만 남긴다(지금까지는 KIBO 메아리)
+    if (phase === "recording" && press?.toggle) {
+      if (!ev.talking?.()) return up(true);
+      press.keepFrom = d.now();
+      ev.onBarge?.();
+      return;
+    }
     if (phase !== "idle") return;
     const p: Press = { at: d.now(), toggle, chunks: [] };
     press = p;
@@ -246,8 +256,8 @@ export function createMic(d: MicDeps, ev: MicEvents) {
     const end = d.now();
     const startedAt = p.startedAt ?? end;
     try {
-      const skipMs = p.keepFrom === undefined ? 0 : Math.max(0, Math.round(p.keepFrom - startedAt));
-      await ev.onTake({ blob: new Blob(p.chunks, { type: rec.mimeType }), startDelayMs: Math.round(startedAt - p.at), durationMs: Math.round(end - startedAt), skipMs });
+      const keepLastMs = p.keepFrom === undefined ? undefined : Math.max(0, Math.round(end - p.keepFrom));
+      await ev.onTake({ blob: new Blob(p.chunks, { type: rec.mimeType }), startDelayMs: Math.round(startedAt - p.at), durationMs: Math.round(end - startedAt), keepLastMs });
     } finally {
       set("idle");
     }
