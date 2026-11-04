@@ -88,7 +88,7 @@ describe("/api/airport/interpret", () => {
     const first = await post(initialState());
     expect(first.lead).toBe("브리지항공, 1명, 부치는 짐 없음.");
     expect(first.say.startsWith("브리지항공, 1명, 부치는 짐 없음. ")).toBe(true);
-    for (const f of ["09:40", "gate 23", "Power banks", "Paid seats", "Exit row", "A different destination", "Never ask for passports", "If they ask how or where to scan", "names from AIRLINES in replyLanguage", "₩100,000 per bag over the allowance", "then invite them to check in", "screen=complete", "딸이랑 같이", "never \"today\" or \"tomorrow\"", "spoken date (Korean \"11월 5일\""]) expect(prompt).toContain(f);
+    for (const f of ["09:40", "gate 23", "Power banks", "Paid seats", "Exit row", "A different destination", "Never ask for passports", "If they ask how or where to scan", "write no Korean (Hangul) at all", "names from AIRLINES in replyLanguage", "₩100,000 per bag over the allowance", "then invite them to check in", "screen=complete", "딸이랑 같이", "never \"today\" or \"tomorrow\"", "spoken date (Korean \"11월 5일\""]) expect(prompt).toContain(f);
     // 위험물 관문에서 "아 아니 두 명이요": 누를 것은 없어도 고친 인원을 먼저 말한다
     const p = plan(initialState(), { airline: "bridge_air", travelers: 1, bags: 0 });
     if (p.kind !== "plan") throw new Error(p.kind);

@@ -212,6 +212,6 @@ describe("/api/fastfood/interpret", () => {
     // 방금 담긴 것을 확인만 하는 말은 다시 담지 않는다(11/4 판정: "그럼 레몬 소다로요"에 세트를 한 번 더 담음)
     expect(prompt).toContain("already in the cart, add nothing");
     // 11/5 r1 판정: 배달 질문에 '모르겠어요', 빈 장바구니에 Pay를 누르라고 함, 관계없는 질문 뒤 주문으로 이끌지 않음, 사이다를 레몬 소다로 바꿈
-    for (const f of ["no delivery", "If the cart is empty", "then invite them to order", "name 1-3 real", "사이다", "Points: scan the app barcode", "When you must ask which item"]) expect(prompt).toContain(f);
+    for (const f of ["no delivery", "If the cart is empty", "then invite them to order", "name 1-3 real", "사이다", "Points: scan the app barcode", "When you must ask which item", "never say you added, changed or removed something", "never compute differences or generalize", "write no Korean (Hangul) at all"]) expect(prompt).toContain(f);
   });
 });

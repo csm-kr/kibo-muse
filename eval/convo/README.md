@@ -45,24 +45,24 @@ Runs are resumable: conversations already in the output file are skipped.
 
 ## Results
 
-"Before" is build 22 (Nov 4, before any of these fixes). "Final" is build 23: fast food and train from the third run, airport from the fifth (two more airport prompt changes). Rubric = share of turns judged right; conversations = all turns right. Spark = median Spark time per turn on the dev server, three requests sent at once.
+"Before" is build 22 (Nov 4, before any of these fixes). "Final" is build 24 for fast food and airport (eighth run; since build 23 the prompts also quote each item's price exactly, never claim a cart change while asking, and keep Hangul out of non-Korean replies) and build 23 for train (third run; the train code did not change after it). Rubric = share of turns judged right; conversations = all turns right. Spark = median Spark time per turn on the dev server, three requests sent at once.
 
 | Set | Auto checks clean | Rubric | Conversations | Spark median |
 |---|---|---|---|---|
-| Fast food, development | 83% → 100% | 65% → 95% | 29 → 45 of 48 | 3.9 s → 2.6 s |
-| Fast food, held out | 79% → 100% | 79% → 100% | 9 → 12 of 12 | 4.0 s → 2.3 s |
-| Airport, development | 56% → 100% | 43% → 98% | 12 → 46 of 47 | 4.2 s → 3.5 s |
-| Airport, held out | 58% → 100% | 33% → 83% | 3 → 9 of 11 | 4.6 s → 3.8 s |
+| Fast food, development | 83% → 98% | 65% → 95% | 29 → 45 of 48 | 3.9 s → 2.7 s |
+| Fast food, held out | 79% → 100% | 79% → 100% | 9 → 12 of 12 | 4.0 s → 2.4 s |
+| Airport, development | 56% → 98% | 43% → 98% | 12 → 46 of 47 | 4.2 s → 3.6 s |
+| Airport, held out | 58% → 100% | 33% → 83% | 3 → 9 of 11 | 4.6 s → 4.1 s |
 | Train, development | 97% → 97% | 95% → 98% | 46 → 48 of 49 | 4.9 s → 4.6 s |
 | Train, held out | 100% → 93% | 100% → 93% | 12 → 11 of 12 | 4.6 s → 4.4 s |
 
-In every final run: fact errors (b) 0, claimed actions or payments that did not happen (c) 0, the same reply twice in a row 0. The two automatic (e) hits on train development turns are the fixed refusal for discounts, which the rubric judged correct.
+In every final run the rubric found no fact errors, no claimed actions or payments that did not happen, and no reply repeated twice in a row. The remaining automatic hits are false positives the rubric judged correct: one (b) on fast food ("라지 콜라" for the drink of an L meal), one (e) on airport (a first-time user is told what to say next), and two (e) on train (the fixed refusal for discounts). Non-Korean replies in the final fast food and airport runs contain no Hangul.
 
 **Held-out caveat.** The second run (r2) showed two facts missing from the prompts on held-out turns: points via the app barcode (fast food) and the excess-bag fee (airport). We added both, so the final held-out numbers are not fully blind. The r2 held-out rubric, before those two facts: fast food 86%, airport 75%, train 100% (`results/*.holdout.r2.*`).
 
 **What still fails (final runs).**
 - Fast food: "포장이요" as the first words gets the eat-in/take-out tap but no question about what to eat in the console (the phone's done message asks it); "불고기로요" after "버거 세트 하나" asks set or single again; one run left out that mobile vouchers are accepted.
-- Airport: after check-in the kiosk returns to its first screen after 20 s, so "one more bag" starts a new check-in; two held-out questions ask about facts the kiosk shows but the prompt does not carry.
+- Airport: after check-in the kiosk returns to its first screen after 20 s, so "one more bag" starts a new check-in; two held-out questions ask about facts the kiosk shows but the prompt does not carry (in the final run one of them got only the check-in question, without "I don't know").
 - Train: a round-trip request gets the fixed one-way-only refusal without offering the one-way ticket; one held-out fare question in Japanese got only the follow-up question, because the language guard dropped Spark's answer (the same turn passed in r2).
 
 Files: `results/<kiosk>.<set>.{before,final}.json` (replies), `….rubric.json` (rubric labels: PASS/FAIL, reason, layer).
