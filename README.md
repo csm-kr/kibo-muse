@@ -17,15 +17,15 @@ Say one sentence on your phone. KIBO works the kiosk's own screens for you, one 
 ## How it works
 
 ```
-Phone (⟦새 측정 MIC: hold to talk⟧ or type, 6 languages)
+Phone (tap once and talk, or type; 6 languages)
   ├─ 16 kHz mono WAV ─▶ /api/transcribe ─▶ Muse Voice Transcribe 1.0 (file API, PUSH_TO_TALK)
   └─ transcript ─────▶ /api/fastfood/interpret, /api/airport/interpret or /api/train/interpret
                           ├─ Muse Spark 1.3, structured output → intent (or one clarifying question)
                           │    sent twice at once; the first complete answer wins, the other is cancelled
                           ├─ deterministic planner: intent → the exact taps
                           └─ kiosk state machine: every tap checked (same path as touch input)
-Kiosk screen ◀── taps replayed with a visible pointer: first tap 160 ms after the plan arrives, then 640 ms per step
-Phone        ◀── step list, fixed gate cards, short spoken replies (⟦새 측정 TTS: browser speech synthesis⟧)
+Kiosk screen ◀── taps replayed with a visible pointer: first tap 160 ms after the plan arrives, then 480 ms per step
+Phone        ◀── step list, fixed gate cards, short spoken replies (Gemini TTS streamed by /api/speak; device voice as fallback)
 
 Guide mode (any kiosk, no connection needed)
 Phone camera photo + question ─▶ /api/guide
@@ -38,14 +38,14 @@ Phone ↔ kiosk messages go through `src/sync/link.ts`. In one browser they use 
 
 KIBO answers in the language the phone is set to, unless the person clearly spoke another language (three or more words, none in the phone's own script). Then it answers in the spoken language and the phone offers a one-tap switch back. Replayed over the 468 saved evaluation sentences: the scorer's requests (no phone language) changed 0; with a Korean phone, 273 of 276 non-Korean sentences switched (the 3 misses were "はい？") and 0 of 192 Korean ones did, even when the rule was told that Spark had misread the language. If Spark writes a follow-up question in a language other than the reply language, the server replaces it with a fixed question. When a step fails (for example the kiosk stops answering or the phone goes offline), the phone shows a fixed message in its language and reads it aloud. The kiosks themselves show Korean or English, one at a time, and a test walks every screen of all three kiosks to check that no untranslated text is left (`src/kiosks/i18n.test.ts`).
 
-⟦새 측정 MIC: With a screen reader, a double tap on the mic starts listening and another double tap sends (otherwise the mic works by holding).⟧ While KIBO taps 14 times, the progress band is announced 2 times instead of 27. We checked this with simulated screen-reader clicks in Chromium, not yet with VoiceOver or TalkBack on a real phone.
+One tap on the mic is enough for a whole conversation: the phone sends what you said 1.5 s after you stop talking, and once KIBO has finished speaking it listens again. It stops after 8 s without speech, when it is your turn at the kiosk (for example to pay), at the receipt, or when the page is hidden, and it waits while a confirmation card is open. Holding the button still works as push-to-talk. With a screen reader, a double tap is that one tap. While KIBO taps 14 times, the progress band is announced 2 times instead of 27. We checked this with simulated screen-reader clicks in Chromium, not yet with VoiceOver or TalkBack on a real phone.
 
 | Page | What it is |
 |---|---|
 | `/kiosk/fastfood` | Bridge Burger fast-food kiosk (fictional). `?view=kiosk` shows the kiosk alone with a pairing QR; `&qr=0` hides it |
 | `/kiosk/airport` | Bridge Air self check-in kiosk (fictional). Same options |
 | `/kiosk/train` | Bridge Rail reserved-ticket machine (fictional). Same options |
-| `/phone?room=…` | The phone app: ⟦새 측정 MIC: hold to talk⟧ or type, six languages, step list, gate cards, guide mode |
+| `/phone?room=…` | The phone app: tap once and talk (it keeps listening) or type, six languages, step list, gate cards, guide mode |
 | `/compare` | Touch and KIBO side by side, with live counters for screens, taps and time |
 | `/show/airport` | Airport kiosk with the phone beside it, used for the demo video |
 | `/film/*` | Title and number cards used in the demo video. Numbers come only from `src/app/film/numbers.ts` |
@@ -57,9 +57,9 @@ KIBO answers in the language the phone is set to, unless the person clearly spok
 3. **Documents stay with the person.** Passport scans are device events. KIBO cannot produce them; it waits (`src/kiosks/airport/machine.ts`).
 4. **The model proposes, the kiosk decides.** Spark returns an intent only. A deterministic planner turns it into taps, the kiosk's state machine checks each tap, and the API rejects any plan containing events not attributed to KIBO (`src/app/api/*/interpret/route.ts`). Missing required details get one question, not a guess. Unknown items, unknown stations, unsupported requests and out-of-range values are refused with fixed, hand-written text in six languages, not generated text.
 5. **Guide mode only points.** It never taps. A wrong outline is worse than none, so an outline is drawn only after a second check.
-6. **Cost limits.** A production build limits each IP to 20 interpretation, 20 transcription and 6 guide requests per minute, and caps request sizes (`src/server/guard.ts`).
+6. **Cost limits.** A production build limits each IP to 20 interpretation, 20 transcription, 6 guide and 40 speech requests per minute, and caps request sizes (`src/server/guard.ts`).
 
-Audio and photos are sent to Meta models for that one request and are not stored by this app.
+Audio and photos are sent to Meta models for that one request and are not stored by this app. KIBO's own short replies (not what the user said) are sent to Google's Gemini TTS to be read aloud, and are not stored by this app either.
 
 ## Evaluation
 
@@ -73,7 +73,7 @@ Details, definitions and commands to reproduce: [`eval/README.md`](eval/README.m
 - **What SAM 3.1 adds (paired test):** SAM 3.1 does not choose the button. We ran the same 32 photos twice with and without SAM, with pass criteria fixed before running. SAM did not change how often the right button was outlined (29 of 64 both ways; wrong outlines 2 with SAM, 1 without). More of the drawn area landed on the button (88% vs 74%), and the median time rose by 1.3 s. That is below the 15-point gain we had set as the bar, so we count SAM as a display improvement, not an accuracy gain. Details in [`eval/README.md`](eval/README.md#what-sam-31-adds-paired-test).
 - **Change after evaluation: two Spark requests at once.** Spark's time for the same sentence varies widely (3.2 s, 3.9 s and 23.1 s for one sentence), so the server now sends each interpretation request twice and uses the first complete answer. Re-run with both answers recorded: held-out set 119/120 everyday runs exact and 30/30 blocked, the same as before; development sets 307/312 hedged against 307 and 309 for the two single answers. Details in [`eval/README.md`](eval/README.md#change-after-evaluation-hedged-requests).
 - **Latency, typed request → plan** (speech transcription and replay not included, before the change above): p50 2.2 s, p95 4.8 s (n=234, development set). Held-out set: p50 2.3 s, p95 4.4 s (n=165). Train: p50 3.0 s, p95 4.7 s (n=69).
-- ⟦새 측정 LAT: **Latency, end to end:** from letting go of the mic button to KIBO's first tap on the kiosk, p50 6.9 s, p95 8.6 s (15 turns with synthetic voices on the live site, phone and kiosk in separate browser sessions paired over Supabase, Nov 3, before the change above). Our target was p95 under 4 s, and we did not meet it. In those turns the transcription round trip took p50 2.1 s and Spark p50 3.7 s, and everything except Spark already added up to p95 4.2 s.⟧
+- **Latency, end to end (Nov 4, build 16):** 7 conversation turns with a synthetic Korean voice on the live site, phone and kiosk in separate browser sessions paired over Supabase. From the moment the phone sends the recording (1.5 s after the speaker stops) to KIBO's reply: p50 11.0 s (range 6.9–12.2 s). Transcription took p50 1.9 s and Muse Spark p50 8.8 s (4.5–10.1 s), about 80% of the wait. KIBO's voice starts about 0.7 s after the reply. On the held-out set (single requests from a fresh start, Nov 4, 110 calls) Spark took p50 4.2 s, p95 7.7 s, so turns later in a conversation were about twice as slow. Our target was p95 under 4 s, and we did not meet it. (Nov 3, before continuous listening: from letting go of the mic button to the first tap, p50 6.9 s, p95 8.6 s over 15 turns.)
 - **Small user trial:** three people who struggle with kiosks did the same task by touch and with KIBO. Touch: ⟦T_DONE⟧/3 finished. KIBO: ⟦K_DONE⟧/3 finished. Median time −⟦DROP⟧%. This is a small trial (n=3, ⟦TRIAL_DATE⟧), not a clinical study.
 
 ## Run locally
@@ -84,6 +84,7 @@ Requires Node.js (developed on 24.x) and a Meta Model API key.
 npm ci
 # Create .env.local in the repository root (server only; never commit it) with:
 #   MODEL_API_KEY                   Meta Model API key (required)
+#   GEMINI_API_KEY                  optional: Google AI Studio key for spoken replies (without it the phone uses its built-in voice)
 #   NEXT_PUBLIC_SUPABASE_URL        optional: pair a real phone through Supabase Realtime
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY   optional: same
 npm run dev
@@ -132,10 +133,10 @@ Bridge Burger, Bridge Air, Bridge Rail, Haneul Sky, Nova Wings and Seabird Air a
 ## Limitations
 
 - On an English or Spanish phone, switching to the spoken language relies on Spark's language label alone, because those languages have no script of their own to check.
-- ⟦새 측정 LAT: Speed: about 7 s (p50) from letting go of the mic button to the first tap, against our 4 s target (see Evaluation).⟧
+- Speed: about 11 s (p50) from sending the recording to KIBO's reply in live conversations, mostly Muse Spark (p50 8.8 s), against our 4 s target (see Evaluation).
 - Fast food: changing or removing items already in the cart, cancelling the whole order, and leaving midway are not supported yet.
 - Train: one-way reserved tickets only. Round trips, refunds, changes and discounts other than adult, child and senior are refused.
-- Pairing trusts whoever can see the kiosk screen: the QR carries a random 22-character room token, and a spoken "yes" only counts for the confirmation card currently on screen. There is no user account or device authentication. ⟦SECURITY⟧
+- Pairing trusts whoever can see the kiosk screen: the QR carries a random 22-character room token, and a spoken "yes" only counts for the confirmation card currently on screen. There is no user account or device authentication.
 - The rate limit is kept in each server instance's memory. On a platform that runs several instances, each counts separately. We saw this on Vercel: in one burst of 30 requests, requests 23–24 got 429 and 25–30 passed again.
 - A partial menu name can be read as a nearby item instead of being refused. In our checks, Korean "치즈버거 세트" (cheeseburger set) became Double Cheeseburger in 4 of 4 runs, and English "cheeseburger" became Bridge Classic in 2 of 3. Names that are not on the menu at all were refused in 18 of 18 runs.
 - The kiosks are our own replicas modeled on real fast-food, airport check-in and train ticket flows, not vendor kiosks. A real kiosk would have to accept KIBO's taps the way ours do, and we have not connected one.
