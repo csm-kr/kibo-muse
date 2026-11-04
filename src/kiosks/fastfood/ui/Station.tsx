@@ -503,15 +503,16 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
         {/* KIBO 연결 QR은 띠 칸 오른쪽 위에 둔다(제목은 아래 가운데). 키오스크 화면 내용을 가리지 않는다 */}
         <div className="@container relative flex h-[150px] w-full items-end justify-center">
           {/* 좁은 화면(xl 미만)은 휴대폰으로 보는 경우라 그 화면의 QR을 같은 휴대폰으로 찍을 수 없다. 접힌 제목을 덮지 않게 숨긴다.
-              가로 배치여도 화면 높이가 낮아 키오스크가 좁으면(띠 320px 이하) 제목이 두 줄로 접혀 배지 아래로 들어가므로 숨긴다.
-              배지(높이 100)는 4px 올려 한 줄 제목(띠 아래 52)과 겹치지 않게 한다 */}
-          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute -top-1 right-0 max-xl:hidden @max-[320px]:hidden" />}
+              배지(높이 100)는 4px 올려 한 줄 제목(띠 아래 52)과 겹치지 않게 한다.
+              노트북처럼 화면 높이가 낮아 키오스크가 좁으면(띠 320px 이하) 숨기지 않고 글을 빼 QR만 두고 12px 올린다.
+              제목은 20px로 줄여 두 줄이어도 띠 아래 54px 안에 들어가게 한다(전에는 숨겨서 노트북에서 QR이 안 보였다) */}
+          {roomId && qrOn && state.screen === "idle" && !busy && <PairBadge room={roomId} at="absolute -top-1 right-0 max-xl:hidden @max-[320px]:-top-3 @max-[320px]:pr-2 @max-[320px]:[&>div:last-child]:hidden" />}
           {phase === "thinking" || phase === "replaying" ? (
             <div className="h-full w-full">
               <KiboBand phase={phase} slow={slow} chips={chips} progress={progress} listening={listening} slot />
             </div>
           ) : (
-            <h2 className="pb-1 text-[32px] font-bold">{title}</h2>
+            <h2 className="pb-1 text-[32px] font-bold @max-[320px]:text-[20px] @max-[320px]:leading-tight">{title}</h2>
           )}
         </div>
         {kiosk}
