@@ -370,6 +370,16 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
       setNotice(tx.noSpeech);
     },
   });
+  // 듣는 동안 KIBO 소리가 나고 있는지(안내 줄: '끊고 말하려면 탭하세요')
+  const [kiboTalking, setKiboTalking] = useState(false);
+  useEffect(() => {
+    if (phase !== "recording") return;
+    const id = setInterval(() => setKiboTalking(speechAudible()), 250);
+    return () => {
+      clearInterval(id);
+      setKiboTalking(false);
+    };
+  }, [phase]);
   // 말을 보내지 않고 쉬는 상태로 돌아오면(빈 받아쓰기·실패) 키오스크의 'Listening' 띠를 끈다. 말을 보냈으면 키오스크가 이미 껐다
   useEffect(() => {
     // 손을 떼고 받아쓰는 동안은 키오스크 띠를 'Understanding'으로 바꾼다
@@ -433,7 +443,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   const chip = linkChip(!!status, conn.live, conn.was);
   const showLangs = langOpen ?? (turns.length === 0 && !receipt && (!status || status.screen === "idle"));
   const empty = turns.length === 0 && !gate && !orderCard && !receipt && handoff === null && !waiting;
-  const hint = phoneHint(tx, { recording: phase === "recording", toggled: toggleNote !== null, waiting, longWait: waiting && longWait, notice, operating: !!operating || (willTap && chip === "kiosk"), asking, orderCard });
+  const hint = phoneHint(tx, { recording: phase === "recording", kiboTalking, toggled: toggleNote !== null, waiting, longWait: waiting && longWait, notice, operating: !!operating || (willTap && chip === "kiosk"), asking, orderCard });
   const won = (n: number) => `₩${n.toLocaleString("en-US")}`;
   const pay = (button?: string) => {
     // 키오스크가 결제 방법 화면이면 [결제하기] 대신 "결제 방법을 고르고 카드를 넣어 주세요"

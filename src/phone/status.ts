@@ -86,9 +86,10 @@ export const linkChip = (hasStatus: boolean, live: boolean | null, wasLive: bool
 // 되묻기는 결제가 끝난 뒤의 '번호가 불리면 받으세요'보다 앞선다(다음 턴에 KIBO가 물어도 옛 안내가 남지 않게)
 export function phoneHint(
   tx: ReturnType<typeof phoneText>,
-  s: { recording: boolean; toggled: boolean; waiting: boolean; longWait: boolean; notice: string | null; operating: boolean; asking: boolean; orderCard: string | null | undefined },
+  s: { recording: boolean; toggled: boolean; waiting: boolean; longWait: boolean; notice: string | null; operating: boolean; asking: boolean; orderCard: string | null | undefined; kiboTalking?: boolean },
 ) {
-  if (s.recording) return s.toggled ? tx.toggleOn : tx.listening;
+  // 듣는 중 KIBO가 말하고 있으면 탭으로 끊을 수 있다고 알린다(목소리 끼어들기를 놓쳐도 탭은 확실히 멈춘다)
+  if (s.recording) return s.kiboTalking ? tx.bargeTip : s.toggled ? tx.toggleOn : tx.listening;
   // 보낸 뒤 3초가 지나도 대답이 없으면(longWait) 얼마나 걸리는지 알린다
   if (s.waiting) return s.longWait ? tx.waitLong : tx.thinking;
   return s.notice ?? (s.operating ? tx.operating : s.asking ? tx.answer : s.orderCard === "paid" ? tx.pickup : s.orderCard === "paying" ? tx.paying : tx.hold);

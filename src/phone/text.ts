@@ -6,6 +6,8 @@ interface PhoneText {
   hold: string;
   // 첫 화면: KIBO 목소리가 안 들리면 소리를 켜 달라는 안내
   soundTip: string;
+  // 듣는 중 KIBO가 말하고 있을 때 안내 줄
+  bargeTip: string;
   listening: string;
   // 마이크가 화면 밖일 때 띄우는 작은 누르고 말하기의 글자(짧게)
   talk: string;
@@ -101,6 +103,7 @@ const text: Record<Lang, PhoneText> = {
   en: {
     hold: "Tap and talk",
     soundTip: "Can't hear KIBO? Turn off silent mode and turn up the volume",
+    bargeTip: "Tap to interrupt and talk",
     listening: "Listening…",
     talk: "Talk",
     switched: "Switched to English",
@@ -175,6 +178,7 @@ const text: Record<Lang, PhoneText> = {
   ko: {
     hold: "탭하고 말씀하세요",
     soundTip: "KIBO 목소리가 안 들리면 휴대폰 무음 모드를 끄고 소리를 키워 주세요",
+    bargeTip: "끊고 말하려면 탭하세요",
     listening: "듣고 있어요…",
     talk: "말하기",
     switched: "한국어로 바꿨어요",
@@ -249,6 +253,7 @@ const text: Record<Lang, PhoneText> = {
   ja: {
     hold: "タップして話してください",
     soundTip: "KIBOの声が聞こえないときは、マナーモードを切って音量を上げてください",
+    bargeTip: "割り込んで話すにはタップしてください",
     listening: "聞いています…",
     talk: "話す",
     switched: "日本語に切り替えました",
@@ -323,6 +328,7 @@ const text: Record<Lang, PhoneText> = {
   vi: {
     hold: "Chạm rồi nói",
     soundTip: "Nếu không nghe thấy KIBO, hãy tắt chế độ im lặng và tăng âm lượng",
+    bargeTip: "Chạm để ngắt lời và nói",
     listening: "Đang nghe…",
     talk: "Nói",
     switched: "Đã chuyển sang Tiếng Việt",
@@ -397,6 +403,7 @@ const text: Record<Lang, PhoneText> = {
   zh: {
     hold: "点一下再说话",
     soundTip: "听不到 KIBO 的声音时，请关闭静音模式并调高音量",
+    bargeTip: "点一下即可打断并说话",
     listening: "正在听…",
     talk: "说话",
     switched: "已切换为中文",
@@ -471,6 +478,7 @@ const text: Record<Lang, PhoneText> = {
   es: {
     hold: "Toca y habla",
     soundTip: "¿No oyes a KIBO? Quita el modo silencio y sube el volumen",
+    bargeTip: "Toca para interrumpir y hablar",
     listening: "Escuchando…",
     talk: "Hablar",
     switched: "Cambiado a Español",

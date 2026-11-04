@@ -69,14 +69,14 @@ describe("speechEnd 끼어들기: KIBO가 말하는 동안(talking)", () => {
     expect(run(end, 0.004, SILENCE_MS)).toEqual([[SILENCE_MS / 100 - 1, "end"]]);
   });
 
-  it("반향 제거가 약해 메아리가 커도(0.12) 그 3배를 넘지 않으면 끼어들기가 아니다. KIBO가 스스로 말을 마치면 한 번 'free', 말없음은 그때부터 센다", () => {
+  it("반향 제거가 약해 메아리가 커도(0.1) 끼어들기가 아니다. KIBO가 스스로 말을 마치면 한 번 'free', 말없음은 그때부터 센다", () => {
     let talking = true;
     const end = speechEnd(100, () => talking);
-    expect(run(end, 0.12, 5000)).toEqual([]);
+    expect(run(end, 0.1, 5000)).toEqual([]);
     expect(run(end, 0.5, 400)).toEqual([[BARGE_MS / 100 - 1, "barge"]]);
     const quiet = speechEnd(100, () => talking);
     talking = true;
-    expect(run(quiet, 0.12, 3000)).toEqual([]);
+    expect(run(quiet, 0.1, 3000)).toEqual([]);
     talking = false;
     expect(run(quiet, 0, NO_VOICE_MS + 100)).toEqual([[0, "free"], [NO_VOICE_MS / 100, "none"]]);
   });
@@ -99,13 +99,23 @@ describe("speechEnd 끼어들기 리뷰 반영", () => {
     expect(run(end, 0.3, 400)).toEqual([[BARGE_MS / 100 - 1, "barge"]]);
   });
 
-  it("반향 제거가 잘 돼 메아리가 거의 없으면 0.4초 안에 재기를 마친다: KIBO가 말을 시작하고 0.5초 뒤 끼어들어도 알아챈다. 메아리를 잘못 재도(사람 목소리) 기준은 0.3을 넘지 않는다", () => {
+  it("반향 제거가 잘 돼 메아리가 거의 없으면 0.4초 안에 재기를 마친다: KIBO가 말을 시작하고 0.5초 뒤 끼어들어도 알아챈다. 메아리를 잘못 재도(사람 목소리) 기준은 0.12를 넘지 않는다(11/5 시험 목소리 0.1초 크기 중간값 0.123, 0.3을 넘는 칸 없음)", () => {
     const end = speechEnd(100, () => true);
     expect(run(end, 0.004, 500)).toEqual([]);
     expect(run(end, 0.2, 400)).toEqual([[BARGE_MS / 100 - 1, "barge"]]);
     const loud = speechEnd(100, () => true);
     expect(run(loud, 0.2, 300)).toEqual([]);
-    expect(run(loud, 0.35, 400)).toEqual([[BARGE_MS / 100 - 1, "barge"]]);
+    expect(run(loud, 0.13, 400)).toEqual([[BARGE_MS / 100 - 1, "barge"]]);
+  });
+
+  it("음절 사이 0.1초 틈은 봐준다: 0.4초 가운데 0.3초가 크면 끼어들기, 그 말 처음부터 남긴다. 0.2초 넘게 조용하면 처음부터 다시 센다", () => {
+    const end = speechEnd(100, () => true);
+    run(end, 0.01, 1000);
+    expect([0.2, 0.01, 0.2, 0.2].map((x) => end(x))).toEqual([null, null, null, "barge"]);
+    expect(end.lead).toBe(400 + 400);
+    const gap2 = speechEnd(100, () => true);
+    run(gap2, 0.01, 1000);
+    expect([0.2, 0.01, 0.01, 0.2, 0.2].map((x) => gap2(x))).toEqual([null, null, null, null, null]);
   });
 
   it("KIBO 말끝에 겹친 짧은 말('네', 0.2초)은 끼어들기 기준에 못 미쳐도 버리지 않는다: 'free' 뒤 조용하면 보낸다. 그 말 앞부터 남긴다(lead)", () => {

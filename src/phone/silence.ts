@@ -6,6 +6,7 @@ const VOICE_MS = 300;
 // 끼어들기(11/5 사용자: "KIBO가 말하고 있어도 내가 말하면 끊고 말할 수 있게"). KIBO 소리가 나는 동안(talking) 마이크에는 KIBO 목소리 메아리가 들어온다.
 // 메아리 크기: 0.02를 넘는 소리 ECHO_WARM번의 최대값(재생 직전의 조용함은 재지 않는다. 0.4초가 지나도 그만큼 큰 소리가 없으면 반향 제거가 잘 된 것), 상한 ECHO_MAX.
 // 그 뒤로는 메아리 최대값을 천천히 줄이며 따라간다. 그 3배(적어도 BARGE_RMS)를 BARGE_MS 동안 넘으면 사람이 끼어든 것으로 보고 한 번 "barge".
+// 음절 사이 0.1초 틈은 봐준다(0.4초 가운데 0.3초).
 // 그 전 소리는 말소리로 치지 않고 말없음 시간도 세지 않는다(KIBO 목소리를 사람 말로 보내지 않게). KIBO가 스스로 말을 마치면 한 번 "free".
 // 사람이 이미 말하는 중(0.2초 넘게)에 KIBO 소리가 시작되면 바로 "overlap"(KIBO가 비켜 준다).
 // lead: "barge"·"free" 때 녹음본을 지금부터 몇 ms 앞부터 남길지(끼어든 말 앞 0.4초. KIBO 말끝에 겹친 짧은 말 '네'도 남긴다)
@@ -13,8 +14,9 @@ export const BARGE_MS = 300;
 const BARGE_RMS = 0.05;
 const ECHO_WARM = 3;
 const ECHO_WAIT_MS = 400;
-// 메아리로 잰 값의 상한. 재는 사이 사람이 말을 시작해 목소리를 메아리로 쟀어도 기준(3배)이 0.3을 넘지 않게
-const ECHO_MAX = 0.1;
+// 메아리로 잰 값의 상한. 재는 사이 사람이 말을 시작해 목소리를 메아리로 쟀어도 기준(3배)이 0.12를 넘지 않게.
+// 11/5 실측: 시험 목소리의 0.1초 크기는 중간값 0.123, 상위 10% 0.163, 0.3을 넘는 칸이 없었다(상한 0.1이면 기준 0.3이라 끼어들 수 없었다)
+const ECHO_MAX = 0.04;
 const PRE_MS = 400;
 
 type EndEvent = "end" | "none" | "barge" | "overlap" | "free" | null;
@@ -32,6 +34,9 @@ export function speechEnd(stepMs = 100, talking: () => boolean = () => false) {
   let warm = 0;
   let gateMs = 0;
   let run = 0;
+  // 끼어들기 후보: 처음 큰 소리부터 지난 시간과, 지금 이어지는 틈
+  let span = 0;
+  let gap = 0;
   // KIBO가 말하는 동안 메아리보다 큰 소리가 마지막으로 이어진 길이와, 그 뒤 지난 시간
   let loud = 0;
   let since = 0;
@@ -54,17 +59,27 @@ export function speechEnd(stepMs = 100, talking: () => boolean = () => false) {
           return null;
         }
         if (rms > Math.max(BARGE_RMS, echo * 3)) {
+          if (run === 0) span = 0;
+          span += gap + stepMs;
+          gap = 0;
           run += stepMs;
-          loud = run;
+          loud = span;
           since = 0;
           if (run < BARGE_MS) return null;
           barged = heard = ever = true;
-          voice = run;
+          voice = span;
           quiet = 0;
-          step.lead = run + PRE_MS;
+          step.lead = span + PRE_MS;
           return "barge";
         }
+        // 말하던 중 한 칸 틈은 봐준다
+        if (run > 0 && gap === 0) {
+          gap = stepMs;
+          since += stepMs;
+          return null;
+        }
         run = 0;
+        gap = 0;
         since += stepMs;
         echo = Math.min(ECHO_MAX, Math.max(rms, echo * 0.98));
         return null;

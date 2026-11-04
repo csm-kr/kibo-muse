@@ -92,6 +92,8 @@ describe("휴대폰 상태 줄", () => {
     expect(phoneHint(ko, { ...base, waiting: true, longWait: true })).toBe(ko.waitLong);
     expect(phoneHint(ko, { ...base, recording: true })).toBe(ko.listening);
     expect(phoneHint(ko, { ...base, recording: true, toggled: true })).toBe(ko.toggleOn);
+    // 듣는 중 KIBO가 말하고 있으면 탭으로 끊을 수 있다고 알린다
+    expect(phoneHint(ko, { ...base, recording: true, toggled: true, kiboTalking: true })).toBe("끊고 말하려면 탭하세요");
     expect(phoneHint(ko, { ...base, orderCard: "paid" })).toBe(ko.pickup);
     expect(phoneHint(ko, { ...base, orderCard: "paid", asking: true })).toBe(ko.answer);
   });

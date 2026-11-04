@@ -33,6 +33,6 @@ describe("누르고 말하기", () => {
     expect(phoneText("vi").hold).not.toBe(phoneText("en").hold);
     // 안내 모드(사진으로 누를 곳 찾기)의 머리·버튼·단계 표시도 6개 언어로 옮겨져 있다(영어를 그대로 두지 않는다)
     for (const l of ["ko", "ja", "vi", "zh", "es"])
-      for (const k of ["guideTitle", "guideSub", "close", "retake", "nextShot", "stageSpark", "stageSam", "stageCheck", "whereChip", "shapeChip", "guideAsk", "photoError", "readError", "photoAlt", "soundTip", "tooLong", "reconnecting", "toggleOn", "me", "chat", "language", "waitLong", "kioskReset"] as const) expect(phoneText(l)[k], `${l}.${k}`).not.toBe(phoneText("en")[k]);
+      for (const k of ["guideTitle", "guideSub", "close", "retake", "nextShot", "stageSpark", "stageSam", "stageCheck", "whereChip", "shapeChip", "guideAsk", "photoError", "readError", "photoAlt", "soundTip", "bargeTip", "tooLong", "reconnecting", "toggleOn", "me", "chat", "language", "waitLong", "kioskReset"] as const) expect(phoneText(l)[k], `${l}.${k}`).not.toBe(phoneText("en")[k]);
   });
 });
