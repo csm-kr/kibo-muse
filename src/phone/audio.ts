@@ -14,11 +14,12 @@ export async function decodeBlob(blob: Blob) {
   }
 }
 
-export async function wavAt(decoded: AudioBuffer, rate: number) {
+// skipMs: 녹음 앞에서 버릴 길이(끼어들기 전 KIBO 목소리)
+export async function wavAt(decoded: AudioBuffer, rate: number, skipMs = 0) {
   const off = new OfflineAudioContext(1, Math.ceil(decoded.duration * rate), rate);
   const src = off.createBufferSource();
   src.buffer = decoded;
   src.connect(off.destination);
   src.start();
-  return encodeWav(trimSilence((await off.startRendering()).getChannelData(0), rate), rate);
+  return encodeWav(trimSilence((await off.startRendering()).getChannelData(0), rate, skipMs), rate);
 }

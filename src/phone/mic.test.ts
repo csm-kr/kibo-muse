@@ -24,10 +24,10 @@ function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrac
   };
   const streams: { tracks: { readyState: string; stop(): void }[] }[] = [];
   const recs: (RecorderLike & { stops: number })[] = [];
-  const watches: { end: () => void; none: () => void; on: boolean }[] = [];
+  const watches: { end: () => void; none: () => void; keep: (leadMs: number) => void; on: boolean }[] = [];
   const deps: MicDeps = {
-    watch: (_s, end, none) => {
-      const w = { end, none, on: true };
+    watch: (_s, end, none, keep) => {
+      const w = { end, none, keep, on: true };
       watches.push(w);
       return () => void (w.on = false);
     },
@@ -77,7 +77,7 @@ function rig(o: { openMs?: number; deny?: boolean; failStart?: boolean; deadTrac
   const mic = createMic(deps, {
     onPhase: (p) => phases.push(p),
     onRecording: () => log.push("recording"),
-    onTake: (x) => void log.push(`take:${x.blob.size}`),
+    onTake: (x) => void log.push(`take:${x.blob.size}${x.skipMs ? `@${x.skipMs}` : ""}`),
     onTooShort: () => log.push("tooShort"),
     onBlocked: () => log.push("blocked"),
     onFailed: () => log.push("failed"),
@@ -223,6 +223,18 @@ describe("누르고 말하기 녹음기(mic)", () => {
     void h.mic.down();
     await h.tick(1500);
     expect(h.watches).toEqual([]);
+  });
+
+  it("끼어들기: watch가 keep(앞 몇 ms부터 남길지)을 알리면 녹음본에 그 앞을 버릴 길이(skipMs, 녹음 시작부터)를 붙인다", async () => {
+    const r = rig();
+    void r.mic.down();
+    await r.tick(120); // 50ms에 녹음 시작
+    await r.mic.up();
+    await r.tick(1880);
+    r.watches[0].keep(700);
+    r.watches[0].end();
+    await r.tick(TAIL_MS + 10);
+    expect(r.log).toEqual(["recording", "toggleOn", "take:10@1250"]);
   });
 
   it("탭 모드에서 말소리를 못 들으면(watch none) 보내지 않고 마이크를 끄고 알린다. cancel()도 보내지 않고 쉬는 상태로 돌아간다(답 칩을 누름)", async () => {

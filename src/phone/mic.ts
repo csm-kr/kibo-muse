@@ -39,15 +39,18 @@ export interface MicDeps {
   wait(ms: number): Promise<void>;
   // ms 뒤에 fn을 부른다. 돌려준 함수로 취소한다
   later(fn: () => void, ms: number): () => void;
-  // 탭 모드에서만: 말이 끝나 조용해지면 end, 말소리를 끝내 못 들으면 none을 부른다. 돌려준 함수로 멈춘다
-  watch?(stream: StreamLike, end: () => void, none: () => void): () => void;
+  // 탭 모드에서만: 말이 끝나 조용해지면 end, 말소리를 끝내 못 들으면 none을 부른다. 돌려준 함수로 멈춘다.
+  // keep(leadMs): 끼어들기에서 녹음본을 지금부터 leadMs 앞부터만 남긴다(그 앞은 KIBO 목소리 메아리)
+  watch?(stream: StreamLike, end: () => void, none: () => void, keep: (leadMs: number) => void): () => void;
 }
 
-// 녹음 한 번. startDelayMs = 누른 순간부터 녹음이 실제로 시작될 때까지, durationMs = 녹음 길이(뗀 뒤 꼬리 포함)
+// 녹음 한 번. startDelayMs = 누른 순간부터 녹음이 실제로 시작될 때까지, durationMs = 녹음 길이(뗀 뒤 꼬리 포함),
+// skipMs = 녹음 앞에서 버릴 길이(끼어들기 전 KIBO 목소리. 없으면 0)
 export interface Take {
   blob: Blob;
   startDelayMs: number;
   durationMs: number;
+  skipMs: number;
 }
 
 export interface MicEvents {
@@ -90,6 +93,8 @@ interface Press {
   chunks: Blob[];
   cancelMax?: () => void;
   cancelWatch?: () => void;
+  // 녹음본을 이 시각부터 남긴다(끼어들기)
+  keepFrom?: number;
 }
 
 const drop = (s?: StreamLike) => s?.getTracks().forEach((t) => t.stop());
@@ -131,6 +136,7 @@ export function createMic(d: MicDeps, ev: MicEvents) {
           cancel();
           ev.onNoSpeech?.();
         },
+        (lead) => void (press === p && (p.keepFrom = d.now() - lead)),
       );
   }
 
@@ -240,7 +246,8 @@ export function createMic(d: MicDeps, ev: MicEvents) {
     const end = d.now();
     const startedAt = p.startedAt ?? end;
     try {
-      await ev.onTake({ blob: new Blob(p.chunks, { type: rec.mimeType }), startDelayMs: Math.round(startedAt - p.at), durationMs: Math.round(end - startedAt) });
+      const skipMs = p.keepFrom === undefined ? 0 : Math.max(0, Math.round(p.keepFrom - startedAt));
+      await ev.onTake({ blob: new Blob(p.chunks, { type: rec.mimeType }), startDelayMs: Math.round(startedAt - p.at), durationMs: Math.round(end - startedAt), skipMs });
     } finally {
       set("idle");
     }

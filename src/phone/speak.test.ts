@@ -82,6 +82,21 @@ describe("읽는 중인지(이어 듣기를 미루는 데 쓴다)", () => {
     expect(said[0].rate).toBe(1.15);
   });
 
+  it("끼어들기(hush): 읽던 것을 멈추고, 앞 대답을 기다리던 완료 안내(after)도 버린다", async () => {
+    vi.resetModules();
+    const said: string[] = [];
+    const synth = { speaking: false, pending: false, getVoices: () => [{ lang: "ko-KR", name: "K", localService: true }], speak: (u: { text: string }) => void (said.push(u.text), (synth.speaking = true)), cancel: () => void (synth.speaking = false), addEventListener() {}, removeEventListener() {} };
+    vi.stubGlobal("window", { speechSynthesis: synth });
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem() {} });
+    vi.stubGlobal("SpeechSynthesisUtterance", class { rate = 1; constructor(public text: string) {} });
+    const { speak, speechBusy, hush } = await import("./speak");
+    await speak("세 번 누를게요", "ko");
+    const done = speak("담았어요", "ko", { after: true });
+    hush();
+    await done;
+    expect([said, speechBusy()]).toEqual([["세 번 누를게요"], false]);
+  });
+
   it("완료 안내(after)는 앞 대답을 끊지 않고 다 읽은 뒤 읽는다. 기다리는 동안도 읽는 중이다(11/4: Gemini 목소리가 늦게 시작해 탭이 짧으면 '담았어요'가 'N번 누를게요'를 끊었다)", async () => {
     vi.resetModules();
     const said: string[] = [];

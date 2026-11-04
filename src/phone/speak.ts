@@ -251,6 +251,13 @@ let seq = 0;
 let queued = 0;
 // 읽는 중인가. 이어 듣기는 KIBO가 다 읽은 뒤에 마이크를 연다(자기 목소리를 듣지 않게)
 export const speechBusy = () => queued > 0 || playing !== null || !!window.speechSynthesis?.speaking || !!window.speechSynthesis?.pending;
+// 끼어들기: 사람이 말을 시작하면 읽던 것(Gemini·기기 목소리·짧은 대답)을 멈추고, 목소리를 기다리던 읽기와 완료 안내도 버린다
+export function hush() {
+  seq++;
+  stopCloud();
+  const s = window.speechSynthesis;
+  if (s?.speaking || s?.pending) s.cancel();
+}
 // 앞 읽기(목소리를 기다리는 것 포함)가 끝날 때까지 기다린다. 오래 걸리면(6초) 그냥 읽는다
 async function idle(maxMs: number) {
   const until = Date.now() + maxMs;

@@ -3,17 +3,51 @@
 export const SILENCE_MS = 1500;
 export const NO_VOICE_MS = 8000;
 const VOICE_MS = 300;
+// 끼어들기(11/5 사용자: "KIBO가 말하고 있어도 내가 말하면 끊고 말할 수 있게"). KIBO가 말하는 동안(talking) 마이크에는 KIBO 목소리 메아리가 들어온다.
+// 처음 ECHO_WARM번(0.3초)으로 메아리 크기를 재고, 그 3배(적어도 BARGE_RMS)를 BARGE_MS 동안 넘으면 사람이 끼어든 것으로 보고 한 번 "barge"를 낸다.
+// 그 전 소리는 말소리로 치지 않고 말없음 시간도 세지 않는다(KIBO 목소리를 사람 말로 보내지 않게). KIBO가 스스로 말을 마치면 한 번 "free"
+export const BARGE_MS = 300;
+const BARGE_RMS = 0.05;
+const ECHO_WARM = 3;
 
-export function speechEnd(stepMs = 100) {
+export function speechEnd(stepMs = 100, talking: () => boolean = () => false) {
   let floor = 1;
   let voice = 0;
   let quiet = 0;
   let heard = false;
   let ever = false;
   let waited = 0;
-  return (rms: number): "end" | "none" | null => {
+  let barged = false;
+  let was = false;
+  let echo = 0;
+  let warm = 0;
+  let run = 0;
+  return (rms: number): "end" | "none" | "barge" | "free" | null => {
     // 가장 조용했던 크기(잡음 바닥)의 3배, 적어도 0.02를 넘으면 말소리로 본다
     floor = Math.min(floor, Math.max(rms, 0.001));
+    if (!barged && talking()) {
+      was = true;
+      if (warm < ECHO_WARM) {
+        echo = (echo * warm + rms) / (warm + 1);
+        warm++;
+        return null;
+      }
+      if (rms > Math.max(BARGE_RMS, echo * 3)) {
+        run += stepMs;
+        if (run < BARGE_MS) return null;
+        barged = heard = ever = true;
+        voice = run;
+        quiet = 0;
+        return "barge";
+      }
+      run = 0;
+      echo += (rms - echo) * 0.05;
+      return null;
+    }
+    if (was && !barged) {
+      was = false;
+      return "free";
+    }
     if (rms > Math.max(0.02, floor * 3)) {
       voice += stepMs;
       quiet = 0;
@@ -37,7 +71,9 @@ export function speechEnd(stepMs = 100) {
 // 받아쓰기로 보내기 전에 앞뒤 빈 소리를 자른다. 받아쓰기 시간은 소리 길이를 따라 는다(실측 3.4초 → 1.6초, 8.5초 → 2.9초).
 // 이어 듣기는 KIBO가 말을 마친 뒤 사람이 말을 시작할 때까지, 탭 모드는 말 끝 1.5초를 함께 녹음한다.
 // 말 앞 0.4초(첫 음절)와 뒤 0.5초는 남긴다. 말소리가 없거나 0.5초도 줄지 않으면 그대로 둔다
-export function trimSilence(samples: Float32Array, rate: number): Float32Array {
+// skipMs: 녹음 앞에서 먼저 버릴 길이(끼어들기 전 KIBO 목소리 메아리)
+export function trimSilence(all: Float32Array, rate: number, skipMs = 0): Float32Array {
+  const samples = skipMs > 0 ? all.subarray(Math.min(all.length, Math.round((skipMs / 1000) * rate))) : all;
   const win = Math.max(1, Math.round(rate * 0.02));
   const n = Math.floor(samples.length / win);
   const rms: number[] = [];
@@ -88,7 +124,13 @@ export function unlockAudio() {
 }
 
 // 브라우저: 마이크 소리 크기를 100ms마다 재서 speechEnd에 넣는다. 오디오를 쓸 수 없으면 아무것도 하지 않는다(다시 누르면 보낸다)
-export function watchSilence(stream: MediaStream, end: () => void, none?: () => void): () => void {
+// gate(이어 듣기): KIBO가 말하는 중인지(talking), 끼어들었을 때 할 일(barge), 녹음본에서 남길 시작점(keep: 지금부터 몇 ms 앞)
+export interface BargeGate {
+  talking(): boolean;
+  barge(): void;
+  keep(leadMs: number): void;
+}
+export function watchSilence(stream: MediaStream, end: () => void, none?: () => void, gate?: BargeGate): () => void {
   try {
     const ctx = audioCtx();
     if (!ctx) return () => {};
@@ -98,7 +140,7 @@ export function watchSilence(stream: MediaStream, end: () => void, none?: () => 
     src.connect(an);
     void ctx.resume().catch(() => {});
     const buf = new Float32Array(an.fftSize);
-    const isEnd = speechEnd();
+    const isEnd = speechEnd(100, gate ? () => gate.talking() : undefined);
     const id = setInterval(() => {
       an.getFloatTimeDomainData(buf);
       let sum = 0;
@@ -106,6 +148,11 @@ export function watchSilence(stream: MediaStream, end: () => void, none?: () => 
       const r = isEnd(Math.sqrt(sum / buf.length));
       if (r === "end") end();
       else if (r === "none") none?.();
+      // 끼어든 말의 첫 음절(0.4초)부터 남기고 KIBO를 멈춘다. KIBO가 스스로 마쳤으면 그때부터 남긴다
+      else if (r === "barge") {
+        gate?.keep(BARGE_MS + 400);
+        gate?.barge();
+      } else if (r === "free") gate?.keep(0);
     }, 100);
     return () => {
       clearInterval(id);

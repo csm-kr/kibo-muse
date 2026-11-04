@@ -15,7 +15,7 @@ import { payStep } from "./pay";
 import { nextOrder, type OrderMemo } from "./receipt";
 import { unlockAudio } from "./silence";
 import { ackKind } from "./ackKind";
-import { ack, preloadAck, setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
+import { ack, hush, preloadAck, setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
 import { autoListen, bandHidden, bridgeTimeout, expireAsk, linkChip, orderLinesIn, phoneHint, statusLine, tapBridge } from "./status";
 import { failLine, phoneText } from "./text";
 import { KioskCard } from "./KioskCard";
@@ -271,11 +271,11 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   }
 
   // 뗀 뒤 녹음본을 받아쓰기로 보낸다
-  async function onTake({ blob }: Take) {
+  async function onTake({ blob, skipMs }: Take) {
     // 소리가 거의 담기지 않은 녹음은 풀 수 없다. 다시 누르게 한다
     const decoded = await decodeBlob(blob).catch(() => null);
     if (!decoded) return setNotice(tx.tooShort);
-    const wav = await wavAt(decoded, PHONE_WAV_RATE);
+    const wav = await wavAt(decoded, PHONE_WAV_RATE, skipMs);
     // 네트워크가 끊기면 응답이 없다. 오류 코드 대신 다시 말해 달라는 고정 문구를 보인다
     const body = await fetch(`/api/transcribe?lang=${encodeURIComponent(lang.bias)}&kiosk=${status?.kioskId ?? "fastfood"}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav as BodyInit })
       .then((res) => res.json() as Promise<{ transcript?: string; say?: string }>)
@@ -317,6 +317,8 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
       setWillTap(false);
       // 이어 듣기는 사람의 누름이 아니다: 소리 잠금은 이미 풀렸고, 되묻기 답 칩은 그대로 둔다(말 대신 눌러도 된다)
       if (auto) return;
+      // 사람이 마이크를 누르면 KIBO가 읽던 것을 멈춘다(끼어들기)
+      hush();
       unlockSpeech();
       // 말 끝을 재는 오디오 처리기를 누르는 동안 깨운다(iOS). 이어 듣기에서도 이것을 쓴다
       unlockAudio();
@@ -332,6 +334,9 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
       linkRef.current?.send({ type: "listening" });
     },
     onTake,
+    // 이어 듣기는 KIBO가 말하는 중에도 연다. 사람이 말을 시작하면 KIBO를 멈춘다(silence.ts 끼어들기)
+    talking: speechBusy,
+    onBarge: hush,
     onTooShort: () => setNotice(tx.tooShort),
     onBlocked: () => {
       setConvo(false);
@@ -388,6 +393,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   }, [waiting]);
   // 이어 듣기: 결제 안내·영수증이 뜨면(주문 끝) 끝낸다. 화면을 숨기면(잠금·앱 전환) 끝낸다
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 옛 코드. 이어 듣기 효과를 단순하게 바꾸자 컴파일러가 이 컴포넌트를 검사하게 되어 드러났다
     if (handoff !== null || receipt) setConvo(false);
   }, [handoff, receipt]);
   useEffect(() => {
@@ -395,15 +401,12 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     document.addEventListener("visibilitychange", off);
     return () => document.removeEventListener("visibilitychange", off);
   }, []);
-  // 대답을 다 읽고 키오스크가 다 누른 뒤 다시 듣는다. 읽는 중이면 끝날 때까지 기다린다(자기 목소리를 듣지 않게)
+  // 키오스크가 다 누른 뒤 다시 듣는다. KIBO가 아직 읽는 중이어도 연다: 그동안 KIBO 목소리 메아리는 말로 치지 않고,
+  // 사람이 끼어들면 KIBO를 멈추고 그 말부터 보낸다(11/5 사용자 "KIBO가 말하고 있어도 내가 말하면 끊고 말할 수 있게")
   const relisten = autoListen({ convo, idle: phase === "idle", waiting, operating: !!operating || willTap, handoff: handoff !== null, receipt: !!receipt, gate: !!gate, fails });
   useEffect(() => {
     if (!relisten) return;
-    let t = setTimeout(function tick() {
-      if (speechBusy()) {
-        t = setTimeout(tick, 250);
-        return;
-      }
+    const t = setTimeout(() => {
       // 마이크는 listen() 안에서 바로 onPress를 부른다. 시작하지 못했어도 다음 사람 누름이 이어 듣기로 보이지 않게 되돌린다
       autoRef.current = true;
       listen();
