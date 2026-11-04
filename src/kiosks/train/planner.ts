@@ -270,13 +270,18 @@ export function plan(start: KioskState, intent: TrainIntent): PlanResult {
           break;
         }
 
-        case "reservation":
-          // 사람이 다른 여정으로 예약해 둔 것이면 결제 전이니 취소하고 처음부터 한다
-          if (!journeyOk(cur, w)) {
+        case "reservation": {
+          // 사람이 다른 여정으로 예약해 둔 것이면 결제 전이니 취소하고 처음부터 한다.
+          // 열차·등급·좌석 배치(창가·통로·나란히)만 바꿔 달라고 해도 취소하고 다시 고른다(11/4 '창가 말고 통로로'에 누를 것이 없었다)
+          const r = cur.reservation!;
+          const t = journeyOk(cur, w) ? targetFor(cur, w) : null;
+          const sameSeats = (xs: string[] | null) => !xs || w.pref === "auto" || (xs.length === r.seats.length && xs.every((x) => r.seats.includes(x)));
+          if (!t || t.leg.train.no !== r.trainNo || r.cls !== w.cls || !sameSeats(t.seats)) {
             press("cancel_reservation");
             break;
           }
-          return done({ kind: "human", what: "pay", reservation: cur.reservation! });
+          return done({ kind: "human", what: "pay", reservation: r });
+        }
 
         case "pay_method":
           return done({ kind: "human", what: "pay", reservation: cur.reservation! });

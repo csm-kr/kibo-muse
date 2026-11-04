@@ -51,6 +51,17 @@ afterEach(() => {
 });
 
 describe("/api/guide", () => {
+  it("휴대폰이 한국어여도 영어로 분명히 물으면 영어로 답하고 읽게 한다(11/4 촬영: 영어 질문에 한국어 답 4번 중 2번)", async () => {
+    const calls = stub(agree, { text: "동의", buttons: 1 });
+    const { lines } = await ask({ ...photo, question: "Which button do I press to check in?" });
+    expect(JSON.stringify(calls[0].body)).toContain("one short sentence in English");
+    expect(lines[0]).toMatchObject({ replyLanguage: "en" });
+    const ko = stub(agree, { text: "동의", buttons: 1 });
+    const { lines: kl } = await ask(photo);
+    expect(JSON.stringify(ko[0].body)).toContain("one short sentence in Korean");
+    expect(kl[0]).toMatchObject({ replyLanguage: "ko" });
+  });
+
   it("Spark가 찾은 버튼(0–1000)을 사진 픽셀로 바꿔 SAM 3.1 박스 프롬프트로 보내고, 윤곽 조각의 글자가 버튼 이름과 같으면 윤곽·점·안내를 돌려준다", async () => {
     const calls = stub(agree, { text: "동의", buttons: 1 });
     const { status, json, lines } = await ask(photo);

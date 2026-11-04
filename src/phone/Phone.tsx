@@ -14,6 +14,7 @@ import { followLang, pickLang, saveLang, savedLang, type PhoneLangCode } from ".
 import { payStep } from "./pay";
 import { nextOrder, type OrderMemo } from "./receipt";
 import { unlockAudio } from "./silence";
+import { ackKind } from "./ackKind";
 import { ack, preloadAck, setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
 import { autoListen, bandHidden, bridgeTimeout, expireAsk, linkChip, orderLinesIn, phoneHint, statusLine, tapBridge } from "./status";
 import { failLine, phoneText } from "./text";
@@ -271,8 +272,6 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
 
   // 뗀 뒤 녹음본을 받아쓰기로 보낸다
   async function onTake({ blob }: Take) {
-    // 보내는 순간 "네, 잠시만요"를 바로 들려준다(대답까지 조용히 기다리지 않게). 안내 모드는 말이 곧장 보내지지 않는다
-    if (!guideOnly) void ack(lang.tts);
     // 소리가 거의 담기지 않은 녹음은 풀 수 없다. 다시 누르게 한다
     const decoded = await decodeBlob(blob).catch(() => null);
     if (!decoded) return setNotice(tx.tooShort);
@@ -285,6 +284,8 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     if (body.transcript && guideOnly) setTyped(body.transcript);
     else if (body.transcript) {
       setFails(0);
+      // 받아쓴 말의 종류에 맞는 짧은 대답을 바로 들려준다(질문 '알아볼게요', 주문 '바로 해 드릴게요'). 대답까지 조용히 기다리지 않게
+      void ack(lang.tts, ackKind(body.transcript));
       send(body.transcript);
     }
     // 한도·크기 초과·받아쓰기 실패는 서버가 휴대폰 언어로 만든 고정 문구(say)를 보낸다. 없으면(빈 받아쓰기, 400) 휴대폰 문구.

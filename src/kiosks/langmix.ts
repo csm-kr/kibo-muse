@@ -49,3 +49,12 @@ export function replyLang(phone: string | null, spoken: string, utterance: strin
   // 말한 언어만의 문자가 있으면(영어 휴대폰에 "안녕하세요") 짧아도 분명하다. 고유 문자가 없으면 세 단어 이상이어야 한다
   return !native[p]?.(text) && (native[s]?.(text) || words(text) >= MIN_WORDS) ? { lang: s, followSpoken: true } : { lang: p, followSpoken: false };
 }
+
+// 말한 언어를 글자로 짐작한다(Spark 판정이 없는 곳: 안내 모드 질문). 고유 문자가 없으면 스페인어 표지가 있을 때만 스페인어, 아니면 영어
+export function guessLang(text: string): Lang {
+  if (runs(text, HANGUL).length) return "ko";
+  if (runs(text, KANA).length) return "ja";
+  if (runs(text, CJK).length) return "zh";
+  if (VI.test(text)) return "vi";
+  return /[¿¡ñ]|\b(qué|dónde|cómo|cuál|botón|pulsar|quiero|para)\b/i.test(text) ? "es" : "en";
+}

@@ -1,6 +1,7 @@
 // 휴대폰에서 글을 사용자의 언어로 읽어 준다. Meta API에는 음성 합성이 없어 Gemini 음성(/api/speak)을 쓰고, 안 되면 브라우저 speechSynthesis로 읽는다
 import { langOf, type Lang } from "@/engine/turn";
 import { runningAudio, unlockAudio } from "./silence";
+import type { AckKind } from "./ackKind";
 
 const TAGS: Record<Lang, string> = { en: "en-US", ko: "ko-KR", ja: "ja-JP", vi: "vi-VN", zh: "zh-CN", es: "es-ES" };
 
@@ -200,30 +201,37 @@ async function cloudSpeak(text: string, language: string, stale: () => boolean) 
   return true;
 }
 
-// 말이 끝나 보내는 순간 바로 짧게 대답한다("네, 잠시만요"). 11/4 production: 말 끝 → 대답 목소리 p50 8초 동안 조용했다.
-// 언어별로 미리 만든 소리(public/ack/<언어>.mp3, Gemini 같은 목소리)를 처음 한 번 받아 두고 바로 튼다. 진짜 대답을 읽기 시작하면 끊긴다
-const acks = new Map<Lang, Promise<AudioBuffer | null>>();
-function ackBuffer(ctx: AudioContext, l: Lang) {
-  let b = acks.get(l);
+// 받아쓴 말에 맞춰 바로 짧게 대답한다(질문 '알아볼게요', 주문 '바로 해 드릴게요', 짧은 대답 '네'). 11/4 production: 말 끝 → 대답 목소리 p50 8초 동안 조용했고,
+// '네, 잠시만요' 하나만 되풀이하니 별로였다(사용자). 언어·종류별 세 개(public/ack/<언어>/<종류>-<번호>.mp3, Gemini 같은 목소리)를 돌려 쓴다. 진짜 대답을 읽기 시작하면 끊긴다
+const acks = new Map<string, Promise<AudioBuffer | null>>();
+function ackBuffer(ctx: AudioContext, path: string) {
+  let b = acks.get(path);
   if (!b) {
-    b = fetch(`/ack/${l}.mp3`)
+    b = fetch(path)
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
       .then((a) => ctx.decodeAudioData(a))
       .catch(() => null);
-    acks.set(l, b);
+    acks.set(path, b);
   }
   return b;
 }
-// 녹음이 시작될 때 미리 받아 둔다(보낼 때 기다리지 않게)
+const ACK_KINDS: AckKind[] = ["question", "request", "short"];
+const turnOf = new Map<string, number>();
+// 녹음이 시작될 때 그 언어의 대답 아홉 개를 미리 받아 둔다(보낼 때 기다리지 않게)
 export function preloadAck(language: string) {
   const ctx = runningAudio();
-  if (ctx) void ackBuffer(ctx, langOf(language));
+  const l = langOf(language);
+  if (ctx) for (const k of ACK_KINDS) for (let i = 0; i < 3; i++) void ackBuffer(ctx, `/ack/${l}/${k}-${i}.mp3`);
 }
-export async function ack(language: string) {
+export async function ack(language: string, kind: AckKind = "request") {
   const ctx = runningAudio();
   if (!soundOn() || !ctx) return;
+  const l = langOf(language);
+  // 같은 종류는 다음 번호로 돌려 쓴다(같은 말이 연달아 나오지 않게)
+  const i = turnOf.get(`${l}/${kind}`) ?? 0;
+  turnOf.set(`${l}/${kind}`, (i + 1) % 3);
   const n = seq;
-  const buf = await ackBuffer(ctx, langOf(language));
+  const buf = await ackBuffer(ctx, `/ack/${l}/${kind}-${i}.mp3`);
   // 받는 사이 진짜 대답이 시작됐으면 틀지 않는다
   if (!buf || n !== seq || playing || !soundOn()) return;
   const src = ctx.createBufferSource();

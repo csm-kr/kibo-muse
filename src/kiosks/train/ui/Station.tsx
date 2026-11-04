@@ -17,7 +17,7 @@ import { beat, GAP } from "@/ui/pointer";
 import { PairBadge, useQrFlag } from "@/ui/PairBadge";
 import { useView } from "@/ui/useView";
 import { useSamples } from "../../samples";
-import { seatNote, trainGate } from "../gates";
+import { bookingSay, seatNote, trainGate } from "../gates";
 import { initialState, step, type KioskEvent, type KioskState, type Target } from "../machine";
 import { plan, type Stop, type TrainIntent } from "../planner";
 import { hhmm, legs, paxTotal } from "../rail";
@@ -40,6 +40,8 @@ interface InterpretResponse {
   plan: { kind: "plan"; events: KioskEvent[]; stop: Stop | null; notes: string[] } | { kind: "clarify"; missing: string[] } | { kind: "reject"; reason: string };
   gate: LinkGate | null;
   paymentHandoff: boolean;
+  // 결제 앞까지 예약했으면 다시 누르기 뒤에 읽을 예약 요약(날·시각·열차·인원·좌석·합계)
+  booked?: string;
   timing: { sparkMs: number; totalMs: number };
   error?: string;
 }
@@ -186,7 +188,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage, say: body.say, followSpoken: body.followSpoken };
     setWait(p.stop);
     // 관문 문구는 서버가 만든 고정 문구다. 결제하기 앞에서 멈추면 휴대폰에 결제 넘기기 안내가 간다
-    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, done: { say: seatNote(p.notes, body.replyLanguage), gate: body.gate, paymentHandoff: body.paymentHandoff, payButton: t.pay[stateRef.current.lang] } };
+    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, done: { say: [body.booked, seatNote(p.notes, body.replyLanguage)].filter(Boolean).join(" "), gate: body.gate, paymentHandoff: body.paymentHandoff, payButton: t.pay[stateRef.current.lang] } };
   }
 
   // 사람이 늦은 열차를 휴대폰에서 확인했다. 그 확인을 의도에 넣고 서버를 거치지 않고 바로 다시 계획한다.
@@ -201,7 +203,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     if (p.kind !== "plan") return null;
     setWait(p.stop);
     setChips(intentChips(next, p.stop, stateRef.current.lang));
-    return { events: p.events, lang: langRef.current, done: { say: seatNote(p.notes, langRef.current), gate: trainGate(p.stop, langRef.current), paymentHandoff: p.stop?.kind === "human", payButton: t.pay[stateRef.current.lang] } };
+    return { events: p.events, lang: langRef.current, done: { say: [p.stop?.kind === "human" ? bookingSay(p.final, langRef.current) : "", seatNote(p.notes, langRef.current)].filter(Boolean).join(" "), gate: trainGate(p.stop, langRef.current), paymentHandoff: p.stop?.kind === "human", payButton: t.pay[stateRef.current.lang] } };
   }
 
   function send(m: LinkMsg) {

@@ -76,6 +76,27 @@ describe("KIBO 화면 경로 계획 — 기차 발매기", () => {
   });
 });
 
+describe("예약 뒤 바꾸기", () => {
+  it("예약 화면에서 좌석 배치(창가→통로)나 등급만 바꿔 달라고 해도 결제 전 예약을 취소하고 다시 고른다(11/4: '창가 말고 통로로'에 누를 것이 없었다)", () => {
+    const base: TrainIntent = { to: "harbor", day: 1, hour: 9, adults: 1, seats: "window" };
+    const first = plan(initialState("ko"), base);
+    if (first.kind !== "plan") throw new Error(first.kind);
+    const aisle = plan(first.final, { ...base, seats: "aisle" });
+    expect(aisle.kind).toBe("plan");
+    if (aisle.kind !== "plan") return;
+    expect(aisle.events[0]).toMatchObject({ by: "kibo", target: "cancel_reservation" });
+    expect(aisle.final.screen).toBe("reservation");
+    // 통로 자리는 B·C
+    expect(["B", "C"]).toContain(aisle.final.reservation!.seats[0].slice(-1));
+    const firstClass = plan(first.final, { ...base, seatClass: "first" });
+    if (firstClass.kind !== "plan") throw new Error(firstClass.kind);
+    expect(firstClass.final.reservation!.cls).toBe("first");
+    // 같은 요청을 다시 하면 누를 것이 없다(취소하지 않는다)
+    const same = plan(first.final, base);
+    expect(same.kind === "plan" && same.events.length).toBe(0);
+  });
+});
+
 describe("속성 테스트", () => {
   const intentArb = fc
     .record({

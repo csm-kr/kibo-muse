@@ -31,6 +31,8 @@ interface SparkLine {
   instruction: string;
   label: string;
   box: Box | null;
+  // 서버가 고른 대답 언어(질문 언어가 휴대폰 언어와 분명히 다르면 질문 언어)
+  replyLanguage?: string;
 }
 interface CheckLine {
   verified: boolean;
@@ -157,7 +159,8 @@ export function GuideCamera({ question, language, tts, onAsked }: { question: st
           else if (l.stage === "check") setCheck(l);
           // 위치가 담긴 안내 문장은 검증을 통과한 뒤에 읽는다. 물러나면 고정 문구만
           const say = speechFor(l as GuideLine, sparkLine);
-          if (say) speak(say, tts);
+          // 질문 언어로 답했으면(한국어 휴대폰에 영어 질문) 그 언어로 읽는다
+          if (say) speak(say, (sparkLine?.stage === "spark" ? sparkLine.replyLanguage : undefined) ?? tts);
         }
       }
     } catch {

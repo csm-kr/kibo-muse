@@ -162,17 +162,21 @@ describe("Google 음성(서버 /api/speak)", () => {
     expect(mod.speechBusy()).toBe(false);
   });
 
-  it("말이 끝나 보내는 순간 휴대폰 언어로 미리 만든 짧은 대답(/ack/ko.mp3, '네, 잠시만요')을 바로 튼다(11/4: 말 끝 → 대답 목소리 8초 동안 조용했다). 진짜 대답을 읽기 시작하면 끊는다. 소리를 껐으면 틀지 않는다", async () => {
+  it("받아쓴 말의 종류에 맞는 미리 만든 짧은 대답(/ack/ko/question-0.mp3)을 바로 튼다. 같은 종류는 다음 것으로 돌려 쓴다. 진짜 대답을 읽기 시작하면 끊는다. 소리를 껐으면 틀지 않는다", async () => {
     const { played, fetches, mod } = await rig(200, [[0, 0x40]]);
-    await mod.ack("Korean");
-    expect(fetches).toEqual(["/ack/ko.mp3 undefined"]);
+    await mod.ack("Korean", "question");
+    expect(fetches).toEqual(["/ack/ko/question-0.mp3 undefined"]);
     expect([played.length, played[0].buffer!.data.length, mod.speechBusy()]).toEqual([1, 3, true]);
     await mod.speak("네, 담을게요", "ko");
     expect(played[0].stopped).toBe(true);
     await vi.waitFor(() => expect(played.length).toBe(2));
+    played.forEach((p) => p.onended?.());
+    await vi.waitFor(() => expect(mod.speechBusy()).toBe(false));
+    await mod.ack("Korean", "question");
+    expect(fetches.at(-1)).toBe("/ack/ko/question-1.mp3 undefined");
     mod.setSound(false);
-    await mod.ack("Korean");
-    expect(played.length).toBe(2);
+    await mod.ack("Korean", "question");
+    expect(fetches.at(-1)).toBe("/ack/ko/question-1.mp3 undefined");
   });
 
   it("키가 없으면(404) 기기 목소리로 읽고, 이 화면에서는 서버에 다시 묻지 않는다", async () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialState } from "@/kiosks/train/machine";
+import { plan } from "@/kiosks/train/planner";
 import { POST } from "./route";
 
 afterEach(() => {
@@ -26,13 +27,14 @@ describe("/api/train/interpret", () => {
     expect(body.plan.stop).toMatchObject({ kind: "human", what: "pay" });
     expect(body.paymentHandoff).toBe(true);
     expect(body.gate).toBeNull();
-    expect(body.say).toBe(`알겠어요. 제가 ${body.plan.events.length}번 눌러 드릴게요.`);
+    // 누르기 전에 알아들은 것(도착역·날·시각·인원)을 먼저 말한다
+    expect(body.say).toMatch(new RegExp(`^등대항행 내일 09:\\d\\d, 어른 2명\\. 알겠어요\\. 제가 ${body.plan.events.length}번 눌러 드릴게요\\.$`));
   });
 
   it("휴대폰 언어(?lang)가 대답 언어다: Spark가 영어를 골라도 한국어 휴대폰에는 한국어 고정 문구로 답한다", async () => {
     said({ to: "harbor", day: 1, hour: 9, adults: 2, trainType: "express", seats: "window", replyLanguage: "en" });
     const body = await post("Harbor 가는 express, 내일 9시 어른 2명 창가", "?lang=ko");
-    expect(body.say).toBe(`알겠어요. 제가 ${body.plan.events.length}번 눌러 드릴게요.`);
+    expect(body.say).toMatch(new RegExp(`알겠어요\\. 제가 ${body.plan.events.length}번 눌러 드릴게요\\.$`));
     expect(body.replyLanguage).toBe("ko");
   });
 
@@ -41,7 +43,7 @@ describe("/api/train/interpret", () => {
     const body = await post("Two adults to Harborlight tomorrow at nine, window seats please", "?lang=ko");
     expect(body.replyLanguage).toBe("en");
     expect(body.followSpoken).toBe(true);
-    expect(body.say).toBe(`Got it. I'll make the ${body.plan.events.length} taps for you.`);
+    expect(body.say).toMatch(new RegExp(`^To Harborlight, tomorrow 09:\\d\\d, 2 adults\\. Got it\\. I'll make the ${body.plan.events.length} taps for you\\.$`));
   });
 
   it("거절 문구 속 버튼 이름은 키오스크 화면 글자다(나가기 = 화면 위 [처음으로]·[Home]). 휴대폰 언어로 옮기지 않는다", async () => {
@@ -73,9 +75,28 @@ describe("/api/train/interpret", () => {
     expect(await post("내일 9시 등대항 어른 12명")).toMatchObject({ plan: { kind: "reject", reason: "bad_passengers" }, say: "한 번에 9명까지 예매할 수 있어요." });
   });
 
-  it("되묻기는 빠진 항목으로 만든 고정 문구다(Spark 문장은 역 이름을 틀리게 쓸 수 있다). 같은 역·7일 넘는 날·고를 수 없는 시각·맞는 열차 없음은 이유별 고정 문구로 거절한다", async () => {
+  it("되묻기·노선에 없는 역·할 일 없는 말은 Spark 문장으로 답한다(질문에 답하고 빠진 것을 묻는다). 역 {id}는 정확한 이름으로 채운다", async () => {
+    said({ to: "harbor", say: "{harbor} 가는 고속열차는 30분마다 있어요. 언제, 몇 분이 타세요?" });
+    expect(await post("등대항 가는 거 몇 시에 있어요?")).toMatchObject({ plan: { kind: "clarify" }, say: "등대항 가는 고속열차는 30분마다 있어요. 언제, 몇 분이 타세요?" });
+    said({ unknownTo: "부산", say: "부산은 이 발매기 노선에 없어요. 바다 쪽이면 {coralbay}이나 {harbor}은 어떠세요?" });
+    expect(await post("부산 가는 표")).toMatchObject({ plan: { kind: "reject", reason: "unknown_station" }, say: "부산은 이 발매기 노선에 없어요. 바다 쪽이면 산호만이나 등대항은 어떠세요?" });
+    // 예약 화면까지 온 뒤 결제를 부탁하는 말: 누를 것이 없으면 Spark가 할 수 있는 일을 알린다
+    said({ to: "harbor", day: 1, hour: 15, adults: 2 });
+    const booked = await post("내일 3시 등대항 어른 둘");
+    expect(booked.booked).toMatch(/^내일 15:\d\d 출발 등대항행/);
+    const at = plan(initialState(), booked.intent);
+    if (at.kind !== "plan") throw new Error(at.kind);
+    said({ say: "결제는 제가 할 수 없어요. 화면의 [Pay]를 직접 눌러 주세요." });
+    const after = await (await POST(new Request("http://x/api/train/interpret", { method: "POST", body: JSON.stringify({ utterance: "결제도 해 주세요", state: at.final, pending: booked.intent }) }))).json();
+    expect(after.plan.events).toHaveLength(0);
+    expect(after.say).toBe("결제는 제가 할 수 없어요. 화면의 [Pay]를 직접 눌러 주세요.");
+  });
+
+  it("Spark 문장이 역 이름을 틀리게 쓰거나 모르는 {id}를 쓰면 빠진 것만 묻는 고정 문구로 바꾼다. 같은 역·7일 넘는 날·고를 수 없는 시각·맞는 열차 없음은 이유별 고정 문구로 거절한다", async () => {
     said({ to: "willow", day: 0, adults: 1, say: "버들둱으로 가시는 몇 시 열차로 하시겠어요?" });
-    expect(await post("지금 바로 버들둑 가요. 어른 한 명.")).toMatchObject({ plan: { kind: "clarify", missing: ["date"] }, say: "알려 주세요: 날짜와 시각." });
+    expect(await post("지금 바로 버들둑 가요. 어른 한 명.")).toMatchObject({ plan: { kind: "clarify", missing: ["date"] }, say: "몇 시쯤 출발할까요?" });
+    said({ to: "willow", day: 0, adults: 1, say: "{busan}은 없어요. 몇 시에 가세요?" });
+    expect((await post("지금 바로 버들둑 가요. 어른 한 명.")).say).toBe("몇 시쯤 출발할까요?");
     // 어린이만 남으면 묻는다. 묻기 전에 해석이 낸 '어린이만'은 받지 않고, 물은 뒤의 확인만 받는다
     said({ to: "willow", day: 1, hour: 9, children: 1, childrenOnly: true });
     const kid = await post("내일 9시 버들둑, 아이 한 명");

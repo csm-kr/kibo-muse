@@ -9,6 +9,10 @@ import { locate } from "@/guide/locate";
 import { samMask } from "@/guide/sam";
 import { checkBox, cropDataUrl, cropVerified, readButtonText, unsureText } from "@/guide/verify";
 import { logError, MAX, overSize, rateLimited, tooLarge } from "@/server/guard";
+import { langOf, type Lang } from "@/engine/turn";
+import { guessLang, replyLang } from "@/kiosks/langmix";
+
+const LANG_NAMES: Record<Lang, string> = { en: "English", ko: "Korean", ja: "Japanese", vi: "Vietnamese", zh: "Chinese", es: "Spanish" };
 
 const okSize = (v: unknown): v is number => Number.isInteger(v) && (v as number) > 0 && (v as number) <= 4096;
 const line = (o: object) => new TextEncoder().encode(`${JSON.stringify(o)}\n`);
@@ -25,7 +29,9 @@ export async function POST(req: Request) {
   if (typeof image !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(image) || !okSize(width) || !okSize(height))
     return Response.json({ error: "image must be a resized data:image URL with its width and height" }, { status: 400 });
   if (typeof question !== "string" || !question.trim()) return Response.json({ error: "question is required" }, { status: 400 });
-  const lang = language || "English";
+  // 대답 언어: 휴대폰 언어. 다만 질문 언어가 분명히 다르면(한국어 휴대폰에 영어 문장) 질문 언어로 답한다(11/4 촬영: 영어 질문에 한국어 답)
+  const reply = langOf(replyLang(language || "English", guessLang(question), question, []).lang);
+  const lang = LANG_NAMES[reply];
 
   const t0 = performance.now();
   let spark;
@@ -37,7 +43,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "guide_failed" }, { status: 502 });
   }
   const { answer: a, ms: sparkMs } = spark;
-  const base = { stage: "spark", found: a.found, summary: a.screen_summary, instruction: a.instruction, label: a.target.label, confidence: a.confidence };
+  const base = { stage: "spark", found: a.found, summary: a.screen_summary, instruction: a.instruction, label: a.target.label, confidence: a.confidence, replyLanguage: reply };
   const headers = { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" };
   if (!a.found) return new Response(line({ ...base, point: null, box: null, mask: null, timing: { sparkMs, samMs: null, totalMs: Math.round(performance.now() - t0) } }), { headers });
 

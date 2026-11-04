@@ -3,7 +3,7 @@
 // 검증이 물러나면 위치 없는 고정 문구만 읽는다. 버튼을 못 찾았다는 말은 위치가 없어 바로 읽는다.
 
 export type GuideLine =
-  | { stage: "spark"; found: boolean; instruction: string; label: string }
+  | { stage: "spark"; found: boolean; instruction: string; label: string; replyLanguage?: string }
   | { stage: "sam" }
   | { stage: "check"; verified: boolean; unsure: string | null };
 

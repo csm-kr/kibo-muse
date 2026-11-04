@@ -3,9 +3,11 @@
 
 import { langOf, type Lang } from "@/engine/turn";
 import type { LinkGate } from "@/sync/link";
-import type { Missing, Stop } from "./planner";
-import { trainByNo } from "./machine";
-import { trainName } from "./rail";
+import type { Missing, Stop, TrainIntent } from "./planner";
+import { trainByNo, type KioskState } from "./machine";
+import { findStation, hhmm, legs, trainName, type SeatClass } from "./rail";
+import { seatsText } from "./ui/labels";
+import { t } from "./ui/strings";
 
 const later: Record<Lang, { text: string; button: string }> = {
   en: { text: "The nearest train with free seats is {train}, leaving at {dep}, more than an hour after the time you asked. To take it, say “yes” or tap “Take this train”.", button: "Take this train" },
@@ -35,7 +37,7 @@ export function trainGate(stop: Stop | null, language: string): LinkGate | null 
   return null;
 }
 
-// 되묻기: 빠진 항목만 나열한다(Spark 문장은 역 이름을 틀리게 쓸 수 있다). 어린이만 남았으면 어린이만 타는 표인지 묻는다
+// 어린이만 남았으면 어린이만 타는 표인지 묻는다
 const childOnly: Record<Lang, string> = {
   en: "Should I book tickets for children only? If an adult is travelling with them, please tell me.",
   ko: "어린이만 타는 표로 예매할까요? 함께 타는 어른이 있으면 말씀해 주세요.",
@@ -45,19 +47,88 @@ const childOnly: Record<Lang, string> = {
   es: "¿Reservo billetes solo para niños? Si viaja un adulto con ellos, dígamelo.",
 };
 
-const ask: Record<Lang, { head: string; sep: string; end: string; item: Record<Exclude<Missing, "child_only">, string> }> = {
-  en: { head: "Please tell me: ", sep: ", ", end: ".", item: { to: "destination", date: "date and time", passengers: "number of people" } },
-  ko: { head: "알려 주세요: ", sep: ", ", end: ".", item: { to: "도착역", date: "날짜와 시각", passengers: "인원" } },
-  ja: { head: "教えてください：", sep: "、", end: "。", item: { to: "行き先", date: "日付と時刻", passengers: "人数" } },
-  vi: { head: "Xin cho biết: ", sep: ", ", end: ".", item: { to: "ga đến", date: "ngày và giờ", passengers: "số người" } },
-  zh: { head: "请告诉我：", sep: "、", end: "。", item: { to: "目的地", date: "日期和时间", passengers: "人数" } },
-  es: { head: "Dígame, por favor: ", sep: ", ", end: ".", item: { to: "destino", date: "fecha y hora", passengers: "número de personas" } },
+// 빠진 것만 묻는 질문(Spark 문장을 못 쓸 때의 대체). 날짜를 이미 알면 시각만 묻는다
+const ask: Record<Lang, { to: string; when: string; time: string; who: string; whenWho: string }> = {
+  en: { to: "Where are you going?", when: "What day and time would you like to leave?", time: "What time would you like to leave?", who: "How many people are travelling?", whenWho: "What day and time, and how many people?" },
+  ko: { to: "어디로 가세요?", when: "언제 몇 시쯤 출발할까요?", time: "몇 시쯤 출발할까요?", who: "몇 분이 타세요?", whenWho: "언제 몇 시쯤, 몇 분이 타세요?" },
+  ja: { to: "どちらまで行かれますか？", when: "何日の何時ごろに出発しますか？", time: "何時ごろに出発しますか？", who: "何名さまですか？", whenWho: "何日の何時ごろ、何名さまですか？" },
+  vi: { to: "Bạn muốn đi đến ga nào?", when: "Bạn muốn đi ngày nào, khoảng mấy giờ?", time: "Bạn muốn đi khoảng mấy giờ?", who: "Có mấy người đi ạ?", whenWho: "Ngày nào, mấy giờ, và có mấy người đi ạ?" },
+  zh: { to: "您要去哪一站？", when: "您想哪天几点左右出发？", time: "您想几点左右出发？", who: "一共几位乘车？", whenWho: "哪天几点左右，一共几位？" },
+  es: { to: "¿A dónde va?", when: "¿Qué día y a qué hora quiere salir?", time: "¿A qué hora quiere salir?", who: "¿Cuántas personas viajan?", whenWho: "¿Qué día, a qué hora y cuántas personas?" },
 };
 
-export function clarifySay(missing: Missing[], language: string) {
+export function clarifySay(missing: Missing[], language: string, known: TrainIntent = {}) {
   if (missing.includes("child_only")) return childOnly[langOf(language)];
   const a = ask[langOf(language)];
-  return a.head + missing.map((m) => a.item[m as Exclude<Missing, "child_only">]).join(a.sep) + a.end;
+  const when = missing.includes("date") ? (known.day !== undefined ? a.time : a.when) : "";
+  const both = missing.includes("date") && missing.includes("passengers") && known.day === undefined;
+  return [missing.includes("to") ? a.to : "", both ? a.whenWho : when, !both && missing.includes("passengers") ? a.who : ""].filter(Boolean).join(" ");
+}
+
+// 결제 앞(예약 확인 화면)까지 온 뒤 무엇을 예약했는지 말한다. pay = 키오스크 화면의 결제 버튼 글자(키오스크 언어 그대로)
+const dayWord: Record<Lang, (d: number) => string> = {
+  en: (d) => (d === 0 ? "Today" : d === 1 ? "Tomorrow" : `In ${d} days`),
+  ko: (d) => (d === 0 ? "오늘" : d === 1 ? "내일" : d === 2 ? "모레" : `${d}일 뒤`),
+  ja: (d) => (d === 0 ? "今日" : d === 1 ? "明日" : `${d}日後`),
+  vi: (d) => (d === 0 ? "Hôm nay" : d === 1 ? "Ngày mai" : `${d} ngày nữa`),
+  zh: (d) => (d === 0 ? "今天" : d === 1 ? "明天" : `${d}天后`),
+  es: (d) => (d === 0 ? "Hoy" : d === 1 ? "Mañana" : `Dentro de ${d} días`),
+};
+const paxWords: Record<Lang, [(n: number) => string, (n: number) => string, (n: number) => string, string]> = {
+  en: [(n) => `${n} adult${n > 1 ? "s" : ""}`, (n) => `${n} child${n > 1 ? "ren" : ""}`, (n) => `${n} senior${n > 1 ? "s" : ""}`, ", "],
+  ko: [(n) => `어른 ${n}명`, (n) => `어린이 ${n}명`, (n) => `경로 ${n}명`, ", "],
+  ja: [(n) => `大人${n}名`, (n) => `子ども${n}名`, (n) => `シニア${n}名`, "、"],
+  vi: [(n) => `${n} người lớn`, (n) => `${n} trẻ em`, (n) => `${n} người cao tuổi`, ", "],
+  zh: [(n) => `成人${n}位`, (n) => `儿童${n}位`, (n) => `老人${n}位`, "、"],
+  es: [(n) => `${n} adulto${n > 1 ? "s" : ""}`, (n) => `${n} niño${n > 1 ? "s" : ""}`, (n) => `${n} mayor${n > 1 ? "es" : ""}`, ", "],
+};
+const clsWord: Record<Lang, Record<SeatClass, string>> = {
+  en: { general: "standard class", first: "first class" },
+  ko: { general: "일반실", first: "특실" },
+  ja: { general: "普通席", first: "特別席" },
+  vi: { general: "hạng thường", first: "hạng nhất" },
+  zh: { general: "普通座", first: "一等座" },
+  es: { general: "clase estándar", first: "primera clase" },
+};
+const booked: Record<Lang, (x: { day: string; dep: string; train: string; to: string; pax: string; cls: string; seats: string; total: string; pay: string }) => string> = {
+  en: (x) => `${x.day}, ${x.dep}, ${x.train} to ${x.to}, ${x.pax}, ${x.cls}, ${x.seats}. Total ${x.total}. Please tap [${x.pay}] on the screen yourself to pay.`,
+  ko: (x) => `${x.day} ${x.dep} 출발 ${x.to}행 ${x.train}, ${x.pax}, ${x.cls} ${x.seats}. 합계 ${x.total}으로 예약했어요. 결제는 화면의 [${x.pay}]를 직접 눌러 주세요.`,
+  ja: (x) => `${x.day} ${x.dep}発 ${x.to}行き ${x.train}、${x.pax}、${x.cls} ${x.seats}。合計${x.total}で予約しました。お支払いは画面の［${x.pay}］をご自身で押してください。`,
+  vi: (x) => `${x.day}, ${x.dep}, ${x.train} đi ${x.to}, ${x.pax}, ${x.cls}, ${x.seats}. Tổng ${x.total}. Để thanh toán, xin hãy tự bấm [${x.pay}] trên màn hình.`,
+  zh: (x) => `${x.day}${x.dep}出发、开往${x.to}的${x.train}，${x.pax}，${x.cls} ${x.seats}。合计${x.total}，已预订。请您自己点屏幕上的［${x.pay}］付款。`,
+  es: (x) => `${x.day}, ${x.dep}, ${x.train} a ${x.to}, ${x.pax}, ${x.cls}, ${x.seats}. Total ${x.total}. Para pagar, pulse usted [${x.pay}] en la pantalla.`,
+};
+
+// 누르기 전에 알아들은 것을 먼저 말한다(도착역·날·출발 시각·인원). 그 뒤에 'N번 눌러 드릴게요'
+const lead: Record<Lang, (x: { day: string; dep: string; to: string; pax: string }) => string> = {
+  en: (x) => `To ${x.to}, ${x.day.toLowerCase()} ${x.dep}, ${x.pax}.`,
+  ko: (x) => `${x.to}행 ${x.day} ${x.dep}, ${x.pax}.`,
+  ja: (x) => `${x.to}行き、${x.day} ${x.dep}、${x.pax}。`,
+  vi: (x) => `Đi ${x.to}, ${x.day.toLowerCase()} ${x.dep}, ${x.pax}.`,
+  zh: (x) => `去${x.to}，${x.day}${x.dep}，${x.pax}。`,
+  es: (x) => `A ${x.to}, ${x.day.toLowerCase()} a las ${x.dep}, ${x.pax}.`,
+};
+export function planLead(s: KioskState, language: string) {
+  const r = s.reservation;
+  const leg = r && s.to ? legs(s.from, s.to).find((x) => x.train.no === r.trainNo) : undefined;
+  if (!leg || !s.to) return "";
+  const l = langOf(language);
+  const [ad, ch, se, sep] = paxWords[l];
+  const pax = [s.pax.adult ? ad(s.pax.adult) : "", s.pax.child ? ch(s.pax.child) : "", s.pax.senior ? se(s.pax.senior) : ""].filter(Boolean).join(sep);
+  return lead[l]({ day: dayWord[l](s.day), dep: hhmm(leg.dep), to: findStation(s.to)!.name[l === "ko" ? "ko" : "en"], pax });
+}
+
+export function bookingSay(s: KioskState, language: string) {
+  const r = s.reservation;
+  const leg = r && s.to ? legs(s.from, s.to).find((x) => x.train.no === r.trainNo) : undefined;
+  if (!r || !leg || !s.to) return "";
+  const l = langOf(language);
+  const ko = l === "ko";
+  const [ad, ch, se, sep] = paxWords[l];
+  const pax = [s.pax.adult ? ad(s.pax.adult) : "", s.pax.child ? ch(s.pax.child) : "", s.pax.senior ? se(s.pax.senior) : ""].filter(Boolean).join(sep);
+  const total = ko ? `${r.total.toLocaleString("en-US")}원` : `₩${r.total.toLocaleString("en-US")}`;
+  const seats = seatsText(r.seats, l);
+  return booked[l]({ day: dayWord[l](s.day), dep: hhmm(leg.dep), train: trainName(leg.train)[ko ? "ko" : "en"], to: findStation(s.to)!.name[ko ? "ko" : "en"], pax, cls: clsWord[l][r.cls], seats: l === "en" ? seats.replace(/^Car/, "car") : seats, total, pay: t.pay[s.lang] ?? t.pay.en });
 }
 
 // 원하는 좌석 배치(나란히·창가·통로)를 찾지 못해 발매기 자동 배정으로 예약했을 때의 알림
