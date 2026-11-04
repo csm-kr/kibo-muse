@@ -1,0 +1,407 @@
+{
+ "ff05": [
+  {
+   "u": "햄버거 하나 주세요",
+   "say": "say (ko): 어떤 햄버거로 드릴까요? 매장에서 드시나요, 포장이신가요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 3047 ms · server 3047 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 어떤 햄버거로 드릴까요? 매장에서 드시나요, 포장이신가요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 3047 ms · server 3047 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "어떤 햄버거로 드릴까요? 매장에서 드시나요, 포장이신가요?"
+   }
+  }
+ ],
+ "ff10": [
+  {
+   "u": "세트 하면 뭐가 같이 나와요?",
+   "say": "say (ko): 세트는 버거에 사이드와 음료가 함께 나옵니다. 사이드를 말씀 안 하시면 감자튀김으로 나갑니다. 어떤 버거로 드릴까요? 매장에서 드시나요, 포장이신가요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 2967 ms · server 2967 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 세트는 버거에 사이드와 음료가 함께 나옵니다. 사이드를 말씀 안 하시면 감자튀김으로 나갑니다. 어떤 버거로 드릴까요? 매장에서 드시나요, 포장이신가요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 2967 ms · server 2967 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "세트는 버거에 사이드와 음료가 함께 나옵니다. 사이드를 말씀 안 하시면 감자튀김으로 나갑니다. 어떤 버거로 드릴까요? 매장에서 드시나요, 포장이신가요?"
+   }
+  }
+ ],
+ "ff15": [
+  {
+   "u": "고기 안 들어간 버거 있어요?",
+   "say": "say (ko): 네, 고기 없는 베지 버거 있어요. 드시겠어요? 매장에서 드시나요, 포장이신가요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 4001 ms · server 4001 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 네, 고기 없는 베지 버거 있어요. 드시겠어요? 매장에서 드시나요, 포장이신가요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 4001 ms · server 4001 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "네, 고기 없는 베지 버거 있어요. 드시겠어요? 매장에서 드시나요, 포장이신가요?"
+   }
+  }
+ ],
+ "ff20": [
+  {
+   "u": "감자튀김 라지로 하나 주세요",
+   "say": "say (ko): 감자튀김 라지 1개 담을게요. 매장에서 드시나요, 포장이신가요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 5417 ms · server 5417 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 감자튀김 라지 1개 담을게요. 매장에서 드시나요, 포장이신가요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 5417 ms · server 5417 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "items": [
+      {
+       "menuId": "fries",
+       "size": "L",
+       "remove": [],
+       "addOns": [],
+       "qty": 1
+      }
+     ]
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "감자튀김 라지 1개 담을게요. 매장에서 드시나요, 포장이신가요?"
+   }
+  }
+ ],
+ "ff25": [
+  {
+   "u": "새우버거 단품 두 개요",
+   "say": "say (ko): 새우버거 단품 두 개 담을게요. 매장에서 드시나요, 포장이신가요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 5155 ms · server 5155 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 새우버거 단품 두 개 담을게요. 매장에서 드시나요, 포장이신가요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 5155 ms · server 5155 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "items": [
+      {
+       "menuId": "shrimp",
+       "mode": "single",
+       "remove": [],
+       "addOns": [],
+       "qty": 2
+      }
+     ]
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "새우버거 단품 두 개 담을게요. 매장에서 드시나요, 포장이신가요?"
+   }
+  },
+  {
+   "u": "아니 세 개요",
+   "say": "say (ko): 새우버거 싱글 세 개 맞으시죠? 매장에서 드시나요, 포장인가요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 5405 ms · server 5405 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 새우버거 싱글 세 개 맞으시죠? 매장에서 드시나요, 포장인가요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 5405 ms · server 5405 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "items": [
+      {
+       "menuId": "shrimp",
+       "mode": "single",
+       "remove": [],
+       "addOns": [],
+       "qty": 3
+      }
+     ]
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 0
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "새우버거 싱글 세 개 맞으시죠? 매장에서 드시나요, 포장인가요?"
+   }
+  }
+ ],
+ "ff30": [
+  {
+   "u": "포인트 적립 돼요?",
+   "say": "say (ko): 주문하시려면 매장 식사 또는 포장으로 말씀해 주세요.",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 4620 ms · server 4620 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 주문하시려면 매장 식사 또는 포장으로 말씀해 주세요.\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 4620 ms · server 4620 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "주문하시려면 매장 식사 또는 포장으로 말씀해 주세요."
+   }
+  }
+ ],
+ "ff35": [
+  {
+   "u": "아까 시킨 거 다 취소해 주세요",
+   "say": "say (ko): 주문 전체 취소는 화면의 [Start over]를 직접 눌러 주세요.",
+   "intent": "",
+   "plan": "plan: reject · \"cancel_order\"",
+   "timing": "timing: Spark 3507 ms · server 3507 ms",
+   "screen": "screen: idle · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 주문 전체 취소는 화면의 [Start over]를 직접 눌러 주세요.\nplan: reject · \"cancel_order\"\ntiming: Spark 3507 ms · server 3507 ms\nscreen: idle · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "reject",
+     "reason": "cancel_order"
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "주문 전체 취소는 화면의 [Start over]를 직접 눌러 주세요."
+   }
+  }
+ ],
+ "ff40": [
+  {
+   "u": "베이컨 추가하면 얼마예요?",
+   "say": "say (ko): 베이컨 추가는 900원입니다. 매장에서 드시나요, 포장하시나요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 4815 ms · server 4815 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 베이컨 추가는 900원입니다. 매장에서 드시나요, 포장하시나요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 4815 ms · server 4815 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "베이컨 추가는 900원입니다. 매장에서 드시나요, 포장하시나요?"
+   }
+  }
+ ],
+ "ff45": [
+  {
+   "u": "I don't know how this works, can you help?",
+   "say": "say (en): I can help you order. Tell me eat-in or take-out and what burgers, sides, or drinks you want.",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 2390 ms · server 2391 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (en): I can help you order. Tell me eat-in or take-out and what burgers, sides, or drinks you want.\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 2390 ms · server 2391 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "en",
+    "say": "I can help you order. Tell me eat-in or take-out and what burgers, sides, or drinks you want."
+   }
+  }
+ ],
+ "ff50": [
+  {
+   "u": "할머니가 드실 건데 부드러운 거 뭐 있어요?",
+   "say": "say (ko): 부드러운 메뉴로 콘샐러드, 코울슬로, 아이스크림 선데, 바닐라 셰이크가 있어요. 어떤 걸로 드릴까요?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 4157 ms · server 4157 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 부드러운 메뉴로 콘샐러드, 코울슬로, 아이스크림 선데, 바닐라 셰이크가 있어요. 어떤 걸로 드릴까요?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 4157 ms · server 4157 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "부드러운 메뉴로 콘샐러드, 코울슬로, 아이스크림 선데, 바닐라 셰이크가 있어요. 어떤 걸로 드릴까요?"
+   }
+  }
+ ],
+ "ff55": [
+  {
+   "u": "버거 뭐 있어요?",
+   "say": "say (ko): 버거는 브리지 클래식, 더블 치즈버거, 스파이시 치킨버거, 불고기버거, 새우버거, 베지 버거가 있어요. 드실 메뉴를 말씀해 주세요.",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 3156 ms · server 3156 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (ko): 버거는 브리지 클래식, 더블 치즈버거, 스파이시 치킨버거, 불고기버거, 새우버거, 베지 버거가 있어요. 드실 메뉴를 말씀해 주세요.\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 3156 ms · server 3156 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "버거는 브리지 클래식, 더블 치즈버거, 스파이시 치킨버거, 불고기버거, 새우버거, 베지 버거가 있어요. 드실 메뉴를 말씀해 주세요."
+   }
+  },
+  {
+   "u": "그럼 새우버거 단품 하나 포장이요",
+   "say": "say (ko): 알겠어요. 제가 6번 눌러 드릴게요.",
+   "intent": "",
+   "plan": "plan: plan · 6 taps",
+   "timing": "timing: Spark 3398 ms · server 3398 ms",
+   "screen": "screen: menu · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nOperating…\nsay (ko): 알겠어요. 제가 6번 눌러 드릴게요.\nplan: plan · 6 taps\ntiming: Spark 3398 ms · server 3398 ms\nscreen: menu · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "orderType": "take_out",
+     "items": [
+      {
+       "menuId": "shrimp",
+       "mode": "single",
+       "remove": [],
+       "addOns": [],
+       "qty": 1
+      }
+     ]
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 6
+    },
+    "unknownItems": [],
+    "replyLanguage": "ko",
+    "say": "알겠어요. 제가 6번 눌러 드릴게요."
+   }
+  }
+ ],
+ "ff60": [
+  {
+   "u": "What comes with the meal?",
+   "say": "say (en): A meal is a burger with fries and a drink. Which burger would you like?",
+   "intent": "",
+   "plan": "plan: clarify · [{\"field\":\"orderType\"}]",
+   "timing": "timing: Spark 2593 ms · server 2593 ms",
+   "screen": "screen: order_type · cart: 0 linesreset",
+   "panel": "KIBO dev console\n더블 치즈버거 라지 세트, 음료는…\nCan I get a large …\nダブルチーズバーガーのLセット、ドリ…\n치즈버거 세트 하나요…\nSay it\nsay (en): A meal is a burger with fries and a drink. Which burger would you like?\nplan: clarify · [{\"field\":\"orderType\"}]\ntiming: Spark 2593 ms · server 2593 ms\nscreen: order_type · cart: 0 linesreset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      {
+       "field": "orderType"
+      }
+     ],
+     "taps": 1
+    },
+    "unknownItems": [],
+    "replyLanguage": "en",
+    "say": "A meal is a burger with fries and a drink. Which burger would you like?"
+   }
+  }
+ ]
+}

@@ -1,7 +1,7 @@
 // 말 → Spark 해석 → 앞 턴에 되물은 의도와 합치기 → 화면 경로 계획. 키는 서버에만 있다.
 import { logError, overSize, rateLimited, tooLarge } from "@/server/guard";
 import { langOf, planSay, rejectSay } from "@/engine/turn";
-import { answerPatch, clarifySay, koParticles } from "@/kiosks/fastfood/clarify";
+import { answerPatch, clarifySay, koParticles, orderLead } from "@/kiosks/fastfood/clarify";
 import { interpret } from "@/kiosks/fastfood/interpret";
 import type { KioskState } from "@/kiosks/fastfood/machine";
 import { mergeIntent, plan, type FastfoodIntent } from "@/kiosks/fastfood/planner";
@@ -42,16 +42,26 @@ export async function POST(req: Request) {
     const foreign = phone !== null && langOf(r.replyLanguage) !== lang;
     // 주문이 아닌 말(인사·메뉴 질문): 할 일이 없으면 일반 거절 대신 Spark 응대 문장. 휴대폰 언어가 아니거나 섞였으면 고정 인사(11/4 실기기 "안녕하세요")
     // 이미 정해진 매장·포장을 Spark가 되풀이한 것은 할 일이 아니다(11/4 실기기: 메뉴 화면 "무슨 버거 있어?"에 '누를 버튼이 없어요')
-    const nothing = !r.intent.items?.length && (!r.intent.orderType || r.intent.orderType === state.orderType) && !r.intent.current && !r.intent.dropCurrent && !r.intent.checkout && !r.intent.requestPayment && r.unsupported === "none";
-    const chat = nothing && ((p.kind === "reject" && p.reason === "bad_order_type") || (p.kind === "plan" && p.events.length === 0));
+    // 장바구니가 비었는데 결제·주문 확인을 말하면(「결제도 해 주세요」「Can I pay with cash?」) 할 일이 없는 질문이다. 일반 거절 대신 Spark 답(11/4 판정)
+    const empty = state.cart.length === 0 && !state.draft;
+    const nothing = !r.intent.items?.length && (!r.intent.orderType || r.intent.orderType === state.orderType) && !r.intent.current && !r.intent.dropCurrent && (empty || (!r.intent.checkout && !r.intent.requestPayment)) && r.unsupported === "none";
+    const chat = nothing && ((p.kind === "reject" && (p.reason === "bad_order_type" || p.reason === "cart_empty")) || (p.kind === "plan" && p.events.length === 0));
     const chatSay = chat ? (langOf(r.replyLanguage) !== lang || mixedScript(r.say, r.replyLanguage, utterance, [...keywordsFor("fastfood"), ...buttonsFor("fastfood")]) ? rejectSay("chat", lang) : r.say) : null;
     // 첫 화면에서 할 일이 없는 말이면 [Order here]만 먼저 눌러 매장·포장 화면을 띄운다(되묻기처럼 답하고 아는 만큼 먼저 누르기).
     // 빠진 칸(매장·포장)을 실어 휴대폰에 [먹고 갈게요][포장할게요] 칩이 붙게 한다(키오스크가 그 화면에 있다는 결정적 조건)
     const out = chat && state.screen === "idle" ? { kind: "clarify" as const, missing: [{ field: "orderType" as const }], events: [{ by: "kibo" as const, target: "start" as const }] } : planOut;
     const clarify = p.kind === "clarify" && (patch || foreign || mixedScript(r.say, r.replyLanguage, utterance, proper)) ? clarifySay(p.missing, intent, state, lang) : lang === "ko" ? koParticles(r.say) : r.say;
+    // 누르기 전에 알아들은 내용(담을 것·매장·포장, 메뉴에 없는 말)을 먼저 말한다(11/4: 'N번 눌러 드릴게요'만으로는 알아들었는지 모른다). 휴대폰은 lead를 받아 같은 순서로 말한다
+    const lead = p.kind === "plan" && p.events.length > 0 ? orderLead(state, p.final, lang, r.unknownItems) : "";
+    const cjk = langOf(lang) === "ja" || langOf(lang) === "zh";
+    // 바꿔 달라는 것이 메뉴에 없으면 거절 문구 앞에 먼저 말한다(11/4 판정: "콜라 말고 사이다로요")
+    const unsupportedNone = p.kind === "reject" && p.reason === "unsupported" && r.unknownItems.length ? orderLead(state, state, lang, r.unknownItems) : "";
     return Response.json({
       // 되묻기만 Spark 문장. 계획·거절은 휴대폰과 같은 고정 문구(Spark 문장은 하지 않은 일을 말할 수 있다. 예: 결제 전 "注文を確定しました")
-      say: chatSay ?? (p.kind === "clarify" ? clarify : p.kind === "reject" ? rejectSay(p.reason, lang, { b: t.startOver[state.lang] ?? t.startOver.en }) : planSay(p.events.length, lang)),
+      say: chatSay ?? (p.kind === "clarify" ? clarify : p.kind === "reject" ? [unsupportedNone, rejectSay(p.reason, lang, { b: t.startOver[state.lang] ?? t.startOver.en })].filter(Boolean).join(cjk ? "" : " ") : [lead, planSay(p.events.length, lang)].filter(Boolean).join(cjk ? "" : " ")),
+      ...(lead && { lead }),
+      // 누를 것 없는 계획(메뉴 화면의 질문)이면 휴대폰이 '누를 버튼이 없어요' 대신 이 답을 말한다(11/4 실기기 "무슨 버거 있어?")
+      ...(chatSay && out.kind === "plan" && { answer: chatSay }),
       replyLanguage: lang,
       ...(followSpoken && { followSpoken }),
       unknownItems: r.unknownItems,

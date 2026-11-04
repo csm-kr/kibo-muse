@@ -129,6 +129,8 @@ export function gateFor(stop: Stop | null, code: string, bagsTotal: number): Gat
 }
 
 export const noSeatsText = (code: string) => noSeats[gateLang(code)];
+// Spark 프롬프트의 사실(보조배터리 질문에 답한다). 위험물 카드와 같은 문장
+export const powerBankText = (code: string) => powerBank[gateLang(code)];
 
 // 되묻기 고정 문구: Spark 되묻기 문장이 다른 언어 문자를 섞었을 때 대신 쓴다. 알아들은 항공사 이름을 넣어 다른 항공사로 바꿔 알아들은 일이 보이게 한다
 const airlineHead: Texts = {
@@ -154,4 +156,27 @@ export function clarifySay(missing: Missing[], intent: AirportIntent, code: stri
   const a = ask[l];
   // 일본어·중국어는 문장 사이에 공백을 두지 않는다
   return [...(airline ? [airlineHead[l].replace("{a}", airline)] : []), a.head + missing.map((m) => a.item[m]).join(a.sep) + a.end].join(l === "ja" || l === "zh" ? "" : " ");
+}
+
+// 계획 앞에 말할 알아들은 내용(항공사·인원·좌석 바람·부칠 짐). 아는 것만 말하고, 하나도 없으면 빈 문자열.
+// 11/4 판정: 관문에서 "아 아니 두 명이요"에 확인 방법만 되풀이해 고친 값을 받았는지 알 수 없었다
+// solo: 혼자일 때 좌석 바람(나란히는 말하지 않는다)
+const leadText: Record<GateLang, { people: (n: number) => string; seats: Record<NonNullable<AirportIntent["seats"]>, string>; solo: { window: string; aisle: string }; bags: (n: number) => string; sep: string; end: string }> = {
+  en: { people: (n) => `${n} ${n > 1 ? "travelers" : "traveler"}`, seats: { together: "seats together", window: "together with a window seat", aisle: "together with an aisle seat", keep: "seats unchanged" }, solo: { window: "window seat", aisle: "aisle seat" }, bags: (n) => (n ? `${n} checked ${n > 1 ? "bags" : "bag"}` : "no checked bags"), sep: ", ", end: "." },
+  ko: { people: (n) => `${n}명`, seats: { together: "나란히", window: "창가 쪽 나란히", aisle: "통로 쪽 나란히", keep: "좌석 그대로" }, solo: { window: "창가 자리", aisle: "통로 자리" }, bags: (n) => (n ? `부치는 짐 ${n}개` : "부치는 짐 없음"), sep: ", ", end: "." },
+  ja: { people: (n) => `${n}名`, seats: { together: "隣同士", window: "窓側で隣同士", aisle: "通路側で隣同士", keep: "座席はそのまま" }, solo: { window: "窓側の席", aisle: "通路側の席" }, bags: (n) => (n ? `預け荷物${n}個` : "預け荷物なし"), sep: "、", end: "。" },
+  vi: { people: (n) => `${n} người`, seats: { together: "ngồi cạnh nhau", window: "ngồi cạnh nhau, có ghế cửa sổ", aisle: "ngồi cạnh nhau, có ghế lối đi", keep: "giữ nguyên ghế" }, solo: { window: "ghế cửa sổ", aisle: "ghế lối đi" }, bags: (n) => (n ? `${n} kiện ký gửi` : "không ký gửi hành lý"), sep: ", ", end: "." },
+  zh: { people: (n) => `${n}人`, seats: { together: "坐在一起", window: "靠窗坐在一起", aisle: "靠过道坐在一起", keep: "座位不变" }, solo: { window: "靠窗座位", aisle: "靠过道座位" }, bags: (n) => (n ? `托运行李${n}件` : "无托运行李"), sep: "、", end: "。" },
+  es: { people: (n) => `${n} ${n > 1 ? "pasajeros" : "pasajero"}`, seats: { together: "juntos", window: "juntos, con ventanilla", aisle: "juntos, con pasillo", keep: "mismos asientos" }, solo: { window: "ventanilla", aisle: "pasillo" }, bags: (n) => (n ? `${n} ${n > 1 ? "maletas facturadas" : "maleta facturada"}` : "sin maletas facturadas"), sep: ", ", end: "." },
+};
+
+export function checkinLead(intent: AirportIntent, code: string) {
+  const l = gateLang(code);
+  const t = leadText[l];
+  const airline = airlines.find((a) => a.id === intent.airline)?.name[l === "ko" ? "ko" : "en"];
+  const seat = !intent.seats ? "" : intent.travelers !== 1 || intent.seats === "keep" ? t.seats[intent.seats] : intent.seats === "together" ? "" : t.solo[intent.seats];
+  const parts = [airline, intent.travelers ? t.people(intent.travelers) : "", seat, intent.bags !== undefined ? t.bags(intent.bags) : ""].filter(Boolean);
+  if (!parts.length) return "";
+  const s = parts.join(t.sep) + t.end;
+  return s[0].toUpperCase() + s.slice(1);
 }

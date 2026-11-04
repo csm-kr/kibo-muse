@@ -42,6 +42,9 @@ interface InterpretResponse {
   paymentHandoff: boolean;
   // 결제 앞까지 예약했으면 다시 누르기 뒤에 읽을 예약 요약(날·시각·열차·인원·좌석·합계)
   booked?: string;
+  lead?: string;
+  // 누를 것 없는 턴(질문)의 Spark 답
+  answer?: string;
   timing: { sparkMs: number; totalMs: number };
   error?: string;
 }
@@ -188,7 +191,7 @@ export function TrainStation({ variant: given, room }: { variant?: "dev" | "kios
     if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage, say: body.say, followSpoken: body.followSpoken };
     setWait(p.stop);
     // 관문 문구는 서버가 만든 고정 문구다. 결제하기 앞에서 멈추면 휴대폰에 결제 넘기기 안내가 간다
-    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, done: { say: [body.booked, seatNote(p.notes, body.replyLanguage)].filter(Boolean).join(" "), gate: body.gate, paymentHandoff: body.paymentHandoff, payButton: t.pay[stateRef.current.lang] } };
+    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, lead: body.lead, answer: body.answer, done: { say: [body.booked, seatNote(p.notes, body.replyLanguage)].filter(Boolean).join(" "), gate: body.gate, paymentHandoff: body.paymentHandoff, payButton: t.pay[stateRef.current.lang] } };
   }
 
   // 사람이 늦은 열차를 휴대폰에서 확인했다. 그 확인을 의도에 넣고 서버를 거치지 않고 바로 다시 계획한다.

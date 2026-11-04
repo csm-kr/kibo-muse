@@ -1,7 +1,7 @@
 // 말 → Spark 해석 → 앞 의도와 합치기 → 화면 경로 계획. 키는 서버에만 있다.
 import { logError, overSize, rateLimited, tooLarge } from "@/server/guard";
 import { langOf, planSay, rejectSay } from "@/engine/turn";
-import { clarifySay, gateFor, noSeatsText } from "@/kiosks/airport/gates";
+import { checkinLead, clarifySay, gateFor, noSeatsText } from "@/kiosks/airport/gates";
 import { interpret } from "@/kiosks/airport/interpret";
 import type { KioskState } from "@/kiosks/airport/machine";
 import { mergeIntent, plan, splitBags, type AirportIntent } from "@/kiosks/airport/planner";
@@ -38,15 +38,23 @@ export async function POST(req: Request) {
     const clarify = p.kind === "clarify" && (foreign || mixedScript(r.say, r.replyLanguage, utterance, proper)) ? clarifySay(p.missing, intent, lang) : r.say;
     let say = p.kind === "reject" ? rejectSay(p.reason, lang, { b: t.exit[state.lang] ?? t.exit.en }) : clarify;
     let gate = null;
+    let lead = "";
+    let answer = "";
     if (p.kind === "plan") {
       gate = gateFor(p.stop, lang, Object.values(splitBags(intent.bags ?? 0, p.final.scanned)).reduce((a, b) => a + b, 0));
-      say = planSay(p.events.length, lang, gate?.kind === "ack" ? gate : null);
+      // 누르기 전, 또는 관문에서 값을 고쳤을 때(누를 것 없음) 알아들은 내용을 먼저 말한다(11/4 판정: "아 아니 두 명이요"에 확인 방법만)
+      lead = p.events.length > 0 || Object.keys(r.intent).length > 0 ? checkinLead(intent, lang) : "";
+      const cjk = langOf(lang) === "ja" || langOf(lang) === "zh";
+      // 누를 것도 고친 값도 없는 말(관문에서의 질문)이면 Spark 답을 먼저 하고 확인 방법을 붙인다. 휴대폰은 answer로 받아 그대로 말한다
+      const asked = p.events.length === 0 && !lead && r.say && langOf(r.replyLanguage) === langOf(lang) && !mixedScript(r.say, r.replyLanguage, utterance, proper);
+      say = [asked ? r.say : lead, planSay(p.events.length, lang, gate?.kind === "ack" ? gate : null)].filter(Boolean).join(cjk ? "" : " ");
+      if (asked) answer = say;
       if (p.notes.includes("no_matching_seats")) say = `${say} ${noSeatsText(lang)}`;
     }
     // 계획은 KIBO의 조작만 담아야 한다. 사람 터치나 기기 사건이 섞이면 보내지 않는다
     if (p.kind === "plan" && p.events.some((e) => e.by !== "kibo")) return Response.json({ error: "plan_not_kibo" }, { status: 500 });
     const planOut = p.kind === "plan" ? { kind: p.kind, events: p.events, stop: p.stop, notes: p.notes } : p;
-    return Response.json({ say, replyLanguage: lang, ...(followSpoken && { followSpoken }), intent, plan: planOut, gate, timing: { sparkMs: r.ms, totalMs: Math.round(performance.now() - t0) } });
+    return Response.json({ say, ...(lead && { lead }), ...(answer && { answer }), replyLanguage: lang, ...(followSpoken && { followSpoken }), intent, plan: planOut, gate, timing: { sparkMs: r.ms, totalMs: Math.round(performance.now() - t0) } });
   } catch (e) {
     // 예외 원문(Spark 오류 본문 포함)은 서버 로그에만 남기고 응답은 고정 값
     logError("airport interpret", e);

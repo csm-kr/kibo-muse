@@ -29,6 +29,8 @@ describe("/api/train/interpret", () => {
     expect(body.gate).toBeNull();
     // 누르기 전에 알아들은 것(도착역·날·시각·인원)을 먼저 말한다
     expect(body.say).toMatch(new RegExp(`^등대항행 내일 09:\\d\\d, 어른 2명\\. 알겠어요\\. 제가 ${body.plan.events.length}번 눌러 드릴게요\\.$`));
+    // 휴대폰은 lead를 받아 '몇 번 눌러 드릴게요' 앞에 말한다(키오스크 콘솔 say와 같은 순서)
+    expect(body.lead).toMatch(/^등대항행 내일 09:\d\d, 어른 2명\.$/);
   });
 
   it("휴대폰 언어(?lang)가 대답 언어다: Spark가 영어를 골라도 한국어 휴대폰에는 한국어 고정 문구로 답한다", async () => {
@@ -72,7 +74,7 @@ describe("/api/train/interpret", () => {
     said({ to: "harbor", day: 0, hour: 9, adults: 1 });
     expect(await post("오늘 9시 등대항 어른 1명")).toMatchObject({ plan: { kind: "reject", reason: "past_time" }, say: "지금은 13:00이라 그보다 이른 열차는 예매할 수 없어요. 13:00 이후나 다른 날로 말해 주세요." });
     said({ to: "harbor", day: 1, hour: 9, adults: 12 });
-    expect(await post("내일 9시 등대항 어른 12명")).toMatchObject({ plan: { kind: "reject", reason: "bad_passengers" }, say: "한 번에 9명까지 예매할 수 있어요." });
+    expect(await post("내일 9시 등대항 어른 12명")).toMatchObject({ plan: { kind: "reject", reason: "bad_passengers" }, say: "한 번에 9명까지 예매할 수 있어요. 9명 이하로 나눠서 한 번에 한 묶음씩 말씀해 주세요." });
   });
 
   it("되묻기·노선에 없는 역·할 일 없는 말은 Spark 문장으로 답한다(질문에 답하고 빠진 것을 묻는다). 역 {id}는 정확한 이름으로 채운다", async () => {
@@ -90,6 +92,7 @@ describe("/api/train/interpret", () => {
     const after = await (await POST(new Request("http://x/api/train/interpret", { method: "POST", body: JSON.stringify({ utterance: "결제도 해 주세요", state: at.final, pending: booked.intent }) }))).json();
     expect(after.plan.events).toHaveLength(0);
     expect(after.say).toBe("결제는 제가 할 수 없어요. 화면의 [Pay]를 직접 눌러 주세요.");
+    expect(after.answer).toBe(after.say);
   });
 
   it("Spark 문장이 역 이름을 틀리게 쓰거나 모르는 {id}를 쓰면 빠진 것만 묻는 고정 문구로 바꾼다. 같은 역·7일 넘는 날·고를 수 없는 시각·맞는 열차 없음은 이유별 고정 문구로 거절한다", async () => {

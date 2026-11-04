@@ -50,6 +50,22 @@ describe("KIBO 한 턴", () => {
     expect(h.phases).toEqual(["thinking", "replaying", "waiting_gate"]);
   });
 
+  it("계획에 알아들은 내용(lead)이 있으면 '몇 번 눌러 드릴게요' 앞에 먼저 말한다(11/4: 고정 문구만 되풀이하면 알아들었는지 모른다)", async () => {
+    const h = harness();
+    h.turn.hear({ id: "u1", text: "불고기버거 세트", lang: "Korean" });
+    h.asks[0].resolve({ ...planned(["a", "b"]), lead: "불고기버거 세트 M(감자튀김·콜라), 매장 식사." } as Understood<E>);
+    await flush();
+    expect(h.replies()[0].say).toBe("불고기버거 세트 M(감자튀김·콜라), 매장 식사. 알겠어요. 제가 2번 눌러 드릴게요.");
+  });
+
+  it("누를 것이 없는 턴에 서버가 Spark 답(answer)을 주면 '누를 버튼이 없어요' 대신 그 답을 말한다(11/4 실기기: 메뉴 화면 '무슨 버거 있어?'에 고정 문구)", async () => {
+    const h = harness();
+    h.turn.hear({ id: "u1", text: "무슨 버거 있어요?", lang: "Korean" });
+    h.asks[0].resolve({ ...planned([]), answer: "불고기버거, 새우버거가 있어요." } as Understood<E>);
+    await flush();
+    expect(h.replies()[0].say).toBe("불고기버거, 새우버거가 있어요.");
+  });
+
   it("서버가 말한 언어를 따라오라고 하면(followSpoken) 대답에 그 신호를 실어 휴대폰에 보낸다. 없으면 싣지 않는다", async () => {
     const h = harness();
     h.turn.hear({ id: "u1", text: "Can I get a cheeseburger meal", lang: "Korean" });

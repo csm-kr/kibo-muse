@@ -14,6 +14,8 @@ A second post-evaluation rule picks the reply language: when the phone sends its
 
 Result files are in [`results/`](results/).
 
+A fourth evaluation, added on Nov 5, checks what KIBO says rather than what it taps: 179 short conversations scored by code and by a blind rubric. It has its own sets, runner, scorer and results in [`convo/`](convo/README.md).
+
 ## Before you run
 
 - Start a production build with a Meta Model API key on the server: `npm run build && npm start` (see the main README for the environment variable names). The scorers only call the HTTP API. They never read environment files.

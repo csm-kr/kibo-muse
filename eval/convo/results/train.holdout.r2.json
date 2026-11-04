@@ -1,0 +1,384 @@
+{
+ "tr05": [
+  {
+   "u": "Two adults to Harborlight tomorrow at 10 am, first class please",
+   "say": "say (en): To Harborlight, tomorrow 10:00, 2 adults. Got it. I'll make the 19 taps for you.",
+   "intent": "intent: {\"to\":\"harbor\",\"day\":1,\"hour\":10,\"minute\":0,\"adults\":2,\"children\":0,\"seniors\":0,\"seatClass\":\"first\"}",
+   "plan": "plan: plan · 19 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}",
+   "timing": "timing: Spark 4503 ms · server 4506 ms",
+   "screen": "screen: journey · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · train\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nOperating…\nWaiting for the person: pay\nsay (en): To Harborlight, tomorrow 10:00, 2 adults. Got it. I'll make the 19 taps for you.\nintent: {\"to\":\"harbor\",\"day\":1,\"hour\":10,\"minute\":0,\"adults\":2,\"children\":0,\"seniors\":0,\"seatClass\":\"first\"}\nplan: plan · 19 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}\ntiming: Spark 4503 ms · server 4506 ms\nscreen: journey · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "harbor",
+     "day": 1,
+     "hour": 10,
+     "minute": 0,
+     "adults": 2,
+     "children": 0,
+     "seniors": 0,
+     "seatClass": "first"
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 19
+    },
+    "replyLanguage": "en",
+    "say": "To Harborlight, tomorrow 10:00, 2 adults. Got it. I'll make the 19 taps for you."
+   }
+  }
+ ],
+ "tr10": [
+  {
+   "u": "등대항까지 얼마나 걸려요?",
+   "say": "say (ko): 등대항까지 고속은 160분, 완행은 320분 걸려요. 언제 몇 분이 가시나요?",
+   "intent": "intent: {\"to\":\"harbor\"}",
+   "plan": "plan: clarify · [\"date\",\"passengers\"]",
+   "timing": "timing: Spark 4857 ms · server 4857 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…4PXA\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 등대항까지 고속은 160분, 완행은 320분 걸려요. 언제 몇 분이 가시나요?\nintent: {\"to\":\"harbor\"}\nplan: clarify · [\"date\",\"passengers\"]\ntiming: Spark 4857 ms · server 4857 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "harbor"
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "등대항까지 고속은 160분, 완행은 320분 걸려요. 언제 몇 분이 가시나요?"
+   }
+  }
+ ],
+ "tr15": [
+  {
+   "u": "어디 어디 갈 수 있어요?",
+   "say": "say (ko): 브리지중앙에서 버들둑, 단풍언덕, 등불호수, 미드베일, 돌문, 산호만, 등대항, 햇들, 서풍, 눈봉, 솔바닷가에 가실 수 있어요. 어디로 언제 몇 분이 가시나요?",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"to\",\"date\",\"passengers\"]",
+   "timing": "timing: Spark 4432 ms · server 4432 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…0eTg\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 브리지중앙에서 버들둑, 단풍언덕, 등불호수, 미드베일, 돌문, 산호만, 등대항, 햇들, 서풍, 눈봉, 솔바닷가에 가실 수 있어요. 어디로 언제 몇 분이 가시나요?\nintent: {}\nplan: clarify · [\"to\",\"date\",\"passengers\"]\ntiming: Spark 4432 ms · server 4432 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "to",
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "브리지중앙에서 버들둑, 단풍언덕, 등불호수, 미드베일, 돌문, 산호만, 등대항, 햇들, 서풍, 눈봉, 솔바닷가에 가실 수 있어요. 어디로 언제 몇 분이 가시나요?"
+   }
+  }
+ ],
+ "tr20": [
+  {
+   "u": "서울역 가요",
+   "say": "say (ko): 서울역은 이 기계 노선에 없어요. 버들둑, 단풍언덕, 등불호수 같은 곳은 어떠세요? 어디로 가실 건가요?",
+   "intent": "intent: {}",
+   "plan": "plan: reject · \"unknown_station\"",
+   "timing": "timing: Spark 4712 ms · server 4713 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…LPLg\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 서울역은 이 기계 노선에 없어요. 버들둑, 단풍언덕, 등불호수 같은 곳은 어떠세요? 어디로 가실 건가요?\nintent: {}\nplan: reject · \"unknown_station\"\ntiming: Spark 4712 ms · server 4713 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "reject",
+     "reason": "unknown_station"
+    },
+    "replyLanguage": "ko",
+    "say": "서울역은 이 기계 노선에 없어요. 버들둑, 단풍언덕, 등불호수 같은 곳은 어떠세요? 어디로 가실 건가요?"
+   }
+  }
+ ],
+ "tr25": [
+  {
+   "u": "기차표 사려고요",
+   "say": "say (ko): 안녕하세요! 어디로 가시는지, 언제 몇 분이 가시는지 알려주세요.",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"to\",\"date\",\"passengers\"]",
+   "timing": "timing: Spark 3437 ms · server 3437 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…56Pw\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 안녕하세요! 어디로 가시는지, 언제 몇 분이 가시는지 알려주세요.\nintent: {}\nplan: clarify · [\"to\",\"date\",\"passengers\"]\ntiming: Spark 3437 ms · server 3437 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "to",
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "안녕하세요! 어디로 가시는지, 언제 몇 분이 가시는지 알려주세요."
+   }
+  }
+ ],
+ "tr30": [
+  {
+   "u": "등대항 가려고요",
+   "say": "say (ko): 등대항으로 가시는군요! 언제 출발하시고, 몇 분이세요?",
+   "intent": "intent: {\"to\":\"harbor\"}",
+   "plan": "plan: clarify · [\"date\",\"passengers\"]",
+   "timing": "timing: Spark 4115 ms · server 4115 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…CJaQ\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 등대항으로 가시는군요! 언제 출발하시고, 몇 분이세요?\nintent: {\"to\":\"harbor\"}\nplan: clarify · [\"date\",\"passengers\"]\ntiming: Spark 4115 ms · server 4115 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "harbor"
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "등대항으로 가시는군요! 언제 출발하시고, 몇 분이세요?"
+   }
+  },
+  {
+   "u": "아 산호만이요",
+   "say": "say (ko): 산호만으로 알겠습니다. 언제 가시나요, 몇 분이신가요?",
+   "intent": "intent: {\"to\":\"coralbay\"}",
+   "plan": "plan: clarify · [\"date\",\"passengers\"]",
+   "timing": "timing: Spark 3630 ms · server 3631 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…CJaQ\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 산호만으로 알겠습니다. 언제 가시나요, 몇 분이신가요?\nintent: {\"to\":\"coralbay\"}\nplan: clarify · [\"date\",\"passengers\"]\ntiming: Spark 3630 ms · server 3631 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "coralbay"
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "산호만으로 알겠습니다. 언제 가시나요, 몇 분이신가요?"
+   }
+  }
+ ],
+ "tr35": [
+  {
+   "u": "내일 10시 버들둑 한 명, 카드 결제까지 다 해 주세요",
+   "say": "say (ko): 버들둑행 내일 10:00, 어른 1명. 알겠어요. 제가 11번 눌러 드릴게요.",
+   "intent": "intent: {\"to\":\"willow\",\"day\":1,\"hour\":10,\"minute\":0,\"adults\":1,\"children\":0,\"seniors\":0}",
+   "plan": "plan: plan · 11 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}",
+   "timing": "timing: Spark 4217 ms · server 4219 ms",
+   "screen": "screen: journey · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · train\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nOperating…\nWaiting for the person: pay\nsay (ko): 버들둑행 내일 10:00, 어른 1명. 알겠어요. 제가 11번 눌러 드릴게요.\nintent: {\"to\":\"willow\",\"day\":1,\"hour\":10,\"minute\":0,\"adults\":1,\"children\":0,\"seniors\":0}\nplan: plan · 11 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}\ntiming: Spark 4217 ms · server 4219 ms\nscreen: journey · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "willow",
+     "day": 1,
+     "hour": 10,
+     "minute": 0,
+     "adults": 1,
+     "children": 0,
+     "seniors": 0
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 11
+    },
+    "replyLanguage": "ko",
+    "say": "버들둑행 내일 10:00, 어른 1명. 알겠어요. 제가 11번 눌러 드릴게요."
+   }
+  }
+ ],
+ "tr40": [
+  {
+   "u": "열흘 뒤에 등대항 가는 거 한 명이요",
+   "say": "say (ko): 열흘 뒤 등대항행은 이 기계에서 예매할 수 없어요, 오늘부터 6일 이내로만 돼요. 언제와 몇 시로 할까요?",
+   "intent": "intent: {\"to\":\"harbor\",\"day\":10,\"adults\":1,\"children\":0,\"seniors\":0}",
+   "plan": "plan: clarify · [\"date\"]",
+   "timing": "timing: Spark 6748 ms · server 6748 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…TipA\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 열흘 뒤 등대항행은 이 기계에서 예매할 수 없어요, 오늘부터 6일 이내로만 돼요. 언제와 몇 시로 할까요?\nintent: {\"to\":\"harbor\",\"day\":10,\"adults\":1,\"children\":0,\"seniors\":0}\nplan: clarify · [\"date\"]\ntiming: Spark 6748 ms · server 6748 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "harbor",
+     "day": 10,
+     "adults": 1,
+     "children": 0,
+     "seniors": 0
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "date"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "열흘 뒤 등대항행은 이 기계에서 예매할 수 없어요, 오늘부터 6일 이내로만 돼요. 언제와 몇 시로 할까요?"
+   }
+  }
+ ],
+ "tr45": [
+  {
+   "u": "I need to get to Busan",
+   "say": "say (en): Busan is not on this machine's lines. Where would you like to go? For example Coral Bay, Harborlight or Pine Coast?",
+   "intent": "intent: {}",
+   "plan": "plan: reject · \"unknown_station\"",
+   "timing": "timing: Spark 3941 ms · server 3941 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…5W7A\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (en): Busan is not on this machine's lines. Where would you like to go? For example Coral Bay, Harborlight or Pine Coast?\nintent: {}\nplan: reject · \"unknown_station\"\ntiming: Spark 3941 ms · server 3941 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "reject",
+     "reason": "unknown_station"
+    },
+    "replyLanguage": "en",
+    "say": "Busan is not on this machine's lines. Where would you like to go? For example Coral Bay, Harborlight or Pine Coast?"
+   }
+  }
+ ],
+ "tr50": [
+  {
+   "u": "ハーバーライトまでいくらですか？",
+   "say": "say (ja): Harborlightまでは大人片道で、急行は一般室52,800ウォン・特室79,200ウォン、普通列車は28,800ウォンです。いつご利用で、何名様ですか？",
+   "intent": "intent: {\"to\":\"harbor\"}",
+   "plan": "plan: clarify · [\"date\",\"passengers\"]",
+   "timing": "timing: Spark 6212 ms · server 6212 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…3cEQ\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ja): Harborlightまでは大人片道で、急行は一般室52,800ウォン・特室79,200ウォン、普通列車は28,800ウォンです。いつご利用で、何名様ですか？\nintent: {\"to\":\"harbor\"}\nplan: clarify · [\"date\",\"passengers\"]\ntiming: Spark 6212 ms · server 6212 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "harbor"
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "ja",
+    "say": "Harborlightまでは大人片道で、急行は一般室52,800ウォン・特室79,200ウォン、普通列車は28,800ウォンです。いつご利用で、何名様ですか？"
+   }
+  }
+ ],
+ "tr55": [
+  {
+   "u": "Where can I go from here?",
+   "say": "say (en): From here you can go to Willow Bank, Maple Hill, Lantern Lake, Midvale, Stone Gate, Coral Bay, Harborlight, Sunfield, Westwind, Snow Peak and Pine Coast. Where would you like to go, and when are you travelling and how many are going?",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"to\",\"date\",\"passengers\"]",
+   "timing": "timing: Spark 5165 ms · server 5165 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…-QSw\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (en): From here you can go to Willow Bank, Maple Hill, Lantern Lake, Midvale, Stone Gate, Coral Bay, Harborlight, Sunfield, Westwind, Snow Peak and Pine Coast. Where would you like to go, and when are you travelling and how many are going?\nintent: {}\nplan: clarify · [\"to\",\"date\",\"passengers\"]\ntiming: Spark 5165 ms · server 5165 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "to",
+      "date",
+      "passengers"
+     ]
+    },
+    "replyLanguage": "en",
+    "say": "From here you can go to Willow Bank, Maple Hill, Lantern Lake, Midvale, Stone Gate, Coral Bay, Harborlight, Sunfield, Westwind, Snow Peak and Pine Coast. Where would you like to go, and when are you travelling and how many are going?"
+   }
+  },
+  {
+   "u": "Coral Bay, tomorrow at 2 pm, one adult",
+   "say": "say (en): To Coral Bay, tomorrow 14:00, 1 adult. Got it. I'll make the 11 taps for you.",
+   "intent": "intent: {\"to\":\"coralbay\",\"day\":1,\"hour\":14,\"minute\":0,\"adults\":1,\"children\":0,\"seniors\":0}",
+   "plan": "plan: plan · 11 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}",
+   "timing": "timing: Spark 3714 ms · server 3717 ms",
+   "screen": "screen: journey · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · train\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nOperating…\nWaiting for the person: pay\nsay (en): To Coral Bay, tomorrow 14:00, 1 adult. Got it. I'll make the 11 taps for you.\nintent: {\"to\":\"coralbay\",\"day\":1,\"hour\":14,\"minute\":0,\"adults\":1,\"children\":0,\"seniors\":0}\nplan: plan · 11 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}\ntiming: Spark 3714 ms · server 3717 ms\nscreen: journey · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "coralbay",
+     "day": 1,
+     "hour": 14,
+     "minute": 0,
+     "adults": 1,
+     "children": 0,
+     "seniors": 0
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 11
+    },
+    "replyLanguage": "en",
+    "say": "To Coral Bay, tomorrow 14:00, 1 adult. Got it. I'll make the 11 taps for you."
+   }
+  }
+ ],
+ "tr60": [
+  {
+   "u": "부산 가고 싶어요",
+   "say": "say (ko): 부산은 이 기기의 노선에 없어요. 바다 쪽으로는 산호만, 등대항, 솔바닷가는 어떠세요? 어디로 가시겠어요?",
+   "intent": "intent: {}",
+   "plan": "plan: reject · \"unknown_station\"",
+   "timing": "timing: Spark 4068 ms · server 4068 ms",
+   "screen": "screen: idle · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · train\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…-9VQ\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nSay it\nsay (ko): 부산은 이 기기의 노선에 없어요. 바다 쪽으로는 산호만, 등대항, 솔바닷가는 어떠세요? 어디로 가시겠어요?\nintent: {}\nplan: reject · \"unknown_station\"\ntiming: Spark 4068 ms · server 4068 ms\nscreen: idle · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "reject",
+     "reason": "unknown_station"
+    },
+    "replyLanguage": "ko",
+    "say": "부산은 이 기기의 노선에 없어요. 바다 쪽으로는 산호만, 등대항, 솔바닷가는 어떠세요? 어디로 가시겠어요?"
+   }
+  },
+  {
+   "u": "그럼 등대항이요, 내일 오후 2시 한 명",
+   "say": "say (ko): 등대항행 내일 14:00, 어른 1명. 알겠어요. 제가 11번 눌러 드릴게요.",
+   "intent": "intent: {\"to\":\"harbor\",\"day\":1,\"hour\":14,\"minute\":0,\"adults\":1,\"children\":0,\"seniors\":0}",
+   "plan": "plan: plan · 11 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}",
+   "timing": "timing: Spark 3857 ms · server 3859 ms",
+   "screen": "screen: journey · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · train\n내일 아침 9시쯤 등대항 가는 고…\nTwo adults to Harb…\nNgày mai khoảng 9 …\n네, 그 열차로 할게요…\nOperating…\nWaiting for the person: pay\nsay (ko): 등대항행 내일 14:00, 어른 1명. 알겠어요. 제가 11번 눌러 드릴게요.\nintent: {\"to\":\"harbor\",\"day\":1,\"hour\":14,\"minute\":0,\"adults\":1,\"children\":0,\"seniors\":0}\nplan: plan · 11 taps · stop {\"kind\":\"human\",\"what\":\"pay\"}\ntiming: Spark 3857 ms · server 3859 ms\nscreen: journey · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "to": "harbor",
+     "day": 1,
+     "hour": 14,
+     "minute": 0,
+     "adults": 1,
+     "children": 0,
+     "seniors": 0
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 11
+    },
+    "replyLanguage": "ko",
+    "say": "등대항행 내일 14:00, 어른 1명. 알겠어요. 제가 11번 눌러 드릴게요."
+   }
+  }
+ ]
+}

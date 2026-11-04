@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { keywordsFor } from "../keywords";
 import { mixedScript } from "../langmix";
-import { clarifySay, gateFor, gateLang } from "./gates";
+import { checkinLead, clarifySay, gateFor, gateLang } from "./gates";
 import { t } from "./ui/strings";
 
 describe("확정 관문 카드", () => {
@@ -48,5 +48,21 @@ describe("공항 고정 되묻기 문구", () => {
 describe("관문 문구 언어", () => {
   it("언어 이름('Chinese', 'Spanish')도 turn.ts의 langOf와 같이 읽는다", () => {
     expect(["Chinese", "Spanish", "Korean", "zh-CN", "es", "fr"].map(gateLang)).toEqual(["zh", "es", "ko", "zh", "es", "en"]);
+  });
+});
+
+describe("계획 앞에 말할 알아들은 내용(checkinLead)", () => {
+  it("항공사·인원·좌석 바람·부칠 짐을 아는 것만 말한다(11/4 판정: 고친 인원·짐을 받았는지 말하지 않음)", () => {
+    const all = { airline: "bridge_air", travelers: 2, seats: "window" as const, bags: 0 };
+    expect(checkinLead(all, "ko")).toBe("브리지항공, 2명, 창가 쪽 나란히, 부치는 짐 없음.");
+    expect(checkinLead(all, "en")).toBe("Bridge Air, 2 travelers, together with a window seat, no checked bags.");
+    expect(checkinLead({ travelers: 1, bags: 2 }, "ko")).toBe("1명, 부치는 짐 2개.");
+    expect(checkinLead({ seats: "keep" }, "en")).toBe("seats unchanged.".replace(/^s/, "S"));
+    expect(checkinLead({}, "ko")).toBe("");
+    // 혼자면 '나란히'가 아니라 그 자리(11/4 판정: 혼자인데 "창가 쪽 나란히")
+    expect(checkinLead({ airline: "bridge_air", travelers: 1, seats: "window", bags: 1 }, "ko")).toBe("브리지항공, 1명, 창가 자리, 부치는 짐 1개.");
+    expect(checkinLead({ travelers: 1, seats: "aisle" }, "en")).toBe("1 traveler, aisle seat.");
+    expect(checkinLead({ travelers: 1, seats: "together" }, "ko")).toBe("1명.");
+    for (const l of ["ja", "vi", "zh", "es"]) expect(mixedScript(checkinLead(all, l), l, "", keywordsFor("airport")), l).toBe(false);
   });
 });

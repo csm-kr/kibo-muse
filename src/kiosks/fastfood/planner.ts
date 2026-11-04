@@ -109,9 +109,11 @@ export function plan(start: KioskState, intent: FastfoodIntent): PlanResult {
   let items = intent.items ?? [];
   const draft = start.draft && !intent.dropCurrent ? start.draft : null;
   let current = intent.current;
-  // Spark가 고르다 멈춘 상품을 새 상품 목록에 다시 적는 일이 있다(실측). 같은 상품이면 진행 중 상품으로 합쳐 한 번만 담는다
+  // Spark가 고르다 멈춘 상품을 새 상품 목록에 다시 적는 일이 있다(실측). 같은 상품이면 진행 중 상품으로 합쳐 한 번만 담는다.
+  // 같은 상품인지는 화면에서 이미 고른 값으로만 본다. 이번 말의 current는 고치는 말이라 다시 적힌 줄보다 앞선다
+  // (11/4 실음성 v6: 사이즈 화면에서 "콜라 말고 제로 콜라로요" → 앞 상품(콜라)과 current(제로 콜라)가 두 줄로 나뉘었다)
   if (draft) {
-    const k = items.findIndex((l) => l.menuId === draft.menuId && compatible(currentLine(draft, current), l));
+    const k = items.findIndex((l) => l.menuId === draft.menuId && compatible(currentLine(draft), l));
     if (k >= 0) {
       const { mode, size, side, drink, remove, addOns, qty } = items[k];
       current = { mode, size, side, drink, remove, addOns, qty, ...current };

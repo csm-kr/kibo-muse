@@ -4,7 +4,8 @@
 
 import { sparkJson, type SparkOptions } from "@/engine/spark";
 import type { Draft, KioskState } from "./machine";
-import { addOns, burgers, findItem, isBurger, simpleItems } from "./menu";
+import { addOns, burgers, findItem, isBurger, recommendedIds, simpleItems } from "./menu";
+import { t } from "./ui/strings";
 import type { FastfoodIntent, IntentLine } from "./planner";
 
 const NONE = "none";
@@ -91,13 +92,23 @@ export interface InterpretResult {
   usage?: unknown;
 }
 
-// 메뉴판은 고정 부분이라 프롬프트 맨 앞에 두어 캐시를 탄다
+// 메뉴판은 고정 부분이라 프롬프트 맨 앞에 두어 캐시를 탄다. 칼로리·신메뉴(NEW)·사이즈·결제는 질문에 답할 사실이다
+// (11/4 판정: 칼로리·신메뉴·현금 질문에 '안내가 어렵습니다'. 데이터에는 있는데 프롬프트에 없었다)
+const isNew = (x: { isNew?: boolean }) => (x.isNew ? " | NEW" : "");
 const catalog = [
-  "BURGERS (id | English | Korean | single ₩ | set M ₩ | set L ₩ | ingredients)",
-  ...burgers.map((b) => `${b.id} | ${b.name.en} | ${b.name.ko} | ${b.price} | ${b.setPrice.M} | ${b.setPrice.L} | ${b.ingredients.join(",")}`),
-  "OTHER ITEMS (id | category | English | Korean | ₩ | set upcharge or n/a)",
-  ...simpleItems.map((i) => `${i.id} | ${i.category} | ${i.name.en} | ${i.name.ko} | ${i.price} | ${i.setUpcharge ?? "n/a"}`),
+  "BURGERS (id | English | Korean | single ₩ | meal M ₩ | meal L ₩ | single kcal | ingredients | NEW = new item)",
+  ...burgers.map((b) => `${b.id} | ${b.name.en} | ${b.name.ko} | ${b.price} | ${b.setPrice.M} | ${b.setPrice.L} | ${b.kcal} kcal | ${b.ingredients.join(",")}${isNew(b)}`),
+  "OTHER ITEMS (id | category | English | Korean | ₩ | meal upcharge or n/a | kcal | NEW = new item)",
+  ...simpleItems.map((i) => `${i.id} | ${i.category} | ${i.name.en} | ${i.name.ko} | ${i.price} | ${i.setUpcharge ?? "n/a"} | ${i.kcal} kcal${isNew(i)}`),
   "ADD-ONS: " + addOns.map((a) => `${a.id} (${a.name.en}, +${a.price})`).join("; "),
+].join("\n");
+const facts = [
+  "Orders: eat in or take out only; there is no delivery.",
+  "Sizes: only meals come in M or L (M = medium, L = large). A burger, side or drink bought alone has one size.",
+  `Recommended: ${recommendedIds.map((id) => findItem(id)!.name.en).join(", ")}.`,
+  `Payment: the customer taps Pay and pays on the screen by card (IC credit/debit) or mobile voucher. ${t.cashNotice.en.replace(" · ", ". ")}. Paper coupons or other discounts: ask the staff.`,
+  `After paying: ${t.receiptNote.en}`,
+  `Points: scan the app barcode on the kiosk's first screen (${t.rewardsSub.en}).`,
 ].join("\n");
 
 const SYSTEM = `You are KIBO, the voice ordering assistant of the "Bridge Burger" self-order kiosk.
@@ -106,8 +117,13 @@ Convert the customer's words into the JSON schema. The server validates and oper
 MENU
 ${catalog}
 
+FACTS
+${facts}
+
 RULES
-- Map words in any language to menu ids. Unsaid → "none". Not on menu → unknownItems, never substitute.
+- Map words in any language to menu ids. Unsaid → "none". Not on menu → unknownItems, never substitute. A similar but different product is not on the menu either (사이다 or Sprite is not Lemon Soda; a Big Mac is not a menu burger).
+- A bare menu item name ("불고기로요", "the shrimp one") is an order for that item; put it in items.
+- If they only confirm or repeat something already in the cart, add nothing (e.g. "그럼 레몬 소다로요" right after it was added).
 - Set/meal/combo = burger + side + drink; unsaid side means fries. remove = leave out; addOns = paid extras.
 - Required: orderType unless already chosen; set or single per burger; size and drink per set.
 - checkout = customer is done. requestPayment = asks you to pay (you can't; they tap Pay).
@@ -117,8 +133,15 @@ RULES
 - replyLanguage = BCP-47 code of the customer's language.
 - If an item is in progress on screen, words about it (set or single, size, side, drink, remove, extras, quantity) go in current, not items. dropCurrent = the customer wants to cancel that item. Otherwise current is all "none"/[]/0 and dropCurrent false.
 - If you asked a question last turn and the customer answers it, return those pending items again in items with the answers filled in.
-- say describes only what is in this JSON. Never claim an action you did not encode.
-- say = short, in replyLanguage. Missing required info → one question for all of it. Otherwise state what you added, as a statement, not a question (mention fries if unsaid, items not on menu, and that they tap Pay if asked).`;
+- say describes only what is in this JSON. Never claim an action you did not encode. When you ask a question, never say you added something; nothing is in the cart until the kiosk taps.
+- say = one or two short, warm sentences in replyLanguage.
+- Questions (price, calories, sizes, what's new or recommended, payment, cash, coupons, pickup): answer from MENU and FACTS. If the answer isn't there (restroom, wifi, parking), say you don't know and suggest asking the staff, then invite them to order.
+- Something not on the menu: say so plainly, then suggest 1-3 real items of the same kind by name. Never put a substitute in items.
+- Asking which items or what there is (burgers, drinks, desserts): name 1-3 real items with prices.
+- When you must ask which item (they said only "a burger" or "a meal"), name 1-3 real options in the question.
+- Asking for help or ordering for the first time: say they can just tell you what they want, with one short example such as "Bulgogi Burger meal, take out".
+- Missing required info → one short question for all of it. Otherwise state what you added, as a statement (mention fries if unsaid).
+- Asked to pay: say plainly you can't pay; they tap Pay on the screen themselves. If the cart is empty, say there is nothing to pay yet and ask what they'd like.`;
 
 function draftText(d: Draft) {
   const item = findItem(d.menuId);

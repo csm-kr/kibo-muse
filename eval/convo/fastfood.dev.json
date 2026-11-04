@@ -1,0 +1,522 @@
+{
+ "ff01": [
+  {
+   "u": "불고기버거 세트 하나 미디엄으로, 콜라로 주시고 먹고 갈게요",
+   "act": "full",
+   "expect": "plan taps (bulgogi set M, fries, cola, eat in); no paid/ordered-complete claim",
+   "intent": [
+    "bulgogi"
+   ]
+  }
+ ],
+ "ff02": [
+  {
+   "u": "새우버거 단품 두 개 포장이요",
+   "act": "full",
+   "expect": "plan taps (shrimp single ×2, take out); no paid claim",
+   "intent": [
+    "shrimp"
+   ]
+  }
+ ],
+ "ff03": [
+  {
+   "u": "더블 치즈버거 라지 세트 제로콜라로, 사이드는 치즈스틱으로 해서 포장해 주세요",
+   "act": "full",
+   "expect": "plan taps (double_cheese set L, cheese_sticks, zero_cola, take out); may note +₩1,500 for cheese sticks",
+   "intent": [
+    "double_cheese",
+    "cheese_sticks",
+    "zero_cola"
+   ]
+  }
+ ],
+ "ff04": [
+  {
+   "u": "스파이시 치킨버거 세트 큰 걸로 아이스티, 그리고 애플파이 하나 추가요, 매장에서 먹어요",
+   "act": "full",
+   "expect": "plan taps (spicy_chicken set L iced_tea + apple_pie, eat in)",
+   "intent": [
+    "spicy_chicken",
+    "apple_pie"
+   ]
+  }
+ ],
+ "ff06": [
+  {
+   "u": "불고기버거 세트요",
+   "act": "partial",
+   "expect": "ask only what is missing: size (M/L), drink, eat in or take out — in one question"
+  }
+ ],
+ "ff07": [
+  {
+   "u": "포장이요",
+   "act": "partial",
+   "expect": "accept take-out (may tap Order here/Take out), then ask what they'd like; may suggest 1–3 items"
+  }
+ ],
+ "ff08": [
+  {
+   "u": "제일 싼 버거가 뭐예요?",
+   "act": "fact",
+   "expect": "answer 불고기버거 ₩4,800 from data, then ask what they'd like",
+   "must": [
+    "불고기",
+    "4,?800"
+   ]
+  }
+ ],
+ "ff09": [
+  {
+   "u": "불고기버거 세트 얼마예요?",
+   "act": "fact",
+   "expect": "answer set M ₩6,000 (L ₩6,700), then ask size/drink or offer to order",
+   "must": [
+    "6,?000"
+   ]
+  }
+ ],
+ "ff11": [
+  {
+   "u": "음료는 뭐 있어요?",
+   "act": "fact",
+   "expect": "list some real drinks (콜라, 제로 콜라, 레몬 소다, 오렌지 소다, 아이스티, 아메리카노, 아이스 라테, 바닐라 셰이크); no invented drinks",
+   "must": [
+    "콜라"
+   ]
+  }
+ ],
+ "ff12": [
+  {
+   "u": "새우버거 칼로리가 얼마나 돼요?",
+   "act": "fact",
+   "expect": "answer 510 kcal from data",
+   "must": [
+    "510"
+   ]
+  }
+ ],
+ "ff13": [
+  {
+   "u": "사이즈는 뭐 있어요?",
+   "act": "fact",
+   "expect": "answer: sets come in M (미디엄) or L (라지); single items one size",
+   "must": [
+    "M|미디엄|중간",
+    "L|라지|큰"
+   ]
+  }
+ ],
+ "ff14": [
+  {
+   "u": "매운 거 있어요?",
+   "act": "fact",
+   "expect": "answer 스파이시 치킨버거 (₩5,900 single); offer to order",
+   "must": [
+    "스파이시"
+   ]
+  }
+ ],
+ "ff16": [
+  {
+   "u": "새로 나온 거 뭐 있어요?",
+   "act": "fact",
+   "expect": "name new items from data: 스파이시 치킨버거, 베지 버거, 콘샐러드, 아이스 라테 (1–3 of them)",
+   "must": [
+    "스파이시|베지|콘샐러드|라테"
+   ]
+  }
+ ],
+ "ff17": [
+  {
+   "u": "빅맥 세트 하나 주세요",
+   "act": "notoffered",
+   "expect": "say 빅맥 is not on this menu; suggest 1–3 real burgers (e.g. 더블 치즈버거, 브리지 클래식); no taps for a substitute",
+   "notAvail": [
+    "빅맥"
+   ]
+  }
+ ],
+ "ff18": [
+  {
+   "u": "치킨 너겟 열 조각짜리 있어요?",
+   "act": "notoffered",
+   "expect": "say only 너겟 4조각 (₩2,700) exists; offer it",
+   "must": [
+    "4"
+   ]
+  }
+ ],
+ "ff19": [
+  {
+   "u": "밀크티 있어요?",
+   "act": "notoffered",
+   "expect": "say no milk tea; suggest 1–3 real drinks (아이스티, 바닐라 셰이크, 아이스 라테)",
+   "notAvail": [
+    "밀크티"
+   ]
+  }
+ ],
+ "ff21": [
+  {
+   "u": "도와주세요",
+   "act": "vague",
+   "expect": "offer help: say what they can tell KIBO (e.g. '불고기버거 세트 하나, 포장'), maybe 1–3 options; not a bare template"
+  }
+ ],
+ "ff22": [
+  {
+   "u": "이거 어떻게 하는 거예요? 처음 해 봐요",
+   "act": "vague",
+   "expect": "explain simply: say what you want to eat and eat-in/take-out, KIBO taps; give one example; not a bare template"
+  }
+ ],
+ "ff23": [
+  {
+   "u": "아무거나 맛있는 걸로 추천해 주세요",
+   "act": "vague",
+   "expect": "recommend 1–3 real items (추천: 더블 치즈버거, 스파이시 치킨버거, 불고기버거, 아이스 라테, 선데); ask which",
+   "must": [
+    "더블 치즈|스파이시|불고기|라테|선데|클래식|새우|베지"
+   ]
+  }
+ ],
+ "ff24": [
+  {
+   "u": "불고기버거 세트 미디엄 콜라로 하나요, 먹고 갈게요",
+   "act": "full",
+   "expect": "plan taps (bulgogi set M cola eat in)"
+  },
+  {
+   "u": "아 콜라 말고 사이다로요",
+   "act": "correction",
+   "expect": "say 사이다 is not on the menu; suggest 레몬 소다/오렌지 소다; item already added → tell them how to change it (tap on review screen); never claim changed",
+   "notAvail": [
+    "사이다"
+   ]
+  }
+ ],
+ "ff26": [
+  {
+   "u": "더블 치즈버거 세트, 아 아니다 불고기버거 세트로 미디엄 제로콜라, 포장",
+   "act": "correction",
+   "expect": "use the final choice: bulgogi set M zero cola take out; plan taps; no double cheese",
+   "intent": [
+    "bulgogi"
+   ],
+   "intentNot": [
+    "double_cheese"
+   ]
+  }
+ ],
+ "ff27": [
+  {
+   "u": "화장실 어디예요?",
+   "act": "offtopic",
+   "expect": "say KIBO doesn't know / ask staff; steer back to ordering; not 'nothing to tap'"
+  }
+ ],
+ "ff28": [
+  {
+   "u": "현금 되나요?",
+   "act": "offtopic",
+   "expect": "answer from data: cash only at the front counter; kiosk takes card or mobile voucher; then offer to order",
+   "must": [
+    "카운터"
+   ]
+  }
+ ],
+ "ff29": [
+  {
+   "u": "와이파이 비밀번호 알아요?",
+   "act": "offtopic",
+   "expect": "say KIBO doesn't know / ask staff; steer back to ordering"
+  }
+ ],
+ "ff31": [
+  {
+   "u": "결제도 해 주세요",
+   "act": "payment",
+   "expect": "nothing ordered yet: ask what to order; say payment is done by the customer; never claim paying"
+  }
+ ],
+ "ff32": [
+  {
+   "u": "불고기버거 단품 하나 포장이요",
+   "act": "full",
+   "expect": "plan taps (bulgogi single, take out)"
+  },
+  {
+   "u": "다 됐어요, 결제해 주세요",
+   "act": "payment",
+   "expect": "go to payment (taps) and tell them to insert/tap card themselves; never claim paid"
+  }
+ ],
+ "ff33": [
+  {
+   "u": "새우버거 세트 미디엄 콜라 하나 포장, 그게 다예요 계산할게요",
+   "act": "full",
+   "expect": "plan taps to payment screen; customer pays; no paid claim"
+  },
+  {
+   "u": "아 감자튀김 말고 콘샐러드로 바꿔 주세요",
+   "act": "afterpay",
+   "expect": "at payment: say KIBO can't change it now and how (tap [처음으로]/review on screen); never claim changed"
+  }
+ ],
+ "ff34": [
+  {
+   "u": "더블 치즈버거 단품 하나 먹고 갈게요, 이게 다예요",
+   "act": "full",
+   "expect": "plan taps to payment screen; no paid claim"
+  },
+  {
+   "u": "콜라도 하나 추가해 주세요",
+   "act": "afterpay",
+   "expect": "at payment: say can't add now and how to (tap [처음으로] then say again); never claim added"
+  }
+ ],
+ "ff36": [
+  {
+   "u": "쿠폰 있는데 이거 쓸 수 있어요?",
+   "act": "unsupported",
+   "expect": "answer from data: mobile vouchers accepted at payment; otherwise ask staff; no invented discount"
+  }
+ ],
+ "ff37": [
+  {
+   "u": "배달도 돼요?",
+   "act": "unsupported",
+   "expect": "say no delivery: only eat in or take out; offer to order"
+  }
+ ],
+ "ff38": [
+  {
+   "u": "콜라 열다섯 개 주세요",
+   "act": "partial",
+   "expect": "say up to 10 per order (data rule); never claim 15 added"
+  }
+ ],
+ "ff39": [
+  {
+   "u": "브리지 클래식 단품에 피클 빼고 하나, 포장이요",
+   "act": "full",
+   "expect": "plan taps (classic single, no pickle, take out)",
+   "intent": [
+    "classic",
+    "pickle"
+   ]
+  }
+ ],
+ "ff41": [
+  {
+   "u": "Can I get a Spicy Chicken Burger meal, medium, with lemon soda, to go?",
+   "act": "full",
+   "expect": "plan taps (spicy_chicken set M lemon_soda take out); reply English",
+   "intent": [
+    "spicy_chicken",
+    "lemon_soda"
+   ]
+  }
+ ],
+ "ff42": [
+  {
+   "u": "How much is the Double Cheeseburger?",
+   "act": "fact",
+   "expect": "answer ₩6,600 single (meal M ₩7,600 / L ₩8,300) in English",
+   "must": [
+    "6,?600"
+   ]
+  }
+ ],
+ "ff43": [
+  {
+   "u": "Do you have a Whopper?",
+   "act": "notoffered",
+   "expect": "say no Whopper; suggest 1–3 real burgers in English",
+   "notAvail": [
+    "whopper"
+   ]
+  }
+ ],
+ "ff44": [
+  {
+   "u": "Can I pay with cash?",
+   "act": "offtopic",
+   "expect": "cash only at the front counter; kiosk takes card or mobile voucher; English",
+   "must": [
+    "counter"
+   ]
+  }
+ ],
+ "ff46": [
+  {
+   "u": "Two bulgogi burgers, just the burgers, for here",
+   "act": "full",
+   "expect": "plan taps (bulgogi single ×2, eat in)"
+  },
+  {
+   "u": "Sorry, make that three",
+   "act": "correction",
+   "expect": "add one more bulgogi burger (total 3) or explain; never claim removal/changes not done",
+   "intent": [
+    "bulgogi"
+   ]
+  }
+ ],
+ "ff47": [
+  {
+   "u": "てりやきバーガーはありますか？",
+   "act": "notoffered",
+   "expect": "in Japanese: no teriyaki burger; suggest 1–3 real burgers (e.g. Bulgogi Burger)",
+   "notAvail": [
+    "てりやき"
+   ]
+  }
+ ],
+ "ff48": [
+  {
+   "u": "Cho tôi một phần khoai tây chiên và một ly cola, mang đi.",
+   "act": "full",
+   "expect": "plan taps (fries + cola, take out); reply Vietnamese",
+   "intent": [
+    "fries",
+    "cola"
+   ]
+  }
+ ],
+ "ff49": [
+  {
+   "u": "一番安いセットはいくらですか？",
+   "act": "fact",
+   "expect": "in Japanese: Bulgogi Burger meal M ₩6,000",
+   "must": [
+    "6,?000"
+   ]
+  }
+ ],
+ "ff51": [
+  {
+   "u": "아메리카노 하나요",
+   "act": "partial",
+   "expect": "accept americano (₩2,400); ask only eat in or take out",
+   "intent": [
+    "americano"
+   ]
+  }
+ ],
+ "ff52": [
+  {
+   "u": "콜라 큰 거로 하나 주세요",
+   "act": "partial",
+   "expect": "cola has one size outside a set; add cola or ask; ask eat in/take out; never claim large cola"
+  }
+ ],
+ "ff53": [
+  {
+   "u": "버거 세트 하나 먹으려고요",
+   "act": "partial",
+   "expect": "ask which burger (name 1–3 real burgers)"
+  },
+  {
+   "u": "불고기로요",
+   "act": "partial",
+   "expect": "ask only size, drink and eat in/take out"
+  },
+  {
+   "u": "라지에 콜라요",
+   "act": "partial",
+   "expect": "ask only eat in or take out (or proceed)",
+   "intent": [
+    "bulgogi"
+   ]
+  }
+ ],
+ "ff54": [
+  {
+   "u": "감자튀김 하나랑 콜라 하나요",
+   "act": "partial",
+   "expect": "ask only eat in or take out"
+  },
+  {
+   "u": "먹고 갈게요",
+   "act": "full",
+   "expect": "plan taps (fries + cola, eat in)",
+   "intent": [
+    "fries",
+    "cola"
+   ]
+  }
+ ],
+ "ff56": [
+  {
+   "u": "세트는 얼마예요?",
+   "act": "fact",
+   "expect": "set price depends on burger: from ₩6,000 (불고기 M) to ₩8,300 (더블 치즈 L); give 1–3 examples; ask which",
+   "must": [
+    "\\d,?\\d00"
+   ]
+  },
+  {
+   "u": "불고기버거 세트 라지요",
+   "act": "partial",
+   "expect": "ask only drink and eat in/take out",
+   "intent": [
+    "bulgogi"
+   ]
+  }
+ ],
+ "ff57": [
+  {
+   "u": "안녕하세요",
+   "act": "vague",
+   "expect": "greet and ask what they'd like, maybe with an example"
+  },
+  {
+   "u": "더블 치즈버거 세트 미디엄 콜라 포장이요",
+   "act": "full",
+   "expect": "plan taps (double_cheese set M cola take out)",
+   "intent": [
+    "double_cheese"
+   ]
+  }
+ ],
+ "ff58": [
+  {
+   "u": "What drinks do you have?",
+   "act": "fact",
+   "expect": "list real drinks in English",
+   "must": [
+    "cola"
+   ]
+  },
+  {
+   "u": "Iced tea then, with a Veggie Burger meal, large, for here",
+   "act": "full",
+   "expect": "plan taps (veggie set L iced_tea eat in)",
+   "intent": [
+    "veggie",
+    "iced_tea"
+   ]
+  }
+ ],
+ "ff59": [
+  {
+   "u": "불고기버거 세트 미디엄에 사이다요, 매장에서요",
+   "act": "notoffered",
+   "expect": "say 사이다 isn't on the menu; suggest 레몬 소다/오렌지 소다/콜라; ask which (don't substitute silently)",
+   "notAvail": [
+    "사이다"
+   ]
+  },
+  {
+   "u": "그럼 레몬 소다로요",
+   "act": "full",
+   "expect": "plan taps (bulgogi set M lemon_soda eat in)",
+   "intent": [
+    "lemon_soda"
+   ]
+  }
+ ]
+}

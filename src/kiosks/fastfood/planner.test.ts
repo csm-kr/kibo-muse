@@ -175,6 +175,14 @@ describe("아는 만큼 먼저 누르기 — 되물을 때도 빠진 것을 고�
     expect(cart(plan(t2.state, mergeIntent(p2, { current: { drink: "cola" } })))).toEqual([["double_cheese", "set", "L", "fries", "cola", 1]]);
     // 다음 턴에 사이즈·음료를 한꺼번에 말해도(진행 중 상품으로) 한 번만 담는다
     expect(cart(plan(t1.state, mergeIntent(said, { current: { size: "L", drink: "cola" } })))).toEqual([["double_cheese", "set", "L", "fries", "cola", 1]]);
+    // 11/4 실음성 v6: 사이즈 화면에서 "콜라 말고 제로 콜라로요". Spark가 앞 상품(콜라)을 다시 적고 current로 바꿀 음료를 내도 두 줄로 나누지 않는다
+    const colaSaid: FastfoodIntent = { orderType: "take_out", items: [{ menuId: "double_cheese", mode: "set", drink: "cola", qty: 1 }] };
+    const c1 = lead(initialState(), colaSaid);
+    expect(c1.state.screen).toBe("set_size");
+    const fix = mergeIntent(colaSaid, { items: [{ menuId: "double_cheese", mode: "set", drink: "cola", qty: 1 }], current: { drink: "zero_cola" } });
+    const c2 = plan(c1.state, fix);
+    expect(c2.kind === "clarify" && c2.missing).toEqual([{ field: "size", line: "current" }]);
+    expect(cart(plan(c1.state, mergeIntent(fix, { current: { size: "M" } })))).toEqual([["double_cheese", "set", "M", "fries", "zero_cola", 1]]);
   });
 
   it("예 2) 상품은 있고 매장·포장이 없으면 [Order here]만 눌러 매장·포장 화면에서 멈춘다", () => {

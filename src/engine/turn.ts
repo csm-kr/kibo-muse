@@ -36,7 +36,9 @@ export interface Done {
 
 // followSpoken: 서버가 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다. 대답에 실어 휴대폰이 그 언어로 바꾸게 한다
 export type Understood<E> = (
-  | { kind: "plan"; events: E[]; lang: string; done: Done }
+  // lead: 누르기 전에 먼저 말할 알아들은 내용(예: "불고기버거 세트 M(감자튀김·콜라), 매장 식사."). 서버가 만든 고정 문구
+  // answer: 누를 것이 없는 턴(질문)에 서버가 고른 Spark 답. 있으면 '누를 버튼이 없어요' 대신 말한다
+  | { kind: "plan"; events: E[]; lang: string; done: Done; lead?: string; answer?: string }
   // events: 되물을 때도 아는 만큼 먼저 누를 버튼(빠진 것을 고르는 화면에서 멈춤). 대답 뒤에 재생하고 완료는 보내지 않는다
   // answers: 되묻는 말 아래 휴대폰이 띄울 답 칩 종류
   | { kind: "clarify"; say: string; lang: string; events?: E[]; answers?: Answers }
@@ -300,12 +302,12 @@ const rejectPhrases: Record<string, Record<Lang, string>> = {
   },
   // 기차 인원: 1–9명
   bad_passengers: {
-    en: "You can book for up to 9 people at a time.",
-    ko: "한 번에 9명까지 예매할 수 있어요.",
-    ja: "一度に予約できるのは9人までです。",
-    vi: "Mỗi lần bạn có thể đặt tối đa 9 người.",
-    zh: "一次最多可以订9人。",
-    es: "Puede reservar para un máximo de 9 personas a la vez.",
+    en: "You can book for up to 9 people at a time. Please split the group into 9 or fewer and tell me one group at a time.",
+    ko: "한 번에 9명까지 예매할 수 있어요. 9명 이하로 나눠서 한 번에 한 묶음씩 말씀해 주세요.",
+    ja: "一度に予約できるのは9人までです。9人以下に分けて、1組ずつお知らせください。",
+    vi: "Mỗi lần bạn có thể đặt tối đa 9 người. Hãy chia thành nhóm tối đa 9 người và nói từng nhóm một.",
+    zh: "一次最多可以订9人。请分成每组不超过9人，一组一组地告诉我。",
+    es: "Puede reservar para un máximo de 9 personas a la vez. Divida el grupo en grupos de 9 o menos y dígame un grupo cada vez.",
   },
   // 공항 나가기. 확정 카드를 다시 띄우지 않고, 확정되지 않았다는 사실만 알린다. {b} = 화면 아래 나가기(exit) 버튼 글자(키오스크 언어)
   exit: {
@@ -452,7 +454,9 @@ export function createTurn<E>(initial: TurnDeps<E>) {
       else if (u.kind === "reject") reply(h.id, lang, "reject", u.say ?? rejectSay(u.reason, lang), undefined, u.followSpoken);
       else {
         const n = u.events.length;
-        reply(h.id, lang, "plan", planSay(n, lang, atGate), n, u.followSpoken);
+        // 일본어·중국어는 문장 사이에 공백을 두지 않는다
+        const say = n === 0 && u.answer ? u.answer : [u.lead, planSay(n, lang, atGate)].filter(Boolean).join(lang === "ja" || lang === "zh" ? "" : " ");
+        reply(h.id, lang, "plan", say, n, u.followSpoken);
         await replay(h.id, lang, u.events, u.done);
       }
     }

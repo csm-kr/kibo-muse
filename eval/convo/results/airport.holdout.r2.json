@@ -1,0 +1,313 @@
+{
+ "ap05": [
+  {
+   "u": "브리지항공이요",
+   "say": "say (ko): 브리지항공이네요! 몇 분이 함께 체크인하시나요? 위탁하실 가방은 몇 개인가요?",
+   "intent": "intent: {\"airline\":\"bridge_air\"}",
+   "plan": "plan: clarify · [\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 3204 ms · server 3205 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…UJ9A\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 브리지항공이네요! 몇 분이 함께 체크인하시나요? 위탁하실 가방은 몇 개인가요?\nintent: {\"airline\":\"bridge_air\"}\nplan: clarify · [\"travelers\",\"bags\"]\ntiming: Spark 3204 ms · server 3205 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "airline": "bridge_air"
+    },
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "브리지항공이네요! 몇 분이 함께 체크인하시나요? 위탁하실 가방은 몇 개인가요?"
+   }
+  }
+ ],
+ "ap10": [
+  {
+   "u": "짐 몇 개까지 공짜예요?",
+   "say": "say (ko): 1인당 1개까지 무료이고, 1인당 최대 3개까지 맡기실 수 있어요. 어느 항공사 이용하시고, 몇 분이서, 짐은 몇 개 맡기실까요?",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 2577 ms · server 2577 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…c2Kw\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 1인당 1개까지 무료이고, 1인당 최대 3개까지 맡기실 수 있어요. 어느 항공사 이용하시고, 몇 분이서, 짐은 몇 개 맡기실까요?\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 2577 ms · server 2577 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "1인당 1개까지 무료이고, 1인당 최대 3개까지 맡기실 수 있어요. 어느 항공사 이용하시고, 몇 분이서, 짐은 몇 개 맡기실까요?"
+   }
+  }
+ ],
+ "ap15": [
+  {
+   "u": "짐 하나 더 부치면 얼마예요?",
+   "say": "say (ko): 1인당 가방 1개는 무료이고 최대 3개까지 부칠 수 있으며, 초과 시 추가 요금은 수하물 카운터에서 확인해 주세요. 이용하시는 항공사와 인원수, 부치실 가방 수를 알려 주시겠어요?",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 4589 ms · server 4589 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…Eaqg\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 1인당 가방 1개는 무료이고 최대 3개까지 부칠 수 있으며, 초과 시 추가 요금은 수하물 카운터에서 확인해 주세요. 이용하시는 항공사와 인원수, 부치실 가방 수를 알려 주시겠어요?\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 4589 ms · server 4589 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "1인당 가방 1개는 무료이고 최대 3개까지 부칠 수 있으며, 초과 시 추가 요금은 수하물 카운터에서 확인해 주세요. 이용하시는 항공사와 인원수, 부치실 가방 수를 알려 주시겠어요?"
+   }
+  }
+ ],
+ "ap20": [
+  {
+   "u": "도와주세요",
+   "say": "say (ko): 도와드릴게요. 항공사와 인원수, 위탁하실 가방 개수를 알려주세요.",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 2236 ms · server 2236 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…Ntvg\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 도와드릴게요. 항공사와 인원수, 위탁하실 가방 개수를 알려주세요.\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 2236 ms · server 2236 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "도와드릴게요. 항공사와 인원수, 위탁하실 가방 개수를 알려주세요."
+   }
+  }
+ ],
+ "ap25": [
+  {
+   "u": "하늘스카이, 아 아니다 브리지항공이에요, 혼자고 짐 하나요",
+   "say": "say (ko): 브리지항공, 1명, 부치는 짐 1개. 알겠어요. 제가 1번 눌러 드릴게요.",
+   "intent": "intent: {\"airline\":\"bridge_air\",\"travelers\":1,\"bags\":1}",
+   "plan": "plan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}",
+   "timing": "timing: Spark 3515 ms · server 3515 ms",
+   "screen": "screen: dangerous_goods · passports: 0 · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · airport\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nWaiting for the person: dangerous_goods\n✔ Person confirms\nsay (ko): 브리지항공, 1명, 부치는 짐 1개. 알겠어요. 제가 1번 눌러 드릴게요.\nintent: {\"airline\":\"bridge_air\",\"travelers\":1,\"bags\":1}\nplan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}\ntiming: Spark 3515 ms · server 3515 ms\nscreen: dangerous_goods · passports: 0 · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "airline": "bridge_air",
+     "travelers": 1,
+     "bags": 1
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 1
+    },
+    "replyLanguage": "ko",
+    "say": "브리지항공, 1명, 부치는 짐 1개. 알겠어요. 제가 1번 눌러 드릴게요."
+   }
+  }
+ ],
+ "ap30": [
+  {
+   "u": "돈 내야 되는 거 있으면 결제까지 다 해 주세요",
+   "say": "say (ko): 결제는 도와드릴 수 없어 추가 요금은 수하물 카운터에서 내셔야 해요. 항공사와 인원, 맡기실 가방 개수를 알려주세요.",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 3673 ms · server 3673 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…iAwA\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 결제는 도와드릴 수 없어 추가 요금은 수하물 카운터에서 내셔야 해요. 항공사와 인원, 맡기실 가방 개수를 알려주세요.\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 3673 ms · server 3673 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "결제는 도와드릴 수 없어 추가 요금은 수하물 카운터에서 내셔야 해요. 항공사와 인원, 맡기실 가방 개수를 알려주세요."
+   }
+  }
+ ],
+ "ap35": [
+  {
+   "u": "마일리지 적립해 주세요",
+   "say": "say (ko): 마일리지는 잘 모르겠어요. 안내 데스크에 문의해 주세요. 이용하실 항공사와 인원, 위탁 수하물이 몇 개인지 알려주세요.",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 4850 ms · server 4850 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…0b4A\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 마일리지는 잘 모르겠어요. 안내 데스크에 문의해 주세요. 이용하실 항공사와 인원, 위탁 수하물이 몇 개인지 알려주세요.\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 4850 ms · server 4850 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "마일리지는 잘 모르겠어요. 안내 데스크에 문의해 주세요. 이용하실 항공사와 인원, 위탁 수하물이 몇 개인지 알려주세요."
+   }
+  }
+ ],
+ "ap40": [
+  {
+   "u": "Which gate do I go to?",
+   "say": "say (en): Your flight boards at gate 23 from 09:00. Could you tell me your airline, how many people are checking in, and how many bags to check?",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 2653 ms · server 2653 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…pF7Q\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (en): Your flight boards at gate 23 from 09:00. Could you tell me your airline, how many people are checking in, and how many bags to check?\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 2653 ms · server 2653 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "en",
+    "say": "Your flight boards at gate 23 from 09:00. Could you tell me your airline, how many people are checking in, and how many bags to check?"
+   }
+  }
+ ],
+ "ap45": [
+  {
+   "u": "ブリッジエアで母と二人、荷物は二つです",
+   "say": "say (ja): Bridge Air、2名、預け荷物2個。わかりました。代わりに1回タップします。",
+   "intent": "intent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2}",
+   "plan": "plan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}",
+   "timing": "timing: Spark 2914 ms · server 2915 ms",
+   "screen": "screen: dangerous_goods · passports: 0 · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · airport\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nWaiting for the person: dangerous_goods\n✔ Person confirms\nsay (ja): Bridge Air、2名、預け荷物2個。わかりました。代わりに1回タップします。\nintent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2}\nplan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}\ntiming: Spark 2914 ms · server 2915 ms\nscreen: dangerous_goods · passports: 0 · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "airline": "bridge_air",
+     "travelers": 2,
+     "bags": 2
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 1
+    },
+    "replyLanguage": "ja",
+    "say": "Bridge Air、2名、預け荷物2個。わかりました。代わりに1回タップします。"
+   }
+  }
+ ],
+ "ap50": [
+  {
+   "u": "칼을 가방에 넣어도 돼요?",
+   "say": "say (ko): 잘 모르겠으니 안내데스크나 직원에게 문의해 주세요. 항공사와 인원, 위탁 수하물이 몇 개인지 알려주시겠어요?",
+   "intent": "intent: {}",
+   "plan": "plan: clarify · [\"airline\",\"travelers\",\"bags\"]",
+   "timing": "timing: Spark 3066 ms · server 3066 ms",
+   "screen": "screen: idle · passports: 0 · run: — · taps 0/0reset",
+   "panel": "KIBO dev console · airport\nKIBO\n휴대폰으로 찍어 연결\nScan to talk to this kiosk\n…eiYQ\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nsay (ko): 잘 모르겠으니 안내데스크나 직원에게 문의해 주세요. 항공사와 인원, 위탁 수하물이 몇 개인지 알려주시겠어요?\nintent: {}\nplan: clarify · [\"airline\",\"travelers\",\"bags\"]\ntiming: Spark 3066 ms · server 3066 ms\nscreen: idle · passports: 0 · run: — · taps 0/0reset",
+   "stale": false,
+   "api": {
+    "intent": {},
+    "plan": {
+     "kind": "clarify",
+     "missing": [
+      "airline",
+      "travelers",
+      "bags"
+     ]
+    },
+    "replyLanguage": "ko",
+    "say": "잘 모르겠으니 안내데스크나 직원에게 문의해 주세요. 항공사와 인원, 위탁 수하물이 몇 개인지 알려주시겠어요?"
+   }
+  }
+ ],
+ "ap55": [
+  {
+   "u": "브리지항공 둘이요 짐 두 개",
+   "say": "say (ko): 브리지항공, 2명, 부치는 짐 2개. 알겠어요. 제가 1번 눌러 드릴게요.",
+   "intent": "intent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2}",
+   "plan": "plan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}",
+   "timing": "timing: Spark 2530 ms · server 2530 ms",
+   "screen": "screen: dangerous_goods · passports: 0 · run: — · taps 0/1reset",
+   "panel": "KIBO dev console · airport\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nWaiting for the person: dangerous_goods\n✔ Person confirms\nsay (ko): 브리지항공, 2명, 부치는 짐 2개. 알겠어요. 제가 1번 눌러 드릴게요.\nintent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2}\nplan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}\ntiming: Spark 2530 ms · server 2530 ms\nscreen: dangerous_goods · passports: 0 · run: — · taps 0/1reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "airline": "bridge_air",
+     "travelers": 2,
+     "bags": 2
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 1
+    },
+    "replyLanguage": "ko",
+    "say": "브리지항공, 2명, 부치는 짐 2개. 알겠어요. 제가 1번 눌러 드릴게요."
+   }
+  },
+  {
+   "u": "네",
+   "say": "say (ko): 브리지항공, 2명, 부치는 짐 2개. 알겠어요. 제가 1번 눌러 드릴게요.",
+   "intent": "intent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2}",
+   "plan": "plan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}",
+   "timing": "timing: Spark 2530 ms · server 2530 ms",
+   "screen": "screen: passport · passports: 0 · run: — · taps 0/3reset",
+   "panel": "KIBO dev console · airport\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nWaiting for the person: passport (self)\nsay (ko): 브리지항공, 2명, 부치는 짐 2개. 알겠어요. 제가 1번 눌러 드릴게요.\nintent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2}\nplan: plan · 1 taps · stop {\"kind\":\"ack\",\"what\":\"dangerous_goods\"}\ntiming: Spark 2530 ms · server 2530 ms\nscreen: passport · passports: 0 · run: — · taps 0/3reset",
+   "stale": true,
+   "api": null
+  },
+  {
+   "u": "좌석은 창가로 바꿔 주세요",
+   "say": "say (ko): 브리지항공, 2명, 창가 쪽 나란히, 부치는 짐 2개. 지금은 제가 누를 버튼이 없어요.",
+   "intent": "intent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2,\"seats\":\"window\"}",
+   "plan": "plan: plan · 0 taps · stop {\"kind\":\"device\",\"what\":\"passport\",\"who\":\"self\"}",
+   "timing": "timing: Spark 2618 ms · server 2618 ms",
+   "screen": "screen: passport · passports: 0 · run: — · taps 0/3reset",
+   "panel": "KIBO dev console · airport\n브리지항공으로 엄마랑 둘이 도쿄 …\nBridge Air to Toky…\nブリッジエアで母と二人、東京へ行きま…\n네, 확인했어요…\nSay it\nWaiting for the person: passport (self)\nsay (ko): 브리지항공, 2명, 창가 쪽 나란히, 부치는 짐 2개. 지금은 제가 누를 버튼이 없어요.\nintent: {\"airline\":\"bridge_air\",\"travelers\":2,\"bags\":2,\"seats\":\"window\"}\nplan: plan · 0 taps · stop {\"kind\":\"device\",\"what\":\"passport\",\"who\":\"self\"}\ntiming: Spark 2618 ms · server 2618 ms\nscreen: passport · passports: 0 · run: — · taps 0/3reset",
+   "stale": false,
+   "api": {
+    "intent": {
+     "airline": "bridge_air",
+     "travelers": 2,
+     "bags": 2,
+     "seats": "window"
+    },
+    "plan": {
+     "kind": "plan",
+     "taps": 0
+    },
+    "replyLanguage": "ko",
+    "say": "브리지항공, 2명, 창가 쪽 나란히, 부치는 짐 2개. 지금은 제가 누를 버튼이 없어요."
+   }
+  }
+ ]
+}

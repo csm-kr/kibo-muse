@@ -40,6 +40,9 @@ describe("/api/fastfood/interpret", () => {
     const onMenu = { ...initialState(), screen: "menu", orderType: "eat_in" };
     const r3 = await (await POST(new Request("http://x/api/fastfood/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "무슨 버거 있어요?", state: onMenu }) }))).json();
     expect(r3.say).toBe("버거는 불고기버거, 새우버거가 있어요.");
+    // 누를 것 없는 계획이라 휴대폰은 answer를 받아 '누를 버튼이 없어요' 대신 말한다
+    expect(r3.plan).toMatchObject({ kind: "plan", events: [] });
+    expect(r3.answer).toBe("버거는 불고기버거, 새우버거가 있어요.");
     fakeSpark({ ...base, unsupported: "none", replyLanguage: "en", say: "Hi! What would you like?" });
     expect((await call("안녕하세요", "?lang=Korean")).say).toBe(rejectSay("chat", "ko"));
   });
@@ -66,6 +69,9 @@ describe("/api/fastfood/interpret", () => {
     // 키오스크 입력 패널·휴대폰에 "피클을 뺐어요" 같은 하지 않은 일이 보이지 않게 한다
     expect(body.say).not.toBe(base.say);
     expect(body.say).toBe("담긴 상품을 바꾸거나 빼는 건 주문 확인 화면에서 직접 눌러 주세요.");
+    // 바꿔 달라는 것이 메뉴에 없으면 그것부터 말한다(11/4 판정: "콜라 말고 사이다로요")
+    fakeSpark({ ...base, unsupported: "change_cart_item", unknownItems: ["사이다"] });
+    expect((await call("아 콜라 말고 사이다로요", "?lang=Korean")).say).toBe("사이다는 메뉴에 없어요. 담긴 상품을 바꾸거나 빼는 건 주문 확인 화면에서 직접 눌러 주세요.");
   });
 
   it("say는 되묻기(clarify)만 Spark 문장을 쓰고, 계획과 거절은 고정 문구다. 주문 전체 취소는 전용 문구로 거절한다", async () => {
@@ -74,7 +80,9 @@ describe("/api/fastfood/interpret", () => {
     const planned = await call("店内で食べます");
     expect(planned.plan.kind).toBe("plan");
     expect(planned.say).not.toContain("確定");
-    expect(planned.say).toBe(planSay(planned.plan.events.length, "ja"));
+    // 고정 문구 앞에는 알아들은 내용(이번에 정한 매장 식사)을 먼저 말한다. 휴대폰은 lead를 받아 같은 순서로 말한다
+    expect(planned.lead).toBe("店内。");
+    expect(planned.say).toBe(`店内。${planSay(planned.plan.events.length, "ja")}`);
 
     fakeSpark({ ...base, unsupported: "cancel_order", say: "주문을 취소했어요." });
     const cancelled = await call("전부 취소해 주세요");
@@ -87,7 +95,7 @@ describe("/api/fastfood/interpret", () => {
     fakeSpark({ ...base, items: [line], unsupported: "none", replyLanguage: "ko", say: "더블 치즈버거 세트 1개ですね. 매장식사인가요 포장인가요?" });
     const mixed = await call("더블 치즈버거 세트 하나요");
     expect(mixed.plan.kind).toBe("clarify");
-    expect(mixed.say).toBe("더블 치즈버거 세트 ×1 담을게요. 매장에서 드시나요, 포장하시나요? 사이즈는 M, L 중 무엇으로 할까요? 음료는 무엇으로 할까요?");
+    expect(mixed.say).toBe("더블 치즈버거 세트 담을게요. 매장·포장, 사이즈(M·L), 음료만 알려 주세요.");
 
     fakeSpark({ ...base, items: [line], unsupported: "none", replyLanguage: "ko", say: "더블 치즈버거 세트 1개요? 매장인지 포장인지 알려주세요." });
     expect((await call("더블 치즈버거 세트 하나요")).say).toBe("더블 치즈버거 세트 1개요? 매장인지 포장인지 알려주세요.");
@@ -101,7 +109,7 @@ describe("/api/fastfood/interpret", () => {
     fakeSpark(sizeAsk);
     const ko = await call(mixedKo, "?lang=ko");
     expect(ko.plan.kind).toBe("clarify");
-    expect(ko.say).toBe("더블 치즈버거 세트 ×1 담을게요. 사이즈는 M, L 중 무엇으로 할까요?");
+    expect(ko.say).toBe("더블 치즈버거 세트 담을게요. 사이즈는 M, L 중 무엇으로 할까요?");
     expect(ko.replyLanguage).toBe("ko");
     // 장면 8: 한글이 섞인 말이라 Spark가 영어로 봐도 휴대폰 언어를 바꾸라고 하지 않는다
     expect(ko.followSpoken).toBeUndefined();
@@ -122,7 +130,7 @@ describe("/api/fastfood/interpret", () => {
     fakeSpark({ ...sizeAsk, items: [], say: "Okay." });
     const planned = await call("eat in", "?lang=ko");
     expect(planned.plan.kind).toBe("plan");
-    expect(planned.say).toBe(planSay(planned.plan.events.length, "ko"));
+    expect(planned.say).toBe(`매장 식사. ${planSay(planned.plan.events.length, "ko")}`);
     expect(planned.replyLanguage).toBe("ko");
     fakeSpark({ ...sizeAsk, unsupported: "cancel_order" });
     expect((await call("cancel everything", "?lang=ko")).say).toBe("주문 전체 취소는 화면의 [Start over]를 직접 눌러 주세요.");
@@ -176,5 +184,34 @@ describe("/api/fastfood/interpret", () => {
     // 사람이 그새 사이즈를 골랐다(사이즈 화면이 아님) → Spark 길
     await post(run(s1, [{ by: "touch", target: "size", value: "M" }]), { field: "size", value: "L" }, pending);
     expect(sparkCalls).toBeGreaterThan(0);
+  });
+  it("결제·현금 질문처럼 할 일이 없는 말(장바구니가 빔)은 일반 거절 대신 Spark 답을 쓴다(11/4 판정: '결제도 해 주세요'·'Can I pay with cash?'에 '해 드릴 수 없어요'만)", async () => {
+    fakeSpark({ ...base, requestPayment: true, unsupported: "none", replyLanguage: "en", say: "I can't take payment. Cash is only at the front counter; this kiosk takes cards and mobile vouchers." });
+    const cash = await call("Can I pay with cash?");
+    expect(cash.say).toContain("front counter");
+    const onMenu = { ...initialState(), screen: "menu", orderType: "eat_in" };
+    fakeSpark({ ...base, requestPayment: true, unsupported: "none", say: "결제는 직접 하셔야 해요. 먼저 무엇을 드릴까요?" });
+    const r = await (await POST(new Request("http://x/api/fastfood/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "결제도 해 주세요", state: onMenu }) }))).json();
+    expect(r.plan).toEqual({ kind: "reject", reason: "cart_empty" });
+    expect(r.say).toBe("결제는 직접 하셔야 해요. 먼저 무엇을 드릴까요?");
+  });
+
+  it("계획에서 메뉴에 없는 말(unknownItems)은 담는 내용보다 먼저 없다고 말한다(11/4 판정: 사이다를 말없이 레몬 소다로 담음). 프롬프트에 칼로리·신메뉴·사이즈·결제 사실을 싣는다", async () => {
+    const line = { menuId: "bulgogi", mode: "set", size: "M", side: "none", drink: "lemon_soda", remove: [], addOns: [], qty: 1 };
+    const sent = fakeSpark({ ...base, orderType: "eat_in", items: [line], unknownItems: ["사이다"], unsupported: "none", say: "담았어요." });
+    const r = await call("불고기버거 세트 미디엄에 사이다요, 매장에서요", "?lang=Korean");
+    expect(r.plan.kind).toBe("plan");
+    expect(r.lead).toBe("사이다는 메뉴에 없어요. 불고기버거 세트 M(감자튀김·레몬 소다), 매장 식사.");
+    const prompt = sent.body!.messages[0].content;
+    expect(prompt).toContain("510 kcal");
+    expect(prompt).toMatch(/NEW/);
+    expect(prompt).toContain("Cash payments at the front counter only");
+    expect(prompt).toContain("suggest 1-3 real items");
+    // "불고기로요"처럼 메뉴 이름만 말해도 주문이다(11/4 판정: 앞 질문 맥락 없이 아무것도 담지 않음)
+    expect(prompt).toContain("A bare menu item name");
+    // 방금 담긴 것을 확인만 하는 말은 다시 담지 않는다(11/4 판정: "그럼 레몬 소다로요"에 세트를 한 번 더 담음)
+    expect(prompt).toContain("already in the cart, add nothing");
+    // 11/5 r1 판정: 배달 질문에 '모르겠어요', 빈 장바구니에 Pay를 누르라고 함, 관계없는 질문 뒤 주문으로 이끌지 않음, 사이다를 레몬 소다로 바꿈
+    for (const f of ["no delivery", "If the cart is empty", "then invite them to order", "name 1-3 real", "사이다", "Points: scan the app barcode", "When you must ask which item"]) expect(prompt).toContain(f);
   });
 });

@@ -1,0 +1,113 @@
+{
+ "ap05": [
+  {
+   "u": "브리지항공이요",
+   "act": "partial",
+   "expect": "ask only number of travelers and bags"
+  }
+ ],
+ "ap10": [
+  {
+   "u": "짐 몇 개까지 공짜예요?",
+   "act": "fact",
+   "expect": "answer 1 checked bag per person free; extra ₩100,000 each; up to 3 per person",
+   "must": [
+    "1개|한 개|하나|1인 1"
+   ]
+  }
+ ],
+ "ap15": [
+  {
+   "u": "짐 하나 더 부치면 얼마예요?",
+   "act": "fact",
+   "expect": "answer ₩100,000 per bag over the 1-bag allowance (paid at baggage counter)",
+   "must": [
+    "100,?000|10만|십만"
+   ]
+  }
+ ],
+ "ap20": [
+  {
+   "u": "도와주세요",
+   "act": "vague",
+   "expect": "offer help: what KIBO does + ask airline, travelers, bags; not a bare template"
+  }
+ ],
+ "ap25": [
+  {
+   "u": "하늘스카이, 아 아니다 브리지항공이에요, 혼자고 짐 하나요",
+   "act": "correction",
+   "expect": "use the final choice bridge_air; plan taps",
+   "intent": [
+    "bridge_air"
+   ],
+   "intentNot": [
+    "haneul"
+   ]
+  }
+ ],
+ "ap30": [
+  {
+   "u": "돈 내야 되는 거 있으면 결제까지 다 해 주세요",
+   "act": "payment",
+   "expect": "never claim paying; check-in itself is free, extra bags/paid seats at counter; ask airline/travelers/bags"
+  }
+ ],
+ "ap35": [
+  {
+   "u": "마일리지 적립해 주세요",
+   "act": "unsupported",
+   "expect": "answer from data: scan membership card barcode on the kiosk; KIBO can't do it; continue check-in"
+  }
+ ],
+ "ap40": [
+  {
+   "u": "Which gate do I go to?",
+   "act": "fact",
+   "expect": "English: gate 23",
+   "must": [
+    "23"
+   ]
+  }
+ ],
+ "ap45": [
+  {
+   "u": "ブリッジエアで母と二人、荷物は二つです",
+   "act": "full",
+   "expect": "plan taps (bridge_air, 2, 2); Japanese",
+   "intent": [
+    "bridge_air"
+   ]
+  }
+ ],
+ "ap50": [
+  {
+   "u": "칼을 가방에 넣어도 돼요?",
+   "act": "fact",
+   "expect": "answer from data: knives can't go in the cabin, can go in checked bags",
+   "must": [
+    "부치|위탁|수하물"
+   ]
+  }
+ ],
+ "ap55": [
+  {
+   "u": "브리지항공 둘이요 짐 두 개",
+   "act": "full",
+   "expect": "plan taps; stop at dangerous goods"
+  },
+  {
+   "u": "네",
+   "act": "followup",
+   "expect": "accept; ask passport scan"
+  },
+  {
+   "u": "좌석은 창가로 바꿔 주세요",
+   "act": "correction",
+   "expect": "accept window for later; still waiting for passport scan; never claim seat changed",
+   "intent": [
+    "window"
+   ]
+  }
+ ]
+}

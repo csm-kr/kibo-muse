@@ -33,6 +33,10 @@ interface InterpretResponse {
   // 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다(휴대폰이 그 언어로 바꾼다)
   followSpoken?: boolean;
   unknownItems: string[];
+  // 계획 앞에 말할 알아들은 내용(서버 고정 문구)
+  lead?: string;
+  // 누를 것 없는 턴(질문)의 Spark 답
+  answer?: string;
   intent: FastfoodIntent;
   plan: { kind: "plan"; events: KioskEvent[]; paymentHandoff: boolean; assumed: unknown[]; dropped: unknown[]; endScreen: string } | { kind: "clarify"; missing: Missing[]; events?: KioskEvent[] } | { kind: "reject"; reason: string };
   timing: { sparkMs: number; totalMs: number };
@@ -295,7 +299,7 @@ export function FastfoodStation({ variant: given, room, title }: { variant?: "de
     const payButton = t.pay[stateRef.current.lang];
     const hasItems = stateRef.current.cart.length > 0 || p.events.some((e) => e.target === "add_to_cart");
     const say = planDoneSay({ endScreen: p.endScreen, dropped: p.dropped.length, hasItems }, l, payButton);
-    return { kind: "plan", events: p.events, lang, followSpoken: body.followSpoken, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton, ...(p.endScreen !== "review" && hasItems && { answers: "more" as const }) } };
+    return { kind: "plan", events: p.events, lang, followSpoken: body.followSpoken, lead: body.lead, answer: body.answer, done: { say, gate: null, paymentHandoff: p.endScreen === "review", payButton, ...(p.endScreen !== "review" && hasItems && { answers: "more" as const }) } };
   }
 
   function send(m: LinkMsg) {

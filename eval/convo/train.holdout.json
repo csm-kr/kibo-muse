@@ -1,0 +1,147 @@
+{
+ "tr05": [
+  {
+   "u": "Two adults to Harborlight tomorrow at 10 am, first class please",
+   "act": "full",
+   "expect": "plan taps (harbor, day 1, 10:00, 2, first); English",
+   "intent": [
+    "harbor",
+    "first"
+   ]
+  }
+ ],
+ "tr10": [
+  {
+   "u": "등대항까지 얼마나 걸려요?",
+   "act": "fact",
+   "expect": "answer express 160 min (2h40m); local 320 min; then ask what's missing",
+   "must": [
+    "160|2시간 ?40"
+   ]
+  }
+ ],
+ "tr15": [
+  {
+   "u": "어디 어디 갈 수 있어요?",
+   "act": "fact",
+   "expect": "list destinations from data (some or all 11); ask where",
+   "must": [
+    "버들둑|단풍언덕|등불호수|미드베일|돌문|산호만|등대항|햇들|서풍|눈봉|솔바닷가"
+   ]
+  }
+ ],
+ "tr20": [
+  {
+   "u": "서울역 가요",
+   "act": "notoffered",
+   "expect": "say 서울역 not on these lines; suggest 1–3 stations; never 'stations on the screen' when none visible",
+   "must": [
+    "버들둑|단풍언덕|등불호수|미드베일|돌문|산호만|등대항|햇들|서풍|눈봉|솔바닷가"
+   ],
+   "notAvail": [
+    "서울역"
+   ]
+  }
+ ],
+ "tr25": [
+  {
+   "u": "기차표 사려고요",
+   "act": "vague",
+   "expect": "ask where, when and how many in one natural question; may name a few stations"
+  }
+ ],
+ "tr30": [
+  {
+   "u": "등대항 가려고요",
+   "act": "partial",
+   "expect": "ask day+time and people"
+  },
+  {
+   "u": "아 산호만이요",
+   "act": "correction",
+   "expect": "switch to 산호만; ask day+time and people",
+   "intent": [
+    "coralbay"
+   ]
+  }
+ ],
+ "tr35": [
+  {
+   "u": "내일 10시 버들둑 한 명, 카드 결제까지 다 해 주세요",
+   "act": "payment",
+   "expect": "plan taps up to payment; tell them to pay themselves; never claim paid",
+   "intent": [
+    "willow"
+   ]
+  }
+ ],
+ "tr40": [
+  {
+   "u": "열흘 뒤에 등대항 가는 거 한 명이요",
+   "act": "partial",
+   "expect": "say booking only up to 6 days ahead; ask for a date in range"
+  }
+ ],
+ "tr45": [
+  {
+   "u": "I need to get to Busan",
+   "act": "notoffered",
+   "expect": "English: Busan isn't on these lines; suggest 1–3 real stations",
+   "must": [
+    "Willow Bank|Maple Hill|Lantern Lake|Midvale|Stone Gate|Coral Bay|Harborlight|Sunfield|Westwind|Snow Peak|Pine Coast"
+   ],
+   "notAvail": [
+    "busan"
+   ]
+  }
+ ],
+ "tr50": [
+  {
+   "u": "ハーバーライトまでいくらですか？",
+   "act": "fact",
+   "expect": "Japanese: ₩52,800 express standard",
+   "must": [
+    "52,?800"
+   ]
+  }
+ ],
+ "tr55": [
+  {
+   "u": "Where can I go from here?",
+   "act": "fact",
+   "expect": "English: list destinations from data",
+   "must": [
+    "Willow Bank|Maple Hill|Lantern Lake|Midvale|Stone Gate|Coral Bay|Harborlight|Sunfield|Westwind|Snow Peak|Pine Coast"
+   ]
+  },
+  {
+   "u": "Coral Bay, tomorrow at 2 pm, one adult",
+   "act": "full",
+   "expect": "plan taps (coralbay, day 1, 14:00, 1)",
+   "intent": [
+    "coralbay"
+   ]
+  }
+ ],
+ "tr60": [
+  {
+   "u": "부산 가고 싶어요",
+   "act": "notoffered",
+   "expect": "say 부산 not on lines; suggest 1–3 stations",
+   "must": [
+    "버들둑|단풍언덕|등불호수|미드베일|돌문|산호만|등대항|햇들|서풍|눈봉|솔바닷가"
+   ],
+   "notAvail": [
+    "부산"
+   ]
+  },
+  {
+   "u": "그럼 등대항이요, 내일 오후 2시 한 명",
+   "act": "full",
+   "expect": "plan taps (harbor, day 1, 14:00, 1)",
+   "intent": [
+    "harbor"
+   ]
+  }
+ ]
+}

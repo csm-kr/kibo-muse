@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initialState } from "@/kiosks/airport/machine";
+import { initialState, step, type KioskState } from "@/kiosks/airport/machine";
+import { plan } from "@/kiosks/airport/planner";
 import { POST } from "./route";
 
 afterEach(() => {
@@ -71,5 +72,36 @@ describe("/api/airport/interpret", () => {
     expect(vn.say).toContain("[나가기]");
     expect(vn.say).not.toContain("[Về đầu]");
     expect((await post("en", "?lang=ko")).say).toContain("[Exit]");
+  });
+  it("계획 앞에 알아들은 내용을 말하고(lead), 관문에서 인원·짐을 고쳐도 받은 값을 먼저 말한다. 프롬프트에 편·탑승구·짐·보조배터리·좌석 사실을 싣는다", async () => {
+    let prompt = "";
+    const spark = (o: object) => {
+      vi.stubEnv("MODEL_API_KEY", "test");
+      vi.stubGlobal("fetch", async (_u: string, init?: RequestInit) => {
+        prompt = JSON.parse(String(init?.body)).messages[0].content;
+        const content = JSON.stringify({ airline: "none", travelers: -1, seats: "none", bags: -1, exit: false, replyLanguage: "ko", say: "네.", ...o });
+        return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+      });
+    };
+    const post = async (state: KioskState, pending?: object) => (await POST(new Request("http://x/api/airport/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "말", state, pending }) }))).json();
+    spark({ airline: "bridge_air", travelers: 1, bags: 0 });
+    const first = await post(initialState());
+    expect(first.lead).toBe("브리지항공, 1명, 부치는 짐 없음.");
+    expect(first.say.startsWith("브리지항공, 1명, 부치는 짐 없음. ")).toBe(true);
+    for (const f of ["09:40", "gate 23", "Power banks", "Paid seats", "Exit row", "A different destination", "Never ask for passports", "If they ask how or where to scan", "names from AIRLINES in replyLanguage", "₩100,000 per bag over the allowance", "then invite them to check in", "screen=complete", "딸이랑 같이", "never \"today\" or \"tomorrow\"", "spoken date (Korean \"11월 5일\""]) expect(prompt).toContain(f);
+    // 위험물 관문에서 "아 아니 두 명이요": 누를 것은 없어도 고친 인원을 먼저 말한다
+    const p = plan(initialState(), { airline: "bridge_air", travelers: 1, bags: 0 });
+    if (p.kind !== "plan") throw new Error(p.kind);
+    const atGate = p.events.reduce((x, e) => (step(x, e) as { state: KioskState }).state, initialState());
+    spark({ travelers: 2 });
+    const fixed = await post(atGate, { airline: "bridge_air", travelers: 1, bags: 0 });
+    expect(fixed.plan.events).toEqual([]);
+    expect(fixed.say.startsWith("브리지항공, 2명, 부치는 짐 없음. ")).toBe(true);
+    // 관문에서 질문만 하면(값 없음) Spark 답 뒤에 확인 방법을 붙여 휴대폰에 answer로 보낸다(11/4 판정: 질문에 확인 방법만)
+    spark({ say: "보조배터리는 1인당 2개까지 기내에 가져갈 수 있어요." });
+    const q = await post(atGate, { airline: "bridge_air", travelers: 1, bags: 0 });
+    expect(q.answer).toBe(q.say);
+    expect(q.say.startsWith("보조배터리는 1인당 2개까지 기내에 가져갈 수 있어요. ")).toBe(true);
+    expect(q.say).toContain("[확인했어요]");
   });
 });

@@ -1,0 +1,12 @@
+{"ap05#0":["PASS","asks travelers and bags only"],
+"ap10#0":["PASS","1 free, max 3 (fee omitted)"],
+"ap15#0":["FAIL","fee question -> no amount, sends to counter; 100,000 amount not in FACTS","policy"],
+"ap20#0":["PASS","reassures + next step, no step overview"],
+"ap25#0":["PASS","final choice bridge_air, plans"],
+"ap30#0":["PASS","cannot pay, fees at baggage counter"],
+"ap35#0":["FAIL","says it does not know; membership-card barcode text not in FACTS","policy"],
+"ap40#0":["PASS","gate 23, boarding 09:00"],
+"ap45#0":["PASS","Japanese plan readback"],
+"ap50#0":["FAIL","says it does not know; knife rule (cabin no, checked ok) not in FACTS","policy"],
+"ap55#0":["PASS","plans, stops at DG"],
+"ap55#2":["PASS","window kept for later, no false claim"]}

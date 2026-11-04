@@ -33,6 +33,10 @@ interface InterpretResponse {
   replyLanguage: string;
   // 말한 언어가 휴대폰 언어와 분명히 달라 말한 언어로 답했다(휴대폰이 그 언어로 바꾼다)
   followSpoken?: boolean;
+  // 계획 앞에 말할 알아들은 내용(서버 고정 문구)
+  lead?: string;
+  // 누를 것 없는 턴(질문)의 Spark 답
+  answer?: string;
   intent: AirportIntent;
   plan: { kind: "plan"; events: KioskEvent[]; stop: Stop | null; notes: string[] } | { kind: "clarify"; missing: string[] } | { kind: "reject"; reason: string };
   gate: Gate | null;
@@ -185,7 +189,7 @@ export function AirportStation({ variant: given, room }: { variant?: "dev" | "ki
     if (p.kind === "reject") return { kind: "reject", reason: p.reason, lang: body.replyLanguage, say: body.say, followSpoken: body.followSpoken };
     setWait(p.stop);
     // 관문 문구는 서버가 계획의 마지막 상태로 만든 고정 문구다. 재생이 성공해야 휴대폰에 간다
-    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, done: { say: p.notes.includes("no_matching_seats") ? noSeatsText(body.replyLanguage) : "", gate: body.gate } };
+    return { kind: "plan", events: p.events, lang: body.replyLanguage, followSpoken: body.followSpoken, lead: body.lead, answer: body.answer, done: { say: p.notes.includes("no_matching_seats") ? noSeatsText(body.replyLanguage) : "", gate: body.gate } };
   }
 
   // 사람이 관문을 넘겼다(여권을 넣거나 휴대폰에서 확인). 확인이면 상태 기계에 휴대폰 동의 증표를 남기고, 서버를 거치지 않고 바로 다시 계획한다

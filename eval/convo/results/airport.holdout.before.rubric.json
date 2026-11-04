@@ -1,0 +1,12 @@
+{"ap05#0":["PASS","asks travelers and bags"],
+"ap10#0":["FAIL","fact question -> slot request; allowance not in prompt","facts"],
+"ap15#0":["FAIL","fee question -> slot request; fee not in prompt","facts"],
+"ap20#0":["FAIL","help -> bare slot request","interpretation"],
+"ap25#0":["PASS","final choice used, 1 tap"],
+"ap30#0":["FAIL","pay request ignored; no can't-pay/counter info","facts"],
+"ap35#0":["FAIL","garbled \"항하사\" slot request; membership-card rule not in prompt","facts"],
+"ap40#0":["FAIL","English fact question -> slot question","facts"],
+"ap45#0":["PASS","Japanese, 1 tap"],
+"ap50#0":["FAIL","fact question -> slot request; DG item rules not in prompt","facts"],
+"ap55#0":["PASS","1 tap"],
+"ap55#2":["FAIL","window saved but reply is fixed \"지금은 제가 누를 버튼이 없어요\" at the passport gate","policy"]}

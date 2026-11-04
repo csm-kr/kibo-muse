@@ -64,20 +64,25 @@ export async function POST(req: Request) {
     let gate = null;
     let paymentHandoff = false;
     let booked = "";
+    let lead = "";
+    // 누를 것 없는 턴의 Spark 답. 휴대폰이 '누를 버튼이 없어요' 대신 말한다
+    let answer = "";
     if (p.kind === "plan") {
       gate = trainGate(p.stop, lang);
       paymentHandoff = p.stop?.kind === "human";
       // 누를 것도 사람 관문도 없으면(예약 뒤 '창가로 해 주세요') Spark가 지금 할 수 있는 일을 알린다
       const idle = p.events.length === 0 && !gate;
       // 누르기 전에는 알아들은 것(도착역·날·시각·인원)을 먼저 말한다(11/4: 'N번 눌러 드릴게요'만으로는 알아들었는지 모른다)
-      say = idle && sparkSay ? sparkSay : [p.events.length > 0 ? planLead(p.final, lang) : "", planSay(p.events.length, lang, gate?.kind === "ack" ? gate : null), seatNote(p.notes, lang)].filter(Boolean).join(" ");
+      lead = p.events.length > 0 ? planLead(p.final, lang) : "";
+      if (idle && sparkSay) answer = sparkSay;
+      say = idle && sparkSay ? sparkSay : [lead, planSay(p.events.length, lang, gate?.kind === "ack" ? gate : null), seatNote(p.notes, lang)].filter(Boolean).join(" ");
       // 다시 누르기가 끝나면 휴대폰이 읽을 예약 요약(날·시각·열차·인원·좌석·합계와 결제는 직접)
       if (paymentHandoff && p.events.length > 0) booked = bookingSay(p.final, lang);
     }
     // 계획은 KIBO의 조작만 담아야 한다. 사람 터치나 기기 사건이 섞이면 보내지 않는다
     if (p.kind === "plan" && p.events.some((e) => e.by !== "kibo")) return Response.json({ error: "plan_not_kibo" }, { status: 500 });
     const planOut = p.kind === "plan" ? { kind: p.kind, events: p.events, stop: p.stop, notes: p.notes } : p;
-    return Response.json({ say, replyLanguage: lang, ...(followSpoken && { followSpoken }), intent, plan: planOut, gate, paymentHandoff, ...(booked && { booked }), timing: { sparkMs: r.ms, totalMs: Math.round(performance.now() - t0) } });
+    return Response.json({ say, replyLanguage: lang, ...(followSpoken && { followSpoken }), intent, plan: planOut, gate, paymentHandoff, ...(booked && { booked }), ...(lead && { lead }), ...(answer && { answer }), timing: { sparkMs: r.ms, totalMs: Math.round(performance.now() - t0) } });
   } catch (e) {
     // 예외 원문(Spark 오류 본문 포함)은 서버 로그에만 남기고 응답은 고정 값
     logError("train interpret", e);
