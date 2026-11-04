@@ -81,6 +81,25 @@ describe("읽는 중인지(이어 듣기를 미루는 데 쓴다)", () => {
     // 기본 빠르기(1)는 늘어진다(11/4 사용자 "음성 말하는 걸 빠르게"). 조금 빠르게 읽는다
     expect(said[0].rate).toBe(1.15);
   });
+
+  it("완료 안내(after)는 앞 대답을 끊지 않고 다 읽은 뒤 읽는다. 기다리는 동안도 읽는 중이다(11/4: Gemini 목소리가 늦게 시작해 탭이 짧으면 '담았어요'가 'N번 누를게요'를 끊었다)", async () => {
+    vi.resetModules();
+    const said: string[] = [];
+    let cancels = 0;
+    const synth = { speaking: false, pending: false, getVoices: () => [{ lang: "ko-KR", name: "K", localService: true }], speak: (u: { text: string }) => void (said.push(u.text), (synth.speaking = true)), cancel: () => void cancels++, addEventListener() {}, removeEventListener() {} };
+    vi.stubGlobal("window", { speechSynthesis: synth });
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem() {} });
+    vi.stubGlobal("SpeechSynthesisUtterance", class { rate = 1; constructor(public text: string) {} });
+    const { speak, speechBusy } = await import("./speak");
+    await speak("세 번 누를게요", "ko");
+    const done = speak("담았어요", "ko", { after: true });
+    await new Promise((r) => setTimeout(r, 250));
+    expect([said, cancels]).toEqual([["세 번 누를게요"], 0]);
+    synth.speaking = false;
+    expect(speechBusy()).toBe(true);
+    await done;
+    expect(said).toEqual(["세 번 누를게요", "담았어요"]);
+  });
 });
 
 describe("Google 음성(서버 /api/speak)", () => {
@@ -93,15 +112,19 @@ describe("Google 음성(서버 /api/speak)", () => {
   async function rig(status: number, chunks: number[][] = []) {
     vi.resetModules();
     type Buf = { data: Float32Array; sampleRate: number; getChannelData(): Float32Array };
-    const played: { buffer: Buf | null; at: number; onended: (() => void) | null }[] = [];
+    const played: { buffer: Buf | null; at: number; onended: (() => void) | null; stopped: boolean }[] = [];
     const ctx = {
       currentTime: 5,
+      decodeAudioData: async (b: ArrayBuffer): Promise<Buf> => {
+        const data = new Float32Array(b.byteLength);
+        return { data, sampleRate: 24000, getChannelData: () => data };
+      },
       createBuffer: (_ch: number, n: number, sampleRate: number): Buf => {
         const data = new Float32Array(n);
         return { data, sampleRate, getChannelData: () => data };
       },
       createBufferSource: () => {
-        const src = { buffer: null as Buf | null, at: -1, onended: null as (() => void) | null, connect() {}, start: (at: number) => void ((src.at = at), played.push(src)), stop() {} };
+        const src = { buffer: null as Buf | null, at: -1, onended: null as (() => void) | null, stopped: false, connect() {}, start: (at = 0) => void ((src.at = at), played.push(src)), stop: () => void (src.stopped = true) };
         return src;
       },
       destination: {},
@@ -110,6 +133,7 @@ describe("Google 음성(서버 /api/speak)", () => {
     const fetches: string[] = [];
     vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
       fetches.push(`${url} ${init?.body}`);
+      if (url.startsWith("/ack/")) return new Response(new Uint8Array(3), { status: 200 });
       if (status !== 200) return Response.json({ error: "no_tts" }, { status });
       const body = new ReadableStream<Uint8Array>({ start: (c) => (chunks.forEach((b) => c.enqueue(new Uint8Array(b))), c.close()) });
       return new Response(body, { status: 200, headers: { "Content-Type": "audio/pcm;rate=24000" } });
@@ -136,6 +160,19 @@ describe("Google 음성(서버 /api/speak)", () => {
     expect(mod.speechBusy()).toBe(true);
     played[1].onended!();
     expect(mod.speechBusy()).toBe(false);
+  });
+
+  it("말이 끝나 보내는 순간 휴대폰 언어로 미리 만든 짧은 대답(/ack/ko.mp3, '네, 잠시만요')을 바로 튼다(11/4: 말 끝 → 대답 목소리 8초 동안 조용했다). 진짜 대답을 읽기 시작하면 끊는다. 소리를 껐으면 틀지 않는다", async () => {
+    const { played, fetches, mod } = await rig(200, [[0, 0x40]]);
+    await mod.ack("Korean");
+    expect(fetches).toEqual(["/ack/ko.mp3 undefined"]);
+    expect([played.length, played[0].buffer!.data.length, mod.speechBusy()]).toEqual([1, 3, true]);
+    await mod.speak("네, 담을게요", "ko");
+    expect(played[0].stopped).toBe(true);
+    await vi.waitFor(() => expect(played.length).toBe(2));
+    mod.setSound(false);
+    await mod.ack("Korean");
+    expect(played.length).toBe(2);
   });
 
   it("키가 없으면(404) 기기 목소리로 읽고, 이 화면에서는 서버에 다시 묻지 않는다", async () => {

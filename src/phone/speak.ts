@@ -200,19 +200,67 @@ async function cloudSpeak(text: string, language: string, stale: () => boolean) 
   return true;
 }
 
+// 말이 끝나 보내는 순간 바로 짧게 대답한다("네, 잠시만요"). 11/4 production: 말 끝 → 대답 목소리 p50 8초 동안 조용했다.
+// 언어별로 미리 만든 소리(public/ack/<언어>.mp3, Gemini 같은 목소리)를 처음 한 번 받아 두고 바로 튼다. 진짜 대답을 읽기 시작하면 끊긴다
+const acks = new Map<Lang, Promise<AudioBuffer | null>>();
+function ackBuffer(ctx: AudioContext, l: Lang) {
+  let b = acks.get(l);
+  if (!b) {
+    b = fetch(`/ack/${l}.mp3`)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+      .then((a) => ctx.decodeAudioData(a))
+      .catch(() => null);
+    acks.set(l, b);
+  }
+  return b;
+}
+// 녹음이 시작될 때 미리 받아 둔다(보낼 때 기다리지 않게)
+export function preloadAck(language: string) {
+  const ctx = runningAudio();
+  if (ctx) void ackBuffer(ctx, langOf(language));
+}
+export async function ack(language: string) {
+  const ctx = runningAudio();
+  if (!soundOn() || !ctx) return;
+  const n = seq;
+  const buf = await ackBuffer(ctx, langOf(language));
+  // 받는 사이 진짜 대답이 시작됐으면 틀지 않는다
+  if (!buf || n !== seq || playing || !soundOn()) return;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  const me = { stop: () => src.stop() };
+  src.onended = () => {
+    if (playing === me) playing = null;
+  };
+  playing = me;
+  src.start();
+}
+
 // 앞의 읽기는 끊는다. 목소리를 기다리는 사이 새 읽기가 오면 옛것은 버린다
 let seq = 0;
 // 목소리를 기다리는 중인 읽기 수(이때는 speechSynthesis.speaking이 아직 false다)
 let queued = 0;
 // 읽는 중인가. 이어 듣기는 KIBO가 다 읽은 뒤에 마이크를 연다(자기 목소리를 듣지 않게)
 export const speechBusy = () => queued > 0 || playing !== null || !!window.speechSynthesis?.speaking || !!window.speechSynthesis?.pending;
-export async function speak(text: string, language: string) {
+// 앞 읽기(목소리를 기다리는 것 포함)가 끝날 때까지 기다린다. 오래 걸리면(6초) 그냥 읽는다
+async function idle(maxMs: number) {
+  const until = Date.now() + maxMs;
+  while ((queued > 1 || playing !== null || window.speechSynthesis?.speaking || window.speechSynthesis?.pending) && Date.now() < until) await new Promise((r) => setTimeout(r, 100));
+}
+// after: 앞 대답을 끊지 않고 다 읽은 뒤 읽는다(완료 안내). 기다리는 사이 새 읽기가 시작되면 버린다
+export async function speak(text: string, language: string, opts: { after?: boolean } = {}) {
   if (!text || !soundOn()) return;
-  const n = ++seq;
-  stopCloud();
-  const said = spokenText(text, language);
   queued++;
   try {
+    if (opts.after) {
+      const before = seq;
+      await idle(6000);
+      if (seq !== before) return;
+    }
+    const n = ++seq;
+    stopCloud();
+    const said = spokenText(text, language);
     if (await cloudSpeak(said, language, () => n !== seq || !soundOn())) return;
     if (n !== seq || !soundOn() || !window.speechSynthesis) return;
     const tag = speechLang(language);

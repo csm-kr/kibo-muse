@@ -14,7 +14,7 @@ import { followLang, pickLang, saveLang, savedLang, type PhoneLangCode } from ".
 import { payStep } from "./pay";
 import { nextOrder, type OrderMemo } from "./receipt";
 import { unlockAudio } from "./silence";
-import { setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
+import { ack, preloadAck, setSound, soundOn, speak, speechBusy, subscribeSound, unlockSpeech } from "./speak";
 import { autoListen, bandHidden, bridgeTimeout, expireAsk, linkChip, orderLinesIn, phoneHint, statusLine, tapBridge } from "./status";
 import { failLine, phoneText } from "./text";
 import { KioskCard } from "./KioskCard";
@@ -227,7 +227,8 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
         setHandoff(m.paymentHandoff ? (m.payButton ?? "") : null);
         setGate(m.gate);
         cardRef.current = m.gate;
-        speak([m.say, m.gate?.text].filter(Boolean).join(" "), m.replyLanguage);
+        // 앞 대답('N번 누를게요')을 끊지 않고 다 읽은 뒤 읽는다(Gemini 목소리는 0.75초 늦게 시작해 탭이 짧으면 끊겼다)
+        speak([m.say, m.gate?.text].filter(Boolean).join(" "), m.replyLanguage, { after: true });
       }
     });
     // (다시) 연결될 때마다, 그리고 휴대폰 화면을 다시 켤 때마다 hello로 키오스크의 지금 상태를 받는다
@@ -270,6 +271,8 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
 
   // 뗀 뒤 녹음본을 받아쓰기로 보낸다
   async function onTake({ blob }: Take) {
+    // 보내는 순간 "네, 잠시만요"를 바로 들려준다(대답까지 조용히 기다리지 않게). 안내 모드는 말이 곧장 보내지지 않는다
+    if (!guideOnly) void ack(lang.tts);
     // 소리가 거의 담기지 않은 녹음은 풀 수 없다. 다시 누르게 한다
     const decoded = await decodeBlob(blob).catch(() => null);
     if (!decoded) return setNotice(tx.tooShort);
@@ -324,6 +327,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     },
     onRecording: () => {
       hearingRef.current = true;
+      preloadAck(lang.tts);
       linkRef.current?.send({ type: "listening" });
     },
     onTake,
