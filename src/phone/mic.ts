@@ -4,13 +4,11 @@
 // - '듣는 중'(recording)은 스트림을 받고 녹음기가 시작된 뒤에 켠다. 그 전에 말하면 첫 음절이 잘린다
 // - 어떤 실패에서도 idle로 돌아온다(새로고침해야 말할 수 있는 상태를 만들지 않는다)
 
-import { releaseAction, TAIL_MS } from "./ptt";
+import { TAIL_MS } from "./ptt";
 
-// 이만큼 넘게 마이크를 기다렸다면 권한 창이 떠 있던 것으로 본다(사람이 권한 창에 답하는 데 1초는 걸린다)
-export const PROMPT_MS = 1000;
 // 녹음기에 stop을 보낸 뒤 stop 이벤트를 이만큼만 기다린다
 export const STOP_WAIT_MS = 1500;
-// 이만큼 누르고 있으면 저절로 뗀다. 서버 한도(MAX.wavBytes 2,000,000 = 16kHz 약 62.5초)보다 짧게
+// 이만큼 들으면 저절로 보낸다. 서버 한도(MAX.wavBytes 2,000,000 = 16kHz 약 62.5초)보다 짧게
 export const MAX_HOLD_MS = 55_000;
 
 export type MicPhase = "idle" | "opening" | "recording" | "sending";
@@ -62,15 +60,12 @@ export interface MicEvents {
   onRecording?(): void;
   // 뗀 뒤 녹음본. 이것이 끝날 때까지 'sending'
   onTake(take: Take): Promise<void> | void;
-  onTooShort?(): void;
   onBlocked?(): void;
   // 녹음기를 시작하지 못했거나 녹음본이 비었다: '다시 눌러 말해 주세요'
   onFailed?(): void;
-  // 권한 창이 떠 있는 동안 손을 뗐다: '허용했으면 다시 눌러 말해 주세요'
-  onAllowRetry?(): void;
-  // MAX_HOLD_MS가 되어 저절로 뗐다
+  // MAX_HOLD_MS가 되어 저절로 보냈다
   onTooLong?(): void;
-  // 두 번 탭(toggle)으로 녹음이 시작됐다: '듣고 있어요. 다시 두 번 탭하면 보내요'를 한 번 알린다
+  // 듣기가 시작됐다: '듣고 있어요. 말이 끝나면 저절로 보내요'를 한 번 알린다
   onToggleOn?(): void;
   // 탭 모드에서 말소리를 끝내 못 들어 보내지 않고 멈췄다
   onNoSpeech?(): void;
@@ -79,18 +74,14 @@ export interface MicEvents {
   onBarge?(): void;
 }
 
-// 화면 읽기의 두 번 탭·키보드로 생긴 click은 detail이 0이다. 이것만 '탭으로 시작, 다시 탭하면 보내기'로 쓴다.
-// iOS Safari에서 손가락을 떼면 pointerup 뒤에 click(detail ≥1)이 오는데, 그것은 길게 누르기 흐름이 이미 처리했다
-export const assistClick = (toggle: () => void) => (e: { detail: number }) => {
-  if (e.detail === 0) toggle();
+// 화면 읽기의 두 번 탭·키보드로 생긴 click은 detail이 0이다. 이것을 누름으로 쓴다.
+// iOS Safari에서 손가락을 떼면 pointerup 뒤에 click(detail ≥1)이 오는데, 그 누름은 pointerdown이 이미 처리했다
+export const assistClick = (press: () => void) => (e: { detail: number }) => {
+  if (e.detail === 0) press();
 };
 
 interface Press {
   at: number;
-  // 탭 모드: 두 번 탭이나 짧은 탭으로 시작한 녹음. 손을 떼도 보내지 않고, 다시 누르면 보낸다
-  toggle: boolean;
-  // 마이크를 여는 중에 손을 뗐다
-  released?: boolean;
   stream?: StreamLike;
   rec?: RecorderLike;
   startedAt?: number;
@@ -129,12 +120,12 @@ export function createMic(d: MicDeps, ev: MicEvents) {
     });
   }
 
-  // 탭 모드가 되면 말 끝을 본다. 다시 누르지 않아도 조용해지면 보낸다
+  // 말 끝을 본다. 조용해지면 보낸다
   function watchEnd(p: Press) {
     if (p.stream && !p.cancelWatch)
       p.cancelWatch = d.watch?.(
         p.stream,
-        () => void (press === p && up(true)),
+        () => void (press === p && send()),
         () => {
           if (press !== p) return;
           cancel();
@@ -159,17 +150,17 @@ export function createMic(d: MicDeps, ev: MicEvents) {
     set("idle");
   }
 
-  async function down(toggle = false) {
-    // 탭 모드로 듣는 중에 다시 누르면 보낸다(그 누름의 손 뗌은 up()이 무시한다).
-    // KIBO가 말하는 중이면 보내지 않는다: 누름도 끼어들기다. KIBO를 멈추고 지금부터 들은 것만 남긴다(지금까지는 KIBO 메아리)
-    if (phase === "recording" && press?.toggle) {
-      if (!ev.talking?.()) return up(true);
+  // 한 번 누르면 말이 끝나 조용해질 때까지 듣는다. 손을 떼거나 다시 눌러도 보내지 않는다.
+  async function down() {
+    // 듣는 중에 KIBO가 말하고 있으면 누름은 끼어들기다. KIBO를 멈추고 지금부터 들은 것만 남긴다(지금까지는 KIBO 메아리)
+    if (phase === "recording" && press) {
+      if (!ev.talking?.()) return;
       press.keepFrom = d.now();
       ev.onBarge?.();
       return;
     }
     if (phase !== "idle") return;
-    const p: Press = { at: d.now(), toggle, chunks: [] };
+    const p: Press = { at: d.now(), chunks: [] };
     press = p;
     set("opening");
     ev.onPress?.();
@@ -182,16 +173,12 @@ export function createMic(d: MicDeps, ev: MicEvents) {
       ev.onBlocked?.();
       return;
     }
-    // 마이크를 기다리는 사이에 손을 뗐다. 오래 기다렸으면(권한 창) '다시 눌러', 금방 열렸으면 짧은 탭이라 탭 모드로 이어 듣는다
-    if (press !== p || (p.released && d.now() - p.at >= PROMPT_MS)) {
-      if (press === p) press = null;
+    // 마이크를 기다리는 사이에 취소됐다(답 칩). 권한 창을 기다렸어도 허용했으면 다시 누르지 않아도 듣는다
+    if (press !== p) {
       drop(stream);
       set("idle");
-      if (d.now() - p.at >= PROMPT_MS) ev.onAllowRetry?.();
-      else ev.onTooShort?.();
       return;
     }
-    if (p.released) p.toggle = true;
     try {
       if (!stream.getTracks().some((t) => t.readyState === "live")) throw new Error("no live track");
       const rec = d.record(stream);
@@ -210,34 +197,19 @@ export function createMic(d: MicDeps, ev: MicEvents) {
     p.cancelMax = d.later(() => {
       if (press !== p) return;
       ev.onTooLong?.();
-      void up(true);
+      void send();
     }, MAX_HOLD_MS);
     set("recording");
     ev.onRecording?.();
-    if (p.toggle) {
-      ev.onToggleOn?.();
-      watchEnd(p);
-    }
+    ev.onToggleOn?.();
+    watchEnd(p);
   }
 
-  // force: 다시 누름·두 번 탭·시한·화면 숨김. 그 밖(손 뗌·버튼 밖으로 나감)은 탭 모드에서 보내지 않는다
-  async function up(force = false) {
+  // 말이 끝나 조용해짐·시한·화면 숨김
+  async function send() {
     const p = press;
-    if (!p || (p.toggle && !force)) return;
-    const rec = p.rec;
-    // 아직 마이크를 여는 중이면 down()이 마무리한다
-    if (!rec) {
-      if (force) press = null;
-      else p.released = true;
-      return;
-    }
-    // 짧은 탭: '누른 채로' 오류 대신 탭 모드로 이어 듣는다
-    if (!force && releaseAction(d.now() - p.at) === "too_short") {
-      p.toggle = true;
-      ev.onToggleOn?.();
-      watchEnd(p);
-      return;
-    }
+    const rec = p?.rec;
+    if (!p || !rec) return;
     press = null;
     p.cancelMax?.();
     p.cancelWatch?.();
@@ -264,14 +236,11 @@ export function createMic(d: MicDeps, ev: MicEvents) {
   }
 
   return {
-    down: () => down(),
-    up: () => up(),
-    // 두 번 탭: 쉬고 있으면 시작, 녹음 중이면 보낸다. 마이크를 여는 중·보내는 중에는 무시한다
-    toggle: () => void (phase === "idle" ? down(true) : phase === "recording" && up(true)),
-    // 화면이 숨겨지면(잠금·앱 전환) 녹음 중인 것을 뗀 것으로 본다
-    hidden: () => void (phase === "recording" && up(true)),
-    // 이어 듣기: 쉬고 있을 때만 누름 없이 탭 모드로 듣기 시작
-    listen: () => void (phase === "idle" && down(true)),
+    down: () => void down(),
+    // 화면이 숨겨지면(잠금·앱 전환) 들은 데까지 보낸다
+    hidden: () => void (phase === "recording" && send()),
+    // 이어 듣기: 쉬고 있을 때만 누름 없이 듣기 시작
+    listen: () => void (phase === "idle" && down()),
     cancel,
     // 화면을 떠날 때: 녹음기와 마이크를 끈다
     dispose: () => {

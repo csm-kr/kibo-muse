@@ -58,3 +58,11 @@ describe("휴대폰 화면 접근성", () => {
     expect(html).not.toMatch(/<main|<h1|data-mic-shortcut/);
   });
 });
+
+describe("휴대폰 첫 화면 안내", () => {
+  it("대화 전 첫 화면에 '탭하고 말하기'와 소리 켜기 안내를 보인다", () => {
+    const html = renderToStaticMarkup(createElement(Phone, { room: "r" }));
+    expect(html).toContain("Tap and talk");
+    expect(html).toContain("Can&#x27;t hear KIBO? Turn off silent mode and turn up the volume");
+  });
+});

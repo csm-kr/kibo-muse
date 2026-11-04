@@ -78,10 +78,8 @@ export function AsrTest() {
   const { phase, bind } = useHoldToTalk({
     onPress: () => setNotice(null),
     onTake,
-    onTooShort: () => setNotice("누른 채로 읽어 주세요"),
     onBlocked: () => setNotice("마이크를 쓸 수 없어요. 브라우저 설정에서 마이크를 허용해 주세요."),
     onFailed: () => setNotice("다시 눌러 읽어 주세요"),
-    onAllowRetry: () => setNotice("마이크를 허용했으면 다시 눌러 읽어 주세요"),
     onTooLong: () => setNotice("55초가 넘어서 여기까지 보냈어요"),
   });
 
@@ -124,13 +122,13 @@ export function AsrTest() {
             <button
               type="button"
               {...bind}
-              aria-label="누른 채로 읽기"
+              aria-label="탭하고 읽기"
               className={`flex h-28 w-28 items-center justify-center rounded-full text-5xl text-white shadow-lg ${HOLD_CLASS} ${phase === "recording" ? "scale-110 bg-red-600 ring-8 ring-red-200" : "bg-teal-700"} aria-disabled:opacity-50`}
             >
               {phase === "sending" ? "…" : "🎤"}
             </button>
             <div className={`text-sm ${phase === "recording" ? "font-bold text-red-700" : notice ? "font-bold text-orange-700" : "text-neutral-600"}`} data-asr-hint>
-              {phase === "recording" ? "듣고 있어요… 다 읽으면 떼세요" : phase === "sending" ? "보내는 중… (24kHz·16kHz 두 갈래)" : (notice ?? "누른 채로 문장을 읽고, 다 읽으면 떼세요")}
+              {phase === "recording" ? "듣고 있어요… 다 읽고 조용하면 보내요" : phase === "sending" ? "보내는 중… (24kHz·16kHz 두 갈래)" : (notice ?? "탭하고 문장을 읽으세요. 다 읽고 조용하면 보내요")}
             </div>
           </div>
         </>

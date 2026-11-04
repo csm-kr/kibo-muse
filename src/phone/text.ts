@@ -4,6 +4,8 @@ import type { Answers } from "@/sync/link";
 
 interface PhoneText {
   hold: string;
+  // 첫 화면: KIBO 목소리가 안 들리면 소리를 켜 달라는 안내
+  soundTip: string;
   listening: string;
   // 마이크가 화면 밖일 때 띄우는 작은 누르고 말하기의 글자(짧게)
   talk: string;
@@ -31,8 +33,7 @@ interface PhoneText {
   paid: (no: number) => string;
   // 받아쓰기가 비었거나 실패했고 서버 문구(say)도 없을 때
   retry: string;
-  // 권한 창이 떠 있는 동안 손을 뗐을 때, 55초가 되어 저절로 뗐을 때, 키오스크와의 연결이 끊겼을 때(머리줄)
-  allowRetry: string;
+  // 55초가 되어 저절로 보냈을 때, 키오스크와의 연결이 끊겼을 때(머리줄)
   tooLong: string;
   reconnecting: string;
   // 보낸 뒤 3초가 지나도 대답이 없을 때 안내 줄
@@ -98,8 +99,9 @@ interface PhoneText {
 
 const text: Record<Lang, PhoneText> = {
   en: {
-    hold: "Hold and talk, or tap, talk, tap again",
-    listening: "Listening… release to send",
+    hold: "Tap and talk",
+    soundTip: "Can't hear KIBO? Turn off silent mode and turn up the volume",
+    listening: "Listening…",
     talk: "Talk",
     switched: "Switched to English",
     switchBack: "Back to English",
@@ -107,7 +109,7 @@ const text: Record<Lang, PhoneText> = {
     answers: { orderType: ["For here", "To go"], mode: ["Meal", "Single"], size: ["Size M", "Size L"], more: ["That's all", "I want to order more"] },
     moreAsk: "Sure. Tell me what else you'd like.",
     sending: "Sending…",
-    tooShort: "Hold the button while you speak",
+    tooShort: "That was too short. Tap and talk again",
     micBlocked: "The microphone is blocked. You can type instead.",
     typeIt: "…or type it",
     send: "Send",
@@ -121,7 +123,6 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `Your order is done ✓ No. ${n}`,
 
     retry: "Please hold the button and say it again",
-    allowRetry: "If you allowed the microphone, press and hold again to talk",
     tooLong: "That was over 55 seconds, so I sent what you said so far",
     reconnecting: "Reconnecting…",
     waitLong: "Understanding what you said · usually 5–10 s",
@@ -172,8 +173,9 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "Kiosk screen photo",
   },
   ko: {
-    hold: "누른 채 말하거나, 탭하고 말한 뒤 다시 탭하세요",
-    listening: "듣고 있어요… 떼면 보내요",
+    hold: "탭하고 말씀하세요",
+    soundTip: "KIBO 목소리가 안 들리면 휴대폰 무음 모드를 끄고 소리를 키워 주세요",
+    listening: "듣고 있어요…",
     talk: "말하기",
     switched: "한국어로 바꿨어요",
     switchBack: "한국어로 되돌리기",
@@ -181,7 +183,7 @@ const text: Record<Lang, PhoneText> = {
     answers: { orderType: ["먹고 갈게요", "포장할게요"], mode: ["세트", "단품"], size: ["M 사이즈", "L 사이즈"], more: ["그게 다예요", "더 주문할게요"] },
     moreAsk: "네, 더 드실 메뉴를 말씀해 주세요.",
     sending: "보내는 중…",
-    tooShort: "누른 채로 말해 주세요",
+    tooShort: "너무 짧았어요. 다시 탭하고 말해 주세요",
     micBlocked: "마이크를 쓸 수 없어요. 글로 써 주세요.",
     typeIt: "…또는 글로 쓰기",
     send: "보내기",
@@ -195,7 +197,6 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `주문이 끝났어요 ✓ 번호 ${n}`,
 
     retry: "다시 눌러서 말해 주세요",
-    allowRetry: "마이크를 허용했으면 다시 눌러 말해 주세요",
     tooLong: "55초가 넘어서 여기까지 보냈어요",
     reconnecting: "다시 연결 중…",
     waitLong: "말씀을 이해하는 중이에요 · 보통 5–10초",
@@ -246,8 +247,9 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "키오스크 화면 사진",
   },
   ja: {
-    hold: "押したまま話すか、タップして話し、もう一度タップ",
-    listening: "聞いています… 離すと送信",
+    hold: "タップして話してください",
+    soundTip: "KIBOの声が聞こえないときは、マナーモードを切って音量を上げてください",
+    listening: "聞いています…",
     talk: "話す",
     switched: "日本語に切り替えました",
     switchBack: "日本語に戻す",
@@ -255,7 +257,7 @@ const text: Record<Lang, PhoneText> = {
     answers: { orderType: ["店内で", "持ち帰りで"], mode: ["セット", "単品"], size: ["Mサイズ", "Lサイズ"], more: ["以上です", "もっと注文します"] },
     moreAsk: "はい、追加のご注文をおっしゃってください。",
     sending: "送信中…",
-    tooShort: "押したまま話してください",
+    tooShort: "短すぎました。もう一度タップして話してください",
     micBlocked: "マイクが使えません。文字で入力してください。",
     typeIt: "…または文字で入力",
     send: "送信",
@@ -269,7 +271,6 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `ご注文が完了しました ✓ 番号 ${n}`,
 
     retry: "もう一度押して話してください",
-    allowRetry: "マイクを許可したら、もう一度押して話してください",
     tooLong: "55秒を超えたので、ここまでを送りました",
     reconnecting: "再接続しています…",
     waitLong: "お話の内容を理解しています · 通常5〜10秒",
@@ -320,8 +321,9 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "キオスク画面の写真",
   },
   vi: {
-    hold: "Giữ để nói, hoặc chạm, nói rồi chạm lại",
-    listening: "Đang nghe… thả ra để gửi",
+    hold: "Chạm rồi nói",
+    soundTip: "Nếu không nghe thấy KIBO, hãy tắt chế độ im lặng và tăng âm lượng",
+    listening: "Đang nghe…",
     talk: "Nói",
     switched: "Đã chuyển sang Tiếng Việt",
     switchBack: "Quay lại Tiếng Việt",
@@ -329,7 +331,7 @@ const text: Record<Lang, PhoneText> = {
     answers: { orderType: ["Ăn tại chỗ", "Mang đi"], mode: ["Combo", "Món lẻ"], size: ["Cỡ M", "Cỡ L"], more: ["Vậy thôi", "Tôi muốn gọi thêm"] },
     moreAsk: "Vâng, bạn muốn gọi thêm món gì?",
     sending: "Đang gửi…",
-    tooShort: "Hãy giữ nút trong khi nói",
+    tooShort: "Quá ngắn. Hãy chạm và nói lại",
     micBlocked: "Không dùng được micrô. Bạn có thể gõ chữ.",
     typeIt: "…hoặc gõ chữ",
     send: "Gửi",
@@ -343,7 +345,6 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `Đơn đã xong ✓ Số ${n}`,
 
     retry: "Hãy nhấn giữ và nói lại",
-    allowRetry: "Nếu đã cho phép micrô, hãy nhấn giữ và nói lại",
     tooLong: "Đã quá 55 giây nên tôi gửi phần bạn đã nói",
     reconnecting: "Đang kết nối lại…",
     waitLong: "Đang hiểu lời bạn nói · thường 5–10 giây",
@@ -394,8 +395,9 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "Ảnh màn hình kiosk",
   },
   zh: {
-    hold: "按住说话，或点一下说完再点一下",
-    listening: "正在听… 松开发送",
+    hold: "点一下再说话",
+    soundTip: "听不到 KIBO 的声音时，请关闭静音模式并调高音量",
+    listening: "正在听…",
     talk: "说话",
     switched: "已切换为中文",
     switchBack: "改回中文",
@@ -403,7 +405,7 @@ const text: Record<Lang, PhoneText> = {
     answers: { orderType: ["堂食", "外带"], mode: ["套餐", "单点"], size: ["M号", "L号"], more: ["就这些", "我还要点"] },
     moreAsk: "好的，请说您还要点什么。",
     sending: "正在发送…",
-    tooShort: "请按住按钮说话",
+    tooShort: "太短了。请再点一下说话",
     micBlocked: "无法使用麦克风。可以改为输入文字。",
     typeIt: "…或输入文字",
     send: "发送",
@@ -417,7 +419,6 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `订单已完成 ✓ 号码 ${n}`,
 
     retry: "请再按住说一遍",
-    allowRetry: "如果已允许使用麦克风，请再按住说话",
     tooLong: "已超过55秒，已发送到这里为止的内容",
     reconnecting: "正在重新连接…",
     waitLong: "正在理解您说的话 · 通常需要5–10秒",
@@ -468,8 +469,9 @@ const text: Record<Lang, PhoneText> = {
     photoAlt: "自助机画面照片",
   },
   es: {
-    hold: "Mantén pulsado y habla, o toca, habla y toca otra vez",
-    listening: "Escuchando… suelta para enviar",
+    hold: "Toca y habla",
+    soundTip: "¿No oyes a KIBO? Quita el modo silencio y sube el volumen",
+    listening: "Escuchando…",
     talk: "Hablar",
     switched: "Cambiado a Español",
     switchBack: "Volver a Español",
@@ -477,7 +479,7 @@ const text: Record<Lang, PhoneText> = {
     answers: { orderType: ["Para comer aquí", "Para llevar"], mode: ["Menú", "Solo"], size: ["Tamaño M", "Tamaño L"], more: ["Eso es todo", "Quiero pedir más"] },
     moreAsk: "Claro. Dígame qué más quiere.",
     sending: "Enviando…",
-    tooShort: "Mantén pulsado el botón mientras hablas",
+    tooShort: "Fue muy corto. Toca y habla otra vez",
     micBlocked: "El micrófono está bloqueado. Puedes escribir.",
     typeIt: "…o escríbelo",
     send: "Enviar",
@@ -491,7 +493,6 @@ const text: Record<Lang, PhoneText> = {
     paid: (n) => `Pedido terminado ✓ Número ${n}`,
 
     retry: "Mantén pulsado y dilo otra vez",
-    allowRetry: "Si permitiste el micrófono, mantén pulsado otra vez para hablar",
     tooLong: "Pasaron 55 segundos, así que envié lo que dijiste hasta ahora",
     reconnecting: "Reconectando…",
     waitLong: "Entendiendo lo que dijiste · suele tardar 5–10 s",

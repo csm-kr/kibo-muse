@@ -311,8 +311,7 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
   }, [embedded]);
 
   const hearingRef = useRef(false);
-  // 첫 인사: 짝지은 키오스크마다 한 번, 사람이 처음 탭해서 듣기 시작할 때(탭 모드) 소리로 읽는다. 인사하는 동안에도 듣고 있어 끊고 말해도 된다.
-  // 길게 누르기(누른 채 말하기)에는 읽지 않는다: 그때는 끼어들기를 재지 않아 인사가 녹음에 섞인다
+  // 첫 인사: 짝지은 키오스크마다 한 번, 사람이 처음 탭해서 듣기 시작할 때 소리로 읽는다. 인사하는 동안에도 듣고 있어 끊고 말해도 된다
   const greetedRef = useRef<string | null>(null);
   const greetNextRef = useRef(false);
   const { phase, bind, listen, cancel } = useHoldToTalk({
@@ -345,7 +344,6 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
     // 이어 듣기는 KIBO가 말하는 중에도 연다. 사람이 말을 시작하면 KIBO를 멈춘다(silence.ts 끼어들기)
     talking: speechAudible,
     onBarge: hush,
-    onTooShort: () => setNotice(tx.tooShort),
     onBlocked: () => {
       setConvo(false);
       setNotice(tx.micBlocked);
@@ -354,7 +352,6 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
       setFails((f) => f + 1);
       setNotice(tx.retry);
     },
-    onAllowRetry: () => setNotice(tx.allowRetry),
     onTooLong: () => setNotice(tx.tooLong),
     onToggleOn: () => {
       setToggleNote(tx.toggleOn);
@@ -587,6 +584,8 @@ export function Phone({ room: roomProp, embedded = false }: { room?: string; emb
           <div>
             <p className="text-[28px] leading-tight font-extrabold">{tx.hello}</p>
             <p className="mt-2 text-lg text-[var(--k-muted)]">{guideOnly ? tx.guideHello : status?.kioskId ? greeting(status.kioskId, lang.tts) : tx.helloSub}</p>
+            {/* KIBO는 소리로 대답한다. 무음 모드면 안 들려 고장으로 보이니 처음에 알린다 */}
+            <p className="mt-3 text-base text-[var(--k-muted)]">🔊 {tx.soundTip}</p>
             {guideOnly ? (
               // 안내 모드: 사진 찍기와 KIBO 키오스크 QR로 잇기, 두 갈래를 그림과 함께
               <ul className="mt-6 space-y-4 text-lg leading-snug">
