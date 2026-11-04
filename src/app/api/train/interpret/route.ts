@@ -3,7 +3,7 @@ import { logError, overSize, rateLimited, tooLarge } from "@/server/guard";
 import { langOf, planSay, rejectSay } from "@/engine/turn";
 import { buttonsFor, keywordsFor } from "@/kiosks/keywords";
 import { mixedScript, replyLang } from "@/kiosks/langmix";
-import { bookingSay, clarifySay, planLead, seatNote, trainGate } from "@/kiosks/train/gates";
+import { alreadySay, bookingSay, clarifySay, planLead, seatNote, trainGate } from "@/kiosks/train/gates";
 import { fillStations, misspelledStation } from "@/kiosks/train/facts";
 import { interpret } from "@/kiosks/train/interpret";
 import type { KioskState } from "@/kiosks/train/machine";
@@ -75,7 +75,10 @@ export async function POST(req: Request) {
       // 누르기 전에는 알아들은 것(도착역·날·시각·인원)을 먼저 말한다(11/4: 'N번 눌러 드릴게요'만으로는 알아들었는지 모른다)
       lead = p.events.length > 0 ? planLead(p.final, lang) : "";
       if (idle && sparkSay) answer = sparkSay;
-      say = idle && sparkSay ? sparkSay : [lead, planSay(p.events.length, lang, gate?.kind === "ack" ? gate : null), seatNote(p.notes, lang)].filter(Boolean).join(" ");
+      // 예약 화면에서 이미 그대로인 좌석·등급을 새로 부탁하면 Spark 문장(11/5 실제 음성: 틀린 시각) 대신 예약된 좌석을 말한다
+      const sameAsked = (r.intent.seats && r.intent.seats !== pending?.seats) || (r.intent.seatClass && r.intent.seatClass !== pending?.seatClass);
+      if (idle && paymentHandoff && sameAsked && p.final.reservation) answer = alreadySay(p.final, lang);
+      say = answer ? answer : [lead, planSay(p.events.length, lang, gate?.kind === "ack" ? gate : null), seatNote(p.notes, lang)].filter(Boolean).join(" ");
       // 다시 누르기가 끝나면 휴대폰이 읽을 예약 요약(날·시각·열차·인원·좌석·합계와 결제는 직접)
       if (paymentHandoff && p.events.length > 0) booked = bookingSay(p.final, lang);
     }

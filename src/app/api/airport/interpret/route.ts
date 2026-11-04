@@ -2,6 +2,7 @@
 import { logError, overSize, rateLimited, tooLarge } from "@/server/guard";
 import { langOf, planSay, rejectSay } from "@/engine/turn";
 import { checkinLead, clarifySay, gateFor, noSeatsText } from "@/kiosks/airport/gates";
+import { fixAirlineNames } from "@/kiosks/airport/booking";
 import { interpret } from "@/kiosks/airport/interpret";
 import type { KioskState } from "@/kiosks/airport/machine";
 import { mergeIntent, plan, splitBags, type AirportIntent } from "@/kiosks/airport/planner";
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
     const before = pending ? plan(state, pending) : null;
     const waiting = before?.kind === "plan" ? before.stop : null;
     const r = await interpret(utterance, state, waiting, pending ?? {});
+    r.say = fixAirlineNames(r.say);
     const intent = mergeIntent(pending ?? {}, r.intent);
     // 나가기는 하지 않는다. 계획하지 않고 거절해, 확정 카드를 다시 띄우지 않고 고정 문구로 답하게 한다
     const p: ReturnType<typeof plan> = r.exit ? { kind: "reject", reason: "exit" } : plan(state, intent);

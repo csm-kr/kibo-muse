@@ -17,6 +17,14 @@ export const airlines: Airline[] = [
   { id: "seabird_air", name: { en: "Seabird Air", ko: "시버드항공" }, mark: "◠" },
 ];
 
+// Spark 문장 속 항공사 한국어 이름이 한 글자만 틀렸으면(같은 길이) 바른 이름으로 고친다(11/5 실제 음성: '하님스카이')
+export function fixAirlineNames(say: string) {
+  return say.replace(/\p{Script=Hangul}+/gu, (w) => {
+    const a = airlines.find(({ name: { ko: k } }) => w.length >= k.length && [...w.slice(0, k.length)].filter((c, i) => c !== k[i]).length === 1);
+    return a ? a.name.ko + w.slice(a.name.ko.length) : w;
+  });
+}
+
 export interface Passenger {
   id: string;
   title: "MR" | "MS";

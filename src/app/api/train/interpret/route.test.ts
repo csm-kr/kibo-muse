@@ -95,6 +95,18 @@ describe("/api/train/interpret", () => {
     expect(after.answer).toBe(after.say);
   });
 
+  it("예약 화면에서 이미 그대로인 좌석을 다시 부탁하면(누를 것 없음) Spark 문장 대신 예약된 좌석으로 '이미 그렇다'고 답한다(11/5 실제 음성: '창가 자리로' → '9시 1분' 틀린 시각)", async () => {
+    said({ to: "harbor", day: 1, hour: 9, adults: 1 });
+    const booked = await post("내일 아침 9시 등대항 어른 한 명");
+    const at = plan(initialState(), booked.intent);
+    if (at.kind !== "plan") throw new Error(at.kind);
+    said({ seats: "window", say: "네, 창가 자리로 반영해 드릴게요. 등대항행 내일 9시 1분 예약 확인해 주세요." });
+    const again = await (await POST(new Request("http://x/api/train/interpret", { method: "POST", body: JSON.stringify({ utterance: "창가 자리로 해 주세요", state: at.final, pending: booked.intent }) }))).json();
+    expect(again.plan.events).toHaveLength(0);
+    expect(again.say).toMatch(/^이미 그렇게 예약돼 있어요: \d+호차 \d+[A-D]\. 결제는 화면의 \[.+\]를 직접 눌러 주세요\.$/);
+    expect(again.answer).toBe(again.say);
+  });
+
   it("Spark 문장이 역 이름을 틀리게 쓰거나 모르는 {id}를 쓰면 빠진 것만 묻는 고정 문구로 바꾼다. 같은 역·7일 넘는 날·고를 수 없는 시각·맞는 열차 없음은 이유별 고정 문구로 거절한다", async () => {
     said({ to: "willow", day: 0, adults: 1, say: "버들둱으로 가시는 몇 시 열차로 하시겠어요?" });
     expect(await post("지금 바로 버들둑 가요. 어른 한 명.")).toMatchObject({ plan: { kind: "clarify", missing: ["date"] }, say: "몇 시쯤 출발할까요?" });

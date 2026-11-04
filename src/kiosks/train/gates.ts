@@ -118,6 +118,21 @@ export function planLead(s: KioskState, language: string) {
   return lead[l]({ day: dayWord[l](s.day), dep: hhmm(leg.dep), to: findStation(s.to)!.name[l === "ko" ? "ko" : "en"], pax });
 }
 
+// 예약 화면에서 이미 그대로인 좌석·등급을 다시 부탁할 때(누를 것 없음). 예약된 좌석과 결제는 직접임을 말한다
+const already: Record<Lang, (seats: string, pay: string) => string> = {
+  en: (s, p) => `It's already booked that way: ${s}. Please tap [${p}] on the screen yourself to pay.`,
+  ko: (s, p) => `이미 그렇게 예약돼 있어요: ${s}. 결제는 화면의 [${p}]를 직접 눌러 주세요.`,
+  ja: (s, p) => `すでにそのとおり予約されています（${s}）。お支払いは画面の［${p}］をご自身で押してください。`,
+  vi: (s, p) => `Vé đã được đặt như vậy rồi: ${s}. Để thanh toán, xin hãy tự bấm [${p}] trên màn hình.`,
+  zh: (s, p) => `已经按这样预订好了（${s}）。请您自己点屏幕上的［${p}］付款。`,
+  es: (s, p) => `Ya está reservado así: ${s}. Para pagar, pulse usted [${p}] en la pantalla.`,
+};
+export function alreadySay(s: KioskState, language: string) {
+  if (!s.reservation) return "";
+  const l = langOf(language);
+  return already[l](seatsText(s.reservation.seats, l), t.pay[s.lang] ?? t.pay.en);
+}
+
 export function bookingSay(s: KioskState, language: string) {
   const r = s.reservation;
   const leg = r && s.to ? legs(s.from, s.to).find((x) => x.train.no === r.trainNo) : undefined;

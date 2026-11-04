@@ -38,6 +38,17 @@ describe("/api/airport/interpret", () => {
     expect(body.say).toBe("노바윙스 체크인을 도와드릴게요. 알려 주세요: 체크인할 인원, 부치는 짐 개수.");
   });
 
+  it("Spark 문장이 항공사 한국어 이름을 한 글자 틀리면 바른 이름으로 고친다(11/5 실제 음성: '하님스카이')", async () => {
+    vi.stubEnv("MODEL_API_KEY", "test");
+    vi.stubGlobal("fetch", async () => {
+      const content = JSON.stringify({ airline: "haneul_sky", travelers: 1, seats: "none", bags: -1, exit: false, replyLanguage: "ko", say: "하님스카이 1명으로 알겠어요. 위탁하실 짐은 몇 개인가요?" });
+      return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+    });
+    const body = await (await POST(new Request("http://x/api/airport/interpret", { method: "POST", body: JSON.stringify({ utterance: "그럼 하늘스카이요 한 명이요", state: initialState() }) }))).json();
+    expect(body.plan.kind).toBe("clarify");
+    expect(body.say).toBe("하늘스카이 1명으로 알겠어요. 위탁하실 짐은 몇 개인가요?");
+  });
+
   it("휴대폰 언어(?lang)가 대답 언어다: Spark가 영어로 되물어도 한국어 휴대폰에는 한국어 고정 되묻기로 답한다", async () => {
     vi.stubEnv("MODEL_API_KEY", "test");
     vi.stubGlobal("fetch", async () => {

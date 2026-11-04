@@ -329,6 +329,7 @@ export const rejectSay = (reason: string, lang: string, vars: Record<string, str
 // 휴대폰(turn)과 서버 route가 같이 쓴다. Spark 문장은 하지 않은 일을 말할 수 있어 쓰지 않는다
 export function planSay(n: number, lang: string, gate?: { what: string; button?: string } | null) {
   const l = langOf(lang);
+  if (n === 1 && (l === "en" || l === "es")) return l === "en" ? "Got it. I'll make the tap for you." : "Entendido. Haré el toque por usted.";
   if (n > 0) return phrases.taps[l].replace("{n}", String(n));
   if (gate) return (gate.what === "dangerous_goods" ? phrases.askDangerous : gate.what === "later_train" ? phrases.askLater : phrases.askConfirm)[l].replace("{b}", gate.button ?? "");
   return phrases.none[l];

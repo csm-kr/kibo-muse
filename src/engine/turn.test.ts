@@ -331,4 +331,10 @@ describe("계획 고정 문구", () => {
     expect(planSay(0, "ko", { what: "later_train", button: "이 열차로 할게요" })).toBe('이 열차로 하시려면 "네"라고 말씀하시거나 [이 열차로 할게요] 버튼을 눌러 주세요.');
     expect(planSay(0, "en", { what: "later_train", button: "Take this train" })).toBe('To take this train, say "yes" or tap [Take this train].');
   });
+
+  it("1번 누를 때 영어·스페인어는 단수로 말한다(11/5 실제 음성: \"I'll make the 1 taps\")", () => {
+    expect(planSay(1, "en")).toBe("Got it. I'll make the tap for you.");
+    expect(planSay(1, "es")).toBe("Entendido. Haré el toque por usted.");
+    expect(planSay(2, "en")).toBe("Got it. I'll make the 2 taps for you.");
+  });
 });
