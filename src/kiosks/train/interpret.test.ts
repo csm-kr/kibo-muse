@@ -23,6 +23,8 @@ describe("Spark 해석 어댑터 — 기차 승차권", () => {
     expect(sent!.messages[1].content).toContain("Machine clock: 13:00 (today = day 0)");
     expect(sent!.messages[1].content).toContain("waiting for: confirmation to take the later train 103 at 10:30");
     expect(sent!.messages[1].content).toContain("Already known from earlier (do not ask again): children=0");
+    // 11/5 실제 음성: "할머니랑 저 둘이"가 어떤 때는 어른 2명이 됐다
+    expect(sent!.messages[0].content).toContain('A grandparent (할머니, 할아버지, grandma, grandpa) counts as a senior');
     expect(r.intent).toEqual({ to: "harbor", day: 1, hour: 9, minute: 30, adults: 12, trainType: "express", seats: "window" });
     expect([r.unsupported, r.unknownFrom, r.unknownTo, r.exit, r.replyLanguage]).toEqual(["none", "", "", false, "ko"]);
 

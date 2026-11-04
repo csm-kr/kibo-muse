@@ -45,7 +45,7 @@ Runs are resumable: conversations already in the output file are skipped.
 
 ## Results
 
-"Before" is build 22 (Nov 4, before any of these fixes). "Final" is build 24 for fast food and airport (eighth run; since build 23 the prompts also quote each item's price exactly, never claim a cart change while asking, and keep Hangul out of non-Korean replies) and build 23 for train (third run; the train code did not change after it). Rubric = share of turns judged right; conversations = all turns right. Spark = median Spark time per turn on the dev server, three requests sent at once.
+"Before" is build 22 (Nov 4, before any of these fixes). "Final" is build 24 for fast food and airport (eighth run; since build 23 the prompts also quote each item's price exactly, never claim a cart change while asking, and keep Hangul out of non-Korean replies) and build 26 for train (tenth run; since build 23 a grandparent counts as a senior, and an already-booked seat asked for again gets the booked seat from the server). Rubric = share of turns judged right; conversations = all turns right. Spark = median Spark time per turn on the dev server, three requests sent at once.
 
 | Set | Auto checks clean | Rubric | Conversations | Spark median |
 |---|---|---|---|---|
@@ -53,8 +53,8 @@ Runs are resumable: conversations already in the output file are skipped.
 | Fast food, held out | 79% → 100% | 79% → 100% | 9 → 12 of 12 | 4.0 s → 2.4 s |
 | Airport, development | 56% → 98% | 43% → 98% | 12 → 46 of 47 | 4.2 s → 3.6 s |
 | Airport, held out | 58% → 100% | 33% → 83% | 3 → 9 of 11 | 4.6 s → 4.1 s |
-| Train, development | 97% → 97% | 95% → 98% | 46 → 48 of 49 | 4.9 s → 4.6 s |
-| Train, held out | 100% → 93% | 100% → 93% | 12 → 11 of 12 | 4.6 s → 4.4 s |
+| Train, development | 97% → 97% | 95% → 98% | 46 → 48 of 49 | 4.9 s → 3.7 s |
+| Train, held out | 100% → 100% | 100% → 100% | 12 → 12 of 12 | 4.6 s → 4.1 s |
 
 In every final run the rubric found no fact errors, no claimed actions or payments that did not happen, and no reply repeated twice in a row. The remaining automatic hits are false positives the rubric judged correct: one (b) on fast food ("라지 콜라" for the drink of an L meal), one (e) on airport (a first-time user is told what to say next), and two (e) on train (the fixed refusal for discounts). Non-Korean replies in the final fast food and airport runs contain no Hangul.
 
@@ -63,6 +63,6 @@ In every final run the rubric found no fact errors, no claimed actions or paymen
 **What still fails (final runs).**
 - Fast food: "포장이요" as the first words gets the eat-in/take-out tap but no question about what to eat in the console (the phone's done message asks it); "불고기로요" after "버거 세트 하나" asks set or single again; one run left out that mobile vouchers are accepted.
 - Airport: after check-in the kiosk returns to its first screen after 20 s, so "one more bag" starts a new check-in; two held-out questions ask about facts the kiosk shows but the prompt does not carry (in the final run one of them got only the check-in question, without "I don't know").
-- Train: a round-trip request gets the fixed one-way-only refusal without offering the one-way ticket; one held-out fare question in Japanese got only the follow-up question, because the language guard dropped Spark's answer (the same turn passed in r2).
+- Train: a round-trip request gets the fixed one-way-only refusal without offering the one-way ticket.
 
 Files: `results/<kiosk>.<set>.{before,final}.json` (replies), `….rubric.json` (rubric labels: PASS/FAIL, reason, layer).

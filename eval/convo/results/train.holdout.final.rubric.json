@@ -8,7 +8,7 @@
 "tr35#0":["PASS","11 taps to payment, stops before pay"],
 "tr40#0":["PASS","ok"],
 "tr45#0":["PASS","ok"],
-"tr50#0":["FAIL","fact question answered only with fixed clarify template; Spark sentence dropped by the language/script/station filter (route.ts:50,62); r2 answered","Spark→server fallback"],
+"tr50#0":["PASS","Japanese fare 52,800 / 79,200 / 28,800"],
 "tr55#0":["PASS","ok"],
 "tr55#1":["PASS","ok"],
 "tr60#0":["PASS","ok"],
