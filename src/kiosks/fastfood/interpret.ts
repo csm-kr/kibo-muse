@@ -47,6 +47,15 @@ export const intentSchema = {
   required: ["orderType", "items", "current", "dropCurrent", "unknownItems", "checkout", "requestPayment", "unsupported", "replyLanguage", "say"],
 };
 
+// 화면에 고르던 상품이 없으면 current·dropCurrent는 늘 none·false다(계획기도 쓰지 않는다). 그 칸을 빼면
+// Spark 출력이 약 100토큰 줄어 요청 하나가 1초 남짓 빨라진다(11/4 측정: 출력 653→371자, 단일 요청 p50 8.5→7.3초)
+const DRAFT_ONLY = ["current", "dropCurrent"];
+const noDraftSchema = {
+  ...intentSchema,
+  properties: Object.fromEntries(Object.entries(intentSchema.properties).filter(([k]) => !DRAFT_ONLY.includes(k))),
+  required: intentSchema.required.filter((k) => !DRAFT_ONLY.includes(k)),
+};
+
 interface RawLine {
   menuId: string;
   mode: string;
@@ -178,6 +187,6 @@ function toIntent(raw: RawIntent): FastfoodIntent {
 
 export async function interpret(utterance: string, state: KioskState, pending?: FastfoodIntent, opts: SparkOptions = {}): Promise<InterpretResult> {
   const user = `${summarize(state, pending)}\nCustomer said: ${utterance}`;
-  const r = await sparkJson<RawIntent>(SYSTEM, user, "FastfoodIntent", intentSchema, opts);
+  const r = await sparkJson<RawIntent>(SYSTEM, user, "FastfoodIntent", state.draft ? intentSchema : noDraftSchema, opts);
   return { intent: toIntent(r.json), unknownItems: r.json.unknownItems ?? [], unsupported: r.json.unsupported ?? NONE, replyLanguage: r.json.replyLanguage, say: r.json.say, ms: r.ms, usage: r.usage };
 }

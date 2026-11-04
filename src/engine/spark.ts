@@ -47,9 +47,10 @@ export async function sparkJson<T>(system: string, user: string | object[], sche
     if (typeof content !== "string") throw new Error("Spark response has no content");
     return { ctrl, json: JSON.parse(content) as T, usage: body.usage };
   };
-  // 글 요청(해석)은 같은 요청 2개를 동시에 보내 먼저 끝난 답을 쓴다. Spark는 같은 입력도 3초·23초로 갈린다(2026-11-03 측정, 평가 통과).
-  // 진 쪽은 끊어 함수 시간을 쓰지 않는다. 한쪽이 실패하면 다른 쪽을 기다린다. 사진 요청(안내)은 하나만 보낸다
-  const ctrls = typeof user === "string" ? [new AbortController(), new AbortController()] : [new AbortController()];
+  // 글 요청(해석)은 같은 요청 3개를 동시에 보내 먼저 끝난 답을 쓴다. Spark는 같은 입력도 3초·23초로 갈린다(2026-11-03 측정, 평가 통과).
+  // 11/4 밤: 요청의 약 1/3이 4~5초 더 걸려 2개로는 둘 다 느린 때가 잦다(되묻기 대답 p90: 2개 8.5초, 3개 4.6초, 다시 뽑기).
+  // 진 쪽은 끊어 함수 시간을 쓰지 않는다. 일부가 실패하면 남은 쪽을 기다린다. 사진 요청(안내)은 하나만 보낸다
+  const ctrls = typeof user === "string" ? [new AbortController(), new AbortController(), new AbortController()] : [new AbortController()];
   const won = await Promise.any(ctrls.map(one)).catch((e: AggregateError) => {
     throw e.errors[0];
   });

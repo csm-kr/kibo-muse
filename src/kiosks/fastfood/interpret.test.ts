@@ -62,4 +62,21 @@ describe("Spark 해석 어댑터 — 패스트푸드", () => {
     expect(user).toContain('Asked a question last turn about: {"items":[{"menuId":"apple_pie"}],"checkout":true}');
     expect(r.intent).toEqual({ items: [], current: { size: "L", drink: "cola" }, checkout: false, requestPayment: false });
   });
+
+  it("화면에 고르던 상품이 없으면 current·dropCurrent 칸을 스키마에서 뺀다(늘 none인 칸을 쓰느라 Spark가 늦어지지 않게). 있으면 둔다", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 요청 본문의 스키마를 들여다보는 테스트
+    const schemas: any[] = [];
+    const fakeFetch = async (_url: string | URL | Request, init?: RequestInit) => {
+      schemas.push(JSON.parse(String(init?.body)).response_format.json_schema.schema);
+      const content = JSON.stringify({ orderType: "none", items: [], unknownItems: [], checkout: false, requestPayment: false, unsupported: "none", replyLanguage: "ko", say: "네" });
+      return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
+    };
+    const stuck = { ...initialState(), screen: "set_size" as const, orderType: "eat_in" as const, draft: { menuId: "double_cheese", mode: "set" as const, size: null, side: null, drink: null, remove: [], add: [], qty: 1 } };
+    await interpret("치즈버거 세트 하나요", initialState(), undefined, { apiKey: "test", fetch: fakeFetch });
+    await interpret("라지요", stuck, undefined, { apiKey: "test", fetch: fakeFetch });
+    const fields = (s: { properties: object; required: string[] }) => [Object.keys(s.properties).filter((k) => k === "current" || k === "dropCurrent"), s.required.filter((k) => k === "current" || k === "dropCurrent")];
+    expect(fields(schemas[0])).toEqual([[], []]);
+    // 해석은 같은 요청을 여러 개씩 보낸다(헤지). 마지막 것이 두 번째 해석의 요청이다
+    expect(fields(schemas[schemas.length - 1])).toEqual([["current", "dropCurrent"], ["current", "dropCurrent"]]);
+  });
 });
