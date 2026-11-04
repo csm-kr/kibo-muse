@@ -35,6 +35,11 @@ describe("/api/fastfood/interpret", () => {
     const r2 = await (await POST(new Request("http://x/api/fastfood/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "제일 싼 버거가 뭐예요?", state: menu }) }))).json();
     expect(r2.plan.kind).toBe("reject");
     expect(r2.say).toBe("제일 싼 버거는 불고기버거 4,800원입니다.");
+    // 메뉴 화면(매장 식사가 이미 정해짐)에서 Spark가 그 값을 되풀이해 내도 할 일이 없는 말이다(11/4 실기기 "무슨 버거 있어?"에 '누를 버튼이 없어요')
+    fakeSpark({ ...base, orderType: "eat_in", unsupported: "none", say: "버거는 불고기버거, 새우버거가 있어요." });
+    const onMenu = { ...initialState(), screen: "menu", orderType: "eat_in" };
+    const r3 = await (await POST(new Request("http://x/api/fastfood/interpret?lang=Korean", { method: "POST", body: JSON.stringify({ utterance: "무슨 버거 있어요?", state: onMenu }) }))).json();
+    expect(r3.say).toBe("버거는 불고기버거, 새우버거가 있어요.");
     fakeSpark({ ...base, unsupported: "none", replyLanguage: "en", say: "Hi! What would you like?" });
     expect((await call("안녕하세요", "?lang=Korean")).say).toBe(rejectSay("chat", "ko"));
   });

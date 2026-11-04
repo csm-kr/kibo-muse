@@ -41,7 +41,8 @@ export async function POST(req: Request) {
     // 담을 품목 이름과 빠진 칸으로 만든 고정 문구로 바꾼다
     const foreign = phone !== null && langOf(r.replyLanguage) !== lang;
     // 주문이 아닌 말(인사·메뉴 질문): 할 일이 없으면 일반 거절 대신 Spark 응대 문장. 휴대폰 언어가 아니거나 섞였으면 고정 인사(11/4 실기기 "안녕하세요")
-    const nothing = !r.intent.items?.length && !r.intent.orderType && !r.intent.current && !r.intent.dropCurrent && !r.intent.checkout && !r.intent.requestPayment && r.unsupported === "none";
+    // 이미 정해진 매장·포장을 Spark가 되풀이한 것은 할 일이 아니다(11/4 실기기: 메뉴 화면 "무슨 버거 있어?"에 '누를 버튼이 없어요')
+    const nothing = !r.intent.items?.length && (!r.intent.orderType || r.intent.orderType === state.orderType) && !r.intent.current && !r.intent.dropCurrent && !r.intent.checkout && !r.intent.requestPayment && r.unsupported === "none";
     const chat = nothing && ((p.kind === "reject" && p.reason === "bad_order_type") || (p.kind === "plan" && p.events.length === 0));
     const chatSay = chat ? (langOf(r.replyLanguage) !== lang || mixedScript(r.say, r.replyLanguage, utterance, [...keywordsFor("fastfood"), ...buttonsFor("fastfood")]) ? rejectSay("chat", lang) : r.say) : null;
     // 첫 화면에서 할 일이 없는 말이면 [Order here]만 먼저 눌러 매장·포장 화면을 띄운다(되묻기처럼 답하고 아는 만큼 먼저 누르기).
